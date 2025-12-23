@@ -4,14 +4,13 @@ Version: 2024.6.24
 Authors@R: c(
   person(c("Beatriz","Valcarcel"), "Salamanca", email = "beva@fhi.no", role = c("aut")),
   person("Chi", "Zhang", email = "andreachizhang@yahoo.com", role = c("aut"), comment = c(ORCID = "0000-0003-0501-5909")),
-  person(c("Richard","Aubrey"), "White", email = "hello@rwhite.no", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6747-1726")),
-  person("CSIDS", email = "hello@csids.no", role = c("cph"))
+  person(c("Richard","Aubrey"), "White", email = "hello@rwhite.no", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6747-1726"))
   )
 Description: Helps create alerts and determine trends by using various methods to analyze public health surveillance data. The primary analysis method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.
 Depends: R (>= 3.3.0)
 License: MIT + file LICENSE
-URL: https://www.csids.no/csalert/, https://github.com/csids/csalert
-BugReports: https://github.com/csids/csalert/issues
+URL: https://niphr.github.io/csalert/, https://github.com/niphr/csalert
+BugReports: https://github.com/niphr/csalert/issues
 Encoding: UTF-8
 LazyData: true
 Imports: data.table,

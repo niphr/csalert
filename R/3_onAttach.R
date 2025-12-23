@@ -7,11 +7,11 @@
         1
       }
     )
-  
+
   packageStartupMessage(paste0(
     "csalert ",
     version,
     "\n",
-    "https://www.csids.no/csalert/"
+    "https://niphr.github.io/csalert/"
   ))
 }
