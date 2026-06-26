@@ -10,11 +10,13 @@
 nowcast_delay_cumdist <- function(ds, ref_col, rep_col, val_col, as_of, max_delay) {
   ds <- ds[get(val_col) > 0]
   ll <- ds[rep(seq_len(.N), ds[[val_col]])]
+  if (nrow(ll) == 0) return(rep(1, max_delay))    # nothing observed -> no completion
   ref_date <- cstime::isoyearweek_to_last_date(ll[[ref_col]])
   rep_date <- cstime::isoyearweek_to_last_date(ll[[rep_col]])
   as_of_date <- cstime::isoyearweek_to_last_date(as_of)
 
   delay     <- pmax(0, round(as.numeric(rep_date - ref_date) / 7))
+  if (max(delay) == 0) return(rep(1, max_delay))  # passthrough: all reported at delay 0
   max_diff  <- round(as.numeric(as_of_date - ref_date) / 7)
   init_time <- round(as.numeric(rep_date - min(ref_date)) / 7)
 
@@ -64,35 +66,46 @@ nowcast <- function(x, ...) {
 #' @rdname nowcast
 #' @param max_delay Delay horizon in weeks.
 #' @param n_sim Number of nowcast draws.
+#' @param denominator_col Optional denominator column in the triangle to nowcast
+#'   alongside the numerator (index-aligned, for rates). The completed draw matrix
+#'   is added as a second measure.
 #' @export
-nowcast.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000, ...) {
+nowcast.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
+                                                denominator_col = NULL, ...) {
   if (!requireNamespace("flexsurv", quietly = TRUE))
     stop("nowcast requires the 'flexsurv' package")
   id_cols <- attr(x, "id_cols")
   ref_col <- attr(x, "reference_col"); rep_col <- attr(x, "reporting_col")
   val_col <- attr(x, "value_col");     as_of   <- attr(x, "as_of")
+  value_cols <- c(val_col, denominator_col)
 
-  rts <- reporting_triangle_matrix(x, max_delay)
   d_tri <- data.table::as.data.table(x)
+  rts_num <- reporting_triangle_matrix(x, max_delay, value_col = val_col)
+  series_ids <- names(rts_num)
 
-  data_rows <- list(); draw_rows <- list()
-  for (tsid in names(rts)) {
-    refs <- rts[[tsid]]$reference
-    mat  <- rts[[tsid]]$mat
-    cum_by_delay <- nowcast_delay_cumdist(d_tri[time_series_id == tsid],
-                                          ref_col, rep_col, val_col, as_of, max_delay)
-    draws <- nowcast_complete(mat, cum_by_delay, n_sim)
-
+  # $data (identity + reference weeks + observed numerator), built once. The
+  # reference grid is identical across value columns (num/denom share rows).
+  data_rows <- list()
+  for (tsid in series_ids) {
+    refs <- rts_num[[tsid]]$reference
     idvals <- unique(d_tri[time_series_id == tsid, id_cols, with = FALSE])[rep(1L, length(refs))]
     idvals[, isoyearweek := refs]
-    idvals[, original := rowSums(mat)]
+    idvals[, original := rowSums(rts_num[[tsid]]$mat)]
     data_rows[[tsid]] <- idvals
-    draw_rows[[tsid]] <- draws
+  }
+  data <- data.table::rbindlist(data_rows)
+
+  # complete each measure (numerator + optional denominator), per series
+  draws <- list()
+  for (vc in value_cols) {
+    rts <- reporting_triangle_matrix(x, max_delay, value_col = vc)
+    chunks <- lapply(series_ids, function(tsid) {
+      cum_by_delay <- nowcast_delay_cumdist(d_tri[time_series_id == tsid],
+                                            ref_col, rep_col, vc, as_of, max_delay)
+      nowcast_complete(rts[[tsid]]$mat, cum_by_delay, n_sim)
+    })
+    draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)
   }
 
-  data <- data.table::rbindlist(data_rows)
-  draws_mat <- do.call(rbind, draw_rows)
-  measure <- csfmt_var(val_col, role = "nowcasted")
-  csfmt_ensemble_v3(data, id_cols = id_cols, time_col = "isoyearweek",
-                    draws = stats::setNames(list(draws_mat), measure))
+  csfmt_ensemble_v3(data, id_cols = id_cols, time_col = "isoyearweek", draws = draws)
 }

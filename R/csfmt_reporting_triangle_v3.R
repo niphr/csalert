@@ -42,14 +42,17 @@ csfmt_reporting_triangle_v3 <- function(data, id_cols,
 #' Densify a reporting triangle into per-series reference x delay count matrices
 #' @param triangle A `csfmt_reporting_triangle_v3`.
 #' @param max_delay Number of delay columns (delay 0 .. max_delay-1, in weeks).
+#' @param value_col Which value column to reshape (default the triangle's
+#'   `value_col`; pass a denominator column to reshape that instead).
 #' @returns Named list (by time_series_id) of `list(reference, mat)`, where `mat`
 #'   is a reference x delay count matrix (zeros filled within the observed region).
 #' @export
-reporting_triangle_matrix <- function(triangle, max_delay) {
+reporting_triangle_matrix <- function(triangle, max_delay,
+                                      value_col = attr(triangle, "value_col")) {
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
   ref_col <- attr(triangle, "reference_col")
   rep_col <- attr(triangle, "reporting_col")
-  val_col <- attr(triangle, "value_col")
+  val_col <- value_col
 
   d <- data.table::as.data.table(triangle)
   d[, .ref := get(ref_col)]
