@@ -19,6 +19,7 @@ Imports: data.table,
     glm2,
     cstidy,
     cstime,
+    digest,
     lubridate,
     stringr,
     surveillance
@@ -31,6 +32,7 @@ Suggests: testthat,
     csdata,
     csmaps,
     ggrepel,
+    matrixStats,
     plnr
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
