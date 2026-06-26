@@ -21,6 +21,7 @@ Imports: data.table,
     cstime,
     digest,
     lubridate,
+    matrixStats,
     stringr,
     surveillance
 Suggests: testthat,
@@ -32,7 +33,6 @@ Suggests: testthat,
     csdata,
     csmaps,
     ggrepel,
-    matrixStats,
     plnr
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
