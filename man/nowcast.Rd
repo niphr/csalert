@@ -7,7 +7,7 @@
 \usage{
 nowcast(x, ...)
 
-\method{nowcast}{csfmt_reporting_triangle_v3}(x, max_delay, n_sim = 1000, ...)
+\method{nowcast}{csfmt_reporting_triangle_v3}(x, max_delay, n_sim = 1000, denominator_col = NULL, ...)
 }
 \arguments{
 \item{x}{A `csfmt_reporting_triangle_v3`.}
@@ -17,6 +17,10 @@ nowcast(x, ...)
 \item{max_delay}{Delay horizon in weeks.}
 
 \item{n_sim}{Number of nowcast draws.}
+
+\item{denominator_col}{Optional denominator column in the triangle to nowcast
+alongside the numerator (index-aligned, for rates). The completed draw matrix
+is added as a second measure.}
 }
 \description{
 Nowcast a reporting triangle into an ensemble
