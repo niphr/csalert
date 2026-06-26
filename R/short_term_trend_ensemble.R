@@ -1,4 +1,4 @@
-# Batched short-term trend on a csfmt_ensemble.
+# Batched short-term trend on a csfmt_ensemble_v3.
 #
 # The fast path: a fixed closed-form OLS slope kernel applied down every draw
 # column at once (the "shared design matrix"). For a window of width w the slope
@@ -46,13 +46,13 @@ rolling_slope_matrix <- function(Y, width) {
   list(beta0 = beta0, beta1 = beta1, se = se)
 }
 
-#' @method short_term_trend csfmt_ensemble
+#' @method short_term_trend csfmt_ensemble_v3
 #' @rdname short_term_trend
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
 #' @export
-short_term_trend.csfmt_ensemble <- function(x, measure, trend_isoyearweeks = 3, ...) {
-  stopifnot(inherits(x, "csfmt_ensemble"))
+short_term_trend.csfmt_ensemble_v3 <- function(x, measure, trend_isoyearweeks = 3, ...) {
+  stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!measure %in% names(x$draws))
     stop(sprintf("measure '%s' not in $draws (have: %s)", measure,
                  paste(names(x$draws), collapse = ", ")))

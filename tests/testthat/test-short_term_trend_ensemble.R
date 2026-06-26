@@ -15,13 +15,13 @@ test_that("rolling_slope_matrix is bit-identical to per-column OLS", {
   expect_true(all(is.na(rs$beta1[1:(width - 1), ])))
 })
 
-test_that("short_term_trend.csfmt_ensemble adds seam-masked gr/beta1 draws", {
+test_that("short_term_trend.csfmt_ensemble_v3 adds seam-masked gr/beta1 draws", {
   wk <- cstime::dates_by_isoyearweek[isoyear == 2020]$isoyearweek
   d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
                               isoyearweek = wk)
   n <- nrow(d)
   M <- matrix(rep(seq_len(n) * 5, 6), nrow = n)   # increasing level, 6 draws
-  ens <- csfmt_ensemble(d, id_cols = c("indicator", "location", "age"),
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
 
   out <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
@@ -41,7 +41,7 @@ test_that("stacked series do not contaminate across the seam", {
     data.table::data.table(indicator = "rsv", location = "nation", age = "total", isoyearweek = wk)
   )
   M <- matrix(c(seq_len(n1) * 5, seq_len(n1) * 5), ncol = 1)  # two ramps stacked, 1 draw
-  ens <- csfmt_ensemble(d, id_cols = c("indicator", "location", "age"),
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
 
   out <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
@@ -55,7 +55,7 @@ test_that("stacked series do not contaminate across the seam", {
 test_that("missing measure errors", {
   d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
                               isoyearweek = c("2020-01", "2020-02", "2020-03"))
-  ens <- csfmt_ensemble(d, id_cols = c("indicator", "location", "age"),
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = matrix(1:9, 3)))
   expect_error(short_term_trend(ens, measure = "nope"), "not in")
 })

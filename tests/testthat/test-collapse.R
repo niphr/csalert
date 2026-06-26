@@ -5,7 +5,7 @@ test_that("collapse adds named quantile columns and drops the draws", {
   d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
                               isoyearweek = c("2020-01", "2020-02"))
   M <- matrix(stats::rpois(2 * 1000, 50), nrow = 2)
-  ens <- csfmt_ensemble(d, id_cols = c("indicator", "location", "age"),
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
 
   out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
@@ -19,7 +19,7 @@ test_that("collapse quantiles match a direct rowQuantiles", {
   d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
                               isoyearweek = sprintf("2020-%02d", 1:5))
   M <- matrix(stats::rpois(5 * 1000, 40), nrow = 5)
-  ens <- csfmt_ensemble(d, id_cols = c("indicator", "location", "age"),
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
 
   out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
@@ -36,7 +36,7 @@ test_that("collapse handles multiple measures (nowcast + trend)", {
   d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
                               isoyearweek = wk)
   M <- matrix(stats::rpois(n * 200, 40), nrow = n)
-  ens <- csfmt_ensemble(d, id_cols = c("indicator", "location", "age"),
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
   ens <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
 

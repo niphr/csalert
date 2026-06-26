@@ -7,14 +7,14 @@
 # Lossy and one-way: all draw-level work (trend, mem/hlm classification) must
 # happen BEFORE collapse, while the draws still exist.
 
-#' Collapse a csfmt_ensemble to a quantile-summary data.table
-#' @param ens A `csfmt_ensemble`.
+#' Collapse a csfmt_ensemble_v3 to a quantile-summary data.table
+#' @param ens A `csfmt_ensemble_v3`.
 #' @param probs Numeric vector of probabilities for the quantile columns.
 #' @returns A `data.table`: `$data` plus `<measure>_qNNxN` columns for every
 #'   measure in `$draws`; no draws.
 #' @export
 collapse <- function(ens, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975)) {
-  stopifnot(inherits(ens, "csfmt_ensemble"), is.numeric(probs))
+  stopifnot(inherits(ens, "csfmt_ensemble_v3"), is.numeric(probs))
   d <- data.table::copy(ens$data)
 
   for (m in names(ens$draws)) {

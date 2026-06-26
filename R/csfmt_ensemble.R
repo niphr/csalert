@@ -1,4 +1,4 @@
-# csfmt_ensemble: the working format for draw-parallel surveillance analysis.
+# csfmt_ensemble_v3: the working format for draw-parallel surveillance analysis.
 #
 # An S3 list with two slots:
 #   $data  - a data.table, one row per (series x time), the canonical front
@@ -36,15 +36,15 @@ set_time_series_id <- function(d, id_cols, sep = "") {
   invisible(d)
 }
 
-#' Construct a csfmt_ensemble
+#' Construct a csfmt_ensemble_v3
 #' @param data data.table with the identity columns and `time_col`.
 #' @param id_cols Character vector of identity columns defining a series.
 #' @param time_col Time-ordering column (default "isoyearweek").
 #' @param draws Optional named list of `[nrow(data) x n_draws]` matrices, given in
 #'   `data`'s input row order (they are reordered to match the canonical sort).
-#' @returns A `csfmt_ensemble`.
+#' @returns A `csfmt_ensemble_v3`.
 #' @export
-csfmt_ensemble <- function(data, id_cols, time_col = "isoyearweek", draws = list()) {
+csfmt_ensemble_v3 <- function(data, id_cols, time_col = "isoyearweek", draws = list()) {
   stopifnot(data.table::is.data.table(data),
             all(id_cols %in% names(data)),
             time_col %in% names(data))
@@ -68,15 +68,15 @@ csfmt_ensemble <- function(data, id_cols, time_col = "isoyearweek", draws = list
     draws <- lapply(draws, function(M) M[perm, , drop = FALSE])
   }
 
-  validate_ensemble(structure(list(data = d, draws = draws), class = "csfmt_ensemble"))
+  validate_ensemble(structure(list(data = d, draws = draws), class = "csfmt_ensemble_v3"))
 }
 
-#' Validate a csfmt_ensemble's invariants
-#' @param ens A `csfmt_ensemble`.
+#' Validate a csfmt_ensemble_v3's invariants
+#' @param ens A `csfmt_ensemble_v3`.
 #' @returns `ens` invisibly; errors on violation.
 #' @export
 validate_ensemble <- function(ens) {
-  stopifnot(inherits(ens, "csfmt_ensemble"),
+  stopifnot(inherits(ens, "csfmt_ensemble_v3"),
             data.table::is.data.table(ens$data),
             is.list(ens$draws))
   need <- c("time_series_id", "time_series_internal_id")
@@ -93,8 +93,8 @@ validate_ensemble <- function(ens) {
 }
 
 #' @export
-print.csfmt_ensemble <- function(x, ...) {
-  cat(sprintf("<csfmt_ensemble> %d rows | %d series | draws: %s\n",
+print.csfmt_ensemble_v3 <- function(x, ...) {
+  cat(sprintf("<csfmt_ensemble_v3> %d rows | %d series | draws: %s\n",
               nrow(x$data),
               data.table::uniqueN(x$data$time_series_id),
               if (length(x$draws)) paste(names(x$draws), collapse = ", ") else "none"))
