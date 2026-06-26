@@ -31,6 +31,10 @@ test_that("short_term_trend.csfmt_ensemble_v3 adds seam-masked gr/beta1 draws", 
   gr <- out$draws[["cases_trend_gr"]]
   expect_true(all(is.na(gr[1:2, ])))          # leading width-1 rows masked
   expect_true(all(gr[3:n, ] > 0))             # increasing -> positive growth
+
+  # P(increasing) emitted as a point column; 1 for a monotone increasing series
+  expect_true("cases_trend_increasing_pr" %in% names(out$data))
+  expect_equal(out$data$cases_trend_increasing_pr[3:n], rep(1, n - 2))
 })
 
 test_that("stacked series do not contaminate across the seam", {

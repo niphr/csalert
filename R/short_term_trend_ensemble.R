@@ -72,5 +72,12 @@ short_term_trend.csfmt_ensemble_v3 <- function(x, measure, trend_isoyearweeks = 
 
   x$draws[[csfmt_var(measure, role = "trend", suffix = "_beta1")]] <- rs$beta1
   x$draws[[csfmt_var(measure, role = "trend", suffix = "_gr")]]    <- gr
+
+  # P(increasing) = fraction of draws with a positive slope (a point column, not
+  # a draw matrix, since it is already a reduction over the draw axis)
+  inc <- rowMeans(rs$beta1 > 0, na.rm = TRUE)
+  inc[is.nan(inc)] <- NA_real_
+  x$data[[csfmt_var(measure, role = "trend", suffix = "_increasing_pr")]] <- inc
+
   validate_ensemble(x)
 }
