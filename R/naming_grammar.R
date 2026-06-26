@@ -76,7 +76,8 @@ csfmt_var <- function(measure, denom = NULL, role = NULL, q = NULL,
 }
 
 # known role vocabulary, for parsing
-.csfmt_roles <- c("observed", "nowcasted", "forecasted", "trend", "baseline", "status")
+.csfmt_roles <- c("observed", "nowcasted", "forecasted", "trend", "baseline",
+                  "status", "hlmstatus")
 
 #' Parse a csfmt measure column name into components (inverse of [csfmt_var])
 #' @param varname Character scalar column name.
