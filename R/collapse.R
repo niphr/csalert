@@ -7,13 +7,16 @@
 # Lossy and one-way: all draw-level work (trend, mem/hlm classification) must
 # happen BEFORE collapse, while the draws still exist.
 
-#' Collapse a csfmt_ensemble_v3 to a quantile-summary data.table
+#' Collapse a csfmt_ensemble_v3 to a quantile-summary
 #' @param ens A `csfmt_ensemble_v3`.
 #' @param probs Numeric vector of probabilities for the quantile columns.
-#' @returns A `data.table`: `$data` plus `<measure>_qNNxN` columns for every
-#'   measure in `$draws`; no draws.
+#' @param heal If TRUE, heal the result into a `cstidy::csfmt_rts_data_v3` (the
+#'   clean weekly csfmt) instead of returning a plain data.table.
+#' @returns A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
+#'   `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
 #' @export
-collapse <- function(ens, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975)) {
+collapse <- function(ens, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
+                     heal = FALSE) {
   stopifnot(inherits(ens, "csfmt_ensemble_v3"), is.numeric(probs))
   d <- data.table::copy(ens$data)
 
@@ -30,6 +33,12 @@ collapse <- function(ens, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975))
       # ordinal status: probability per level + ordinal quantiles
       collapse_status_into(d, m, M, levs, probs)
     }
+  }
+
+  if (heal) {
+    if (!requireNamespace("cstidy", quietly = TRUE))
+      stop("collapse(heal = TRUE) requires the 'cstidy' package")
+    cstidy::set_csfmt_rts_data_v3(d)   # heal ONCE, here, into the clean csfmt
   }
   d[]
 }
