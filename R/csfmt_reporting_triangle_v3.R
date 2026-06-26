@@ -30,6 +30,7 @@ csfmt_reporting_triangle_v3 <- function(data, id_cols,
     stop("negative counts in the reporting triangle")
 
   set_time_series_id(d, id_cols)
+  data.table::setattr(d, "id_cols", id_cols)
   data.table::setattr(d, "as_of", max(d[[reporting_col]]))
   data.table::setattr(d, "reference_col", reference_col)
   data.table::setattr(d, "reporting_col", reporting_col)
