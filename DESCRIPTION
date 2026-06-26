@@ -36,5 +36,5 @@ Suggests: testthat,
     ggrepel,
     mem,
     plnr
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 VignetteBuilder: knitr
