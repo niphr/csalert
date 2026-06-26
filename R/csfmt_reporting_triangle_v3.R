@@ -58,16 +58,26 @@ reporting_triangle_matrix <- function(triangle, max_delay) {
       cstime::isoyearweek_to_last_date(get(ref_col))) / 7)]
   d <- d[.delay >= 0 & .delay < max_delay]
 
+  all_weeks  <- cstime::dates_by_isoyearweek$isoyearweek
   delay_cols <- as.character(0:(max_delay - 1))
+
   out <- list()
   for (tsid in unique(d$time_series_id)) {
     ds <- d[time_series_id == tsid]
     m <- data.table::dcast.data.table(ds, .ref ~ .delay, value.var = val_col,
                                       fun.aggregate = sum, fill = 0)
-    ref <- m$.ref; m[, .ref := NULL]
-    for (k in delay_cols) if (!k %in% names(m)) m[, (k) := 0]
-    data.table::setcolorder(m, delay_cols)
-    out[[tsid]] <- list(reference = ref, mat = as.matrix(m))
+    for (k in delay_cols) if (!k %in% names(m)) m[, (k) := 0]   # complete delay axis
+
+    # complete the reference axis: contiguous weeks min..max (fills interior gaps
+    # and zero-case weeks), so the nowcast truncation works on contiguous rows
+    i1 <- match(min(m$.ref), all_weeks); i2 <- match(max(m$.ref), all_weeks)
+    full <- data.table::data.table(.ref = all_weeks[i1:i2])
+    m <- m[full, on = ".ref"]
+    for (k in delay_cols) m[is.na(get(k)), (k) := 0]
+
+    data.table::setcolorder(m, c(".ref", delay_cols))
+    out[[tsid]] <- list(reference = m$.ref,
+                        mat = as.matrix(m[, delay_cols, with = FALSE]))
   }
   out
 }

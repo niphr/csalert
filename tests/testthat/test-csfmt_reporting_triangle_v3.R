@@ -41,3 +41,19 @@ test_that("reshape builds a reference x delay matrix with zeros filled", {
   # 2020-03: delay0=4 (only just reported), rest 0
   expect_equal(as.numeric(m[3, ]), c(4, 0, 0))
 })
+
+test_that("reshape completes the reference axis (interior zero-case week)", {
+  # reference weeks 2020-01 and 2020-03 have cases; 2020-02 has none -> must still
+  # appear as a contiguous zero row, or the nowcast truncation logic breaks.
+  tri_dt <- data.table::data.table(
+    indicator = "flu", location = "nation", age = "total", sex = "total",
+    isoyearweek_reference = c("2020-01", "2020-03"),
+    isoyearweek_reporting = c("2020-01", "2020-03"),
+    numerator             = c(5, 4))
+  tri <- csfmt_reporting_triangle_v3(tri_dt, id_cols = ID)
+  rt <- reporting_triangle_matrix(tri, max_delay = 3)
+  m <- rt[[1]]
+
+  expect_equal(m$reference, c("2020-01", "2020-02", "2020-03"))   # gap filled
+  expect_equal(as.numeric(m$mat[2, ]), c(0, 0, 0))                # zero-case week
+})
