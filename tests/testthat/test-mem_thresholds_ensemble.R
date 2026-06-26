@@ -42,6 +42,10 @@ test_that("thresholds are attached, ordered, and leave-future-out", {
   out$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
   first_season <- min(out$data$.s)
   expect_true(all(is.na(out$data[.s == first_season]$mem_preepidemic)))
+
+  # provisional tracking (ported from luftveis add_mem_thresholds)
+  expect_true("mem_n_seasons" %in% names(out$data))
+  expect_true(all(stats::na.omit(out$data$mem_n_seasons) >= 2))
 })
 
 test_that("status code matrix is produced with valid ordinal codes", {

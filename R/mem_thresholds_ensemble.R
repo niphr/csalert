@@ -68,8 +68,11 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
     time_series_id = x$data$time_series_id
   )
 
-  # (1) estimate per-season leave-future-out thresholds, per time series
+  # (1) estimate per-season leave-future-out thresholds, per time series.
+  #     prefer_seasons training seasons are preferred; a season fit on fewer (but
+  #     >= min_seasons) is computed but flagged provisional via mem_n_seasons.
   thr_all <- list()
+  provisional <- character(0)
   for (tsid in unique(d$time_series_id)) {
     ds <- d[time_series_id == tsid]
     m <- data.table::dcast.data.table(ds, seasonweek ~ season, value.var = "point")
@@ -82,20 +85,26 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
       fit <- mem_fit(stats::na.omit(m[, prior, with = FALSE]), i.seasons = i.seasons)
       if (is.null(fit)) next
       res <- mem_extract_thresholds(fit)
-      res[, `:=`(season = s, time_series_id = tsid)]
+      res[, `:=`(season = s, time_series_id = tsid, mem_n_seasons = length(prior))]
       thr_all[[paste(tsid, s)]] <- res
+      if (length(prior) < prefer_seasons) provisional <- c(provisional, paste(tsid, s))
     }
   }
   thr <- data.table::rbindlist(thr_all)
+  if (length(provisional))
+    message("mem_thresholds: ", length(provisional), " season(s) fit on < ",
+            prefer_seasons, " training seasons (provisional); see mem_n_seasons.")
 
   # attach per-week threshold columns to $data (NA where unfit)
   x$data[, c("mem_preepidemic", "mem_medium", "mem_high", "mem_veryhigh") := NA_real_]
+  x$data[, mem_n_seasons := NA_integer_]
   if (nrow(thr)) {
-    i.mem_preepidemic <- i.mem_medium <- i.mem_high <- i.mem_veryhigh <- NULL
+    i.mem_preepidemic <- i.mem_medium <- i.mem_high <- i.mem_veryhigh <- i.mem_n_seasons <- NULL
     x$data[, .season := cstime::isoyearweek_to_season_c(isoyearweek)]
     x$data[thr, on = c("time_series_id", ".season==season"), `:=`(
       mem_preepidemic = i.mem_preepidemic, mem_medium = i.mem_medium,
-      mem_high = i.mem_high, mem_veryhigh = i.mem_veryhigh)]
+      mem_high = i.mem_high, mem_veryhigh = i.mem_veryhigh,
+      mem_n_seasons = i.mem_n_seasons)]
     x$data[, .season := NULL]
   }
 
