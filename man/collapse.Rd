@@ -2,19 +2,26 @@
 % Please edit documentation in R/collapse.R
 \name{collapse}
 \alias{collapse}
-\title{Collapse a csfmt_ensemble_v3 to a quantile-summary data.table}
+\title{Collapse a csfmt_ensemble_v3 to a quantile-summary}
 \usage{
-collapse(ens, probs = c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975))
+collapse(
+  ens,
+  probs = c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975),
+  heal = FALSE
+)
 }
 \arguments{
 \item{ens}{A `csfmt_ensemble_v3`.}
 
 \item{probs}{Numeric vector of probabilities for the quantile columns.}
+
+\item{heal}{If TRUE, heal the result into a `cstidy::csfmt_rts_data_v3` (the
+clean weekly csfmt) instead of returning a plain data.table.}
 }
 \value{
-A `data.table`: `$data` plus `<measure>_qNNxN` columns for every
-  measure in `$draws`; no draws.
+A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
+  `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
 }
 \description{
-Collapse a csfmt_ensemble_v3 to a quantile-summary data.table
+Collapse a csfmt_ensemble_v3 to a quantile-summary
 }
