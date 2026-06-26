@@ -65,7 +65,11 @@ csfmt_ensemble_v3 <- function(data, id_cols, time_col = "isoyearweek", draws = l
       if (!is.matrix(draws[[m]]) || nrow(draws[[m]]) != n)
         stop(sprintf("draws[['%s']] must be a matrix with %d rows", m, n))
     }
-    draws <- lapply(draws, function(M) M[perm, , drop = FALSE])
+    draws <- lapply(draws, function(M) {
+      lv <- attr(M, "levels"); R <- M[perm, , drop = FALSE]
+      if (!is.null(lv)) attr(R, "levels") <- lv
+      R
+    })
   }
 
   validate_ensemble(structure(list(data = d, draws = draws), class = "csfmt_ensemble_v3"))

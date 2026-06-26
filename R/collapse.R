@@ -18,10 +18,36 @@ collapse <- function(ens, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975))
   d <- data.table::copy(ens$data)
 
   for (m in names(ens$draws)) {
-    q <- matrixStats::rowQuantiles(ens$draws[[m]], probs = probs, na.rm = TRUE)
-    q <- matrix(q, nrow = nrow(d), ncol = length(probs))   # keep shape for 1-row/1-prob
-    cols <- vapply(probs, function(p) csfmt_var(m, q = p), character(1))
-    d[, (cols) := data.table::as.data.table(q)]
+    M <- ens$draws[[m]]
+    levs <- attr(M, "levels")
+    if (is.null(levs)) {
+      # continuous: quantiles over the draw axis
+      q <- matrixStats::rowQuantiles(M, probs = probs, na.rm = TRUE)
+      q <- matrix(q, nrow = nrow(d), ncol = length(probs))  # keep shape for 1-row/1-prob
+      cols <- vapply(probs, function(p) csfmt_var(m, q = p), character(1))
+      d[, (cols) := data.table::as.data.table(q)]
+    } else {
+      # ordinal status: probability per level + ordinal quantiles
+      collapse_status_into(d, m, M, levs, probs)
+    }
   }
   d[]
+}
+
+# Reduce an ordinal status code matrix (codes 1..K, with a "levels" attribute)
+# into per-level probability columns and ordinal-quantile columns, by reference.
+collapse_status_into <- function(d, measure, M, levs, probs) {
+  K <- length(levs)
+  n <- nrow(M)
+  prob <- vapply(seq_len(K), function(k) rowMeans(M == k, na.rm = TRUE), numeric(n))
+  pcols <- vapply(levs, function(L) csfmt_var(measure, level = L), character(1))
+  d[, (pcols) := data.table::as.data.table(prob)]
+
+  # ordinal p-quantile = smallest level whose cumulative probability >= p
+  cum <- matrixStats::rowCumsums(prob)
+  qmat <- vapply(probs, function(p) pmin(rowSums(cum < p) + 1L, K), numeric(n))
+  qmat <- matrix(qmat, nrow = n, ncol = length(probs))
+  qcols <- vapply(probs, function(p) csfmt_var(measure, q = p), character(1))
+  d[, (qcols) := data.table::as.data.table(qmat)]
+  invisible(d)
 }
