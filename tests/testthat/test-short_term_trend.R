@@ -29,6 +29,23 @@ test_that("a flat series is never flagged increasing", {
   expect_false("increasing" %in% as.character(res[[status_col]]))
 })
 
+test_that("runs on the bundled cstidy dataset (guards the documented example)", {
+  skip_if_not(exists("nor_covid19_icu_and_hospitalization_csfmt_rts_v1",
+                      where = asNamespace("cstidy")) ||
+              "nor_covid19_icu_and_hospitalization_csfmt_rts_v1" %in%
+                data(package = "cstidy")$results[, "Item"],
+              "bundled cstidy dataset not available")
+  d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
+  d <- d[granularity_time == "isoyearweek"]
+  res <- csalert::short_term_trend(
+    d,
+    numerator = "hospitalization_with_covid19_as_primary_cause_n",
+    trend_isoyearweeks = 6
+  )
+  expect_s3_class(res, "csfmt_rts_data_v1")
+  expect_true(any(grepl("_trend0_.*_status$", names(res))))
+})
+
 test_that("forecast + prediction-interval + doubling-days columns are produced", {
   d <- gen_weekly_skeleton(2020)
   d[, cases_n := seq_len(.N) * 3L]
