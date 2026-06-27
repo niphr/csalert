@@ -40,6 +40,26 @@ test_that("nowcast returns an ensemble with nowcasted draws aligned to reference
   expect_equal(ncol(ens$draws$numerator_nowcasted), 200L)
 })
 
+test_that("nowcast surfaces the observed denominator total (role = observed)", {
+  sim <- simulate_triangle(n_weeks = 12, lambda = 40, max_delay = 4, seed = 3)
+  # add a denominator: a known multiple of the numerator on each triangle cell
+  sim$tri[, denominator := numerator * 3L + 1L]
+  tri <- csfmt_reporting_triangle_v3(
+    sim$tri, id_cols = c("indicator", "location", "age", "sex"),
+    value_col = "numerator")
+  ens <- nowcast(tri, max_delay = 4, n_sim = 100, denominator_col = "denominator")
+
+  # both measures get nowcast draws ...
+  expect_true(all(c("numerator_nowcasted", "denominator_nowcasted") %in% names(ens$draws)))
+  # ... and the denominator's observed (reported-so-far) total is on $data
+  expect_true("denominator_observed" %in% names(ens$data))
+  # observed denominator equals the reported-so-far cell sums (>= 0, aligned)
+  expect_equal(nrow(ens$data), length(ens$data$denominator_observed))
+  expect_true(all(ens$data$denominator_observed >= 0))
+  # denominator observed >= numerator observed here (denominator is the larger)
+  expect_true(all(ens$data$denominator_observed >= ens$data$original))
+})
+
 test_that("nowcast recovers the truncated cases (>= observed, with coverage)", {
   sim <- simulate_triangle(n_weeks = 18, lambda = 60, max_delay = 4, seed = 1)
   tri <- csfmt_reporting_triangle_v3(sim$tri, id_cols = c("indicator", "location", "age", "sex"))

@@ -105,6 +105,15 @@ nowcast.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
       nowcast_complete(rts[[tsid]]$mat, cum_by_delay, n_sim)
     })
     draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)
+    # Observed (reported-so-far) total for a secondary measure, e.g. the
+    # denominator. The numerator's observed total is already `original`; this
+    # makes the denominator's observed total available too (rows align: num/denom
+    # share the reference grid), so downstream rate plots can use observed
+    # counts instead of the nowcast median.
+    if (!identical(vc, val_col)) {
+      obs <- unlist(lapply(series_ids, function(tsid) rowSums(rts[[tsid]]$mat)))
+      data[, (csfmt_var(vc, role = "observed")) := obs]
+    }
   }
 
   csfmt_ensemble_v3(data, id_cols = id_cols, time_col = "isoyearweek", draws = draws)
