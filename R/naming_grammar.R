@@ -111,3 +111,46 @@ csfmt_parse <- function(varname) {
   out[c("measure", "denom", "role", "q", "level", "per", "suffix")[
     c("measure", "denom", "role", "q", "level", "per", "suffix") %in% names(out)]]
 }
+
+# Structural (non-value) columns: the csfmt unified schema + the time_series_*
+# bookkeeping + common identity/observed columns. Everything else is a value
+# column carrying meaning in its name.
+.csfmt_structural <- c(
+  "time_series_id", "time_series_internal_id", "time_series_label",
+  "granularity_time", "granularity_geo", "country_iso3", "location_code", "border",
+  "age", "sex", "isoyear", "isoweek", "isoyearweek", "isoquarter", "isoyearquarter",
+  "season", "seasonweek", "calyear", "calmonth", "calyearmonth", "date",
+  "indicator_tag", "original"
+)
+
+#' Interpret a dataset's columns via the naming grammar
+#'
+#' Applies [csfmt_parse] to every value column (everything not in the structural
+#' schema) and returns a catalog: one row per column with its parsed components.
+#' This makes a dataset self-describing -- generic tooling (QC, collapse,
+#' presentation) routes on the catalog instead of hardcoding column names.
+#' @param d A data.table / data.frame.
+#' @param value_cols Optional columns to interpret; defaults to all non-structural.
+#' @returns A data.table: `column, measure, denom, role, q, level, per, suffix,
+#'   interpretable` (the last TRUE when a role/quantile/level coordinate was found).
+#' @export
+csfmt_interpret <- function(d, value_cols = NULL) {
+  if (is.null(value_cols)) value_cols <- setdiff(names(d), .csfmt_structural)
+  g <- function(p, k, na) { v <- p[[k]]; if (is.null(v)) na else v }
+  rows <- lapply(value_cols, function(col) {
+    p <- csfmt_parse(col)
+    data.table::data.table(
+      column  = col,
+      measure = g(p, "measure", NA_character_),
+      denom   = g(p, "denom",   NA_character_),
+      role    = g(p, "role",    NA_character_),
+      q       = g(p, "q",       NA_real_),
+      level   = g(p, "level",   NA_character_),
+      per     = g(p, "per",     NA_integer_),
+      suffix  = g(p, "suffix",  NA_character_)
+    )
+  })
+  out <- data.table::rbindlist(rows)
+  if (nrow(out)) out[, interpretable := !is.na(role) | !is.na(q) | !is.na(level)]
+  out[]
+}
