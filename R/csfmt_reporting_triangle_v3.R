@@ -24,7 +24,10 @@ csfmt_reporting_triangle_v3 <- function(data, id_cols,
             all(id_cols %in% names(data)),
             all(c(reference_col, reporting_col, value_col) %in% names(data)))
   d <- data.table::copy(data)
-  if (any(d[[reporting_col]] < d[[reference_col]]))
+  # NA-safe: a missing reference/reporting week is not a "reporting before
+  # reference" violation (it just carries no delay info); only flag genuine
+  # negative-delay rows. Callers are responsible for cleaning NA weeks.
+  if (any(d[[reporting_col]] < d[[reference_col]], na.rm = TRUE))
     stop("reporting week is before reference week")
   if (any(d[[value_col]] < 0, na.rm = TRUE))
     stop("negative counts in the reporting triangle")
