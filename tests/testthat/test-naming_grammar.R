@@ -50,3 +50,20 @@ test_that("csfmt_parse inverts csfmt_var (round-trip)", {
 test_that("csfmt_parse handles a bare measure", {
   expect_equal(csfmt_parse("cases"), list(measure = "cases"))
 })
+
+test_that("csfmt_parse reads trailing coordinates in either order", {
+  # The ensemble bakes `per` into a rate measure base and appends the quantile
+  # afterwards (..._pr100_q50x0), i.e. per-before-q, the reverse of the canonical
+  # csfmt_var() order (q-before-per). Both must parse to the same coordinates.
+  p1 <- csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100_q50x0")
+  expect_equal(p1$per, 100L)         # the fix: per is read despite trailing q
+  expect_equal(p1$q, 0.5)
+  expect_equal(p1$role, "nowcasted") # trailing role peeled before the denom
+  expect_equal(p1$denom, "denominator")
+
+  # canonical order still parses identically
+  p2 <- csfmt_parse(csfmt_var("numerator_nowcasted",
+                              denom = "denominator_nowcasted", q = 0.5, per = 100))
+  expect_equal(p2$per, 100L)
+  expect_equal(p2$q, 0.5)
+})
