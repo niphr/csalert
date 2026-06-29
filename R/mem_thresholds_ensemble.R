@@ -99,6 +99,10 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
       # estimated for `s` itself, just not fit on the excluded seasons)
       if (length(exclude_seasons)) prior <- setdiff(prior, exclude_seasons)
       if (length(prior) < min_seasons) next
+      # Keep only the most recent i.seasons BEFORE na.omit: memmodel uses the last
+      # i.seasons anyway, and na.omit over older (often partially-covered) seasons
+      # would needlessly drop seasonweeks and starve the fit -> NA thresholds.
+      prior <- utils::tail(prior, i.seasons)
       fit <- mem_fit(stats::na.omit(m[, prior, with = FALSE]), i.seasons = i.seasons)
       if (is.null(fit)) next
       res <- mem_extract_thresholds(fit)

@@ -77,6 +77,18 @@ test_that("exclude_seasons drops seasons from the training baseline", {
   expect_equal(n_for_last(noop), n_base)
 })
 
+test_that("training is capped to the most recent i.seasons (before na.omit)", {
+  # With more complete seasons than i.seasons, a late season must train on exactly
+  # i.seasons -- and na.omit must apply only to those, not to older seasons that
+  # memmodel would never use (else partial old seasons starve the fit -> NA).
+  z <- mk_seasonal_ensemble(n_seasons = 13)
+  out <- mem_thresholds(z$ens, measure = "rate", i.seasons = 10)
+  out$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
+  last <- max(out$data$.s)
+  expect_equal(unique(out$data[.s == last]$mem_n_seasons), 10L)   # capped, not 12
+  expect_false(all(is.na(out$data[.s == last]$mem_preepidemic)))  # and still fits
+})
+
 test_that("status code matrix is produced with valid ordinal codes", {
   z <- mk_seasonal_ensemble()
   out <- mem_thresholds(z$ens, measure = "rate")
