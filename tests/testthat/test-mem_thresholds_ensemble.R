@@ -48,6 +48,35 @@ test_that("thresholds are attached, ordered, and leave-future-out", {
   expect_true(all(stats::na.omit(out$data$mem_n_seasons) >= 2))
 })
 
+test_that("exclude_seasons drops seasons from the training baseline", {
+  # NB mem_thresholds mutates $data by reference, so each call gets a FRESH
+  # ensemble (same seed -> identical data, independent objects).
+  n_for_last <- function(out) {
+    out$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
+    unique(out$data[.s == max(.s)]$mem_n_seasons)
+  }
+  base <- mem_thresholds(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate")
+  base$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
+  seasons <- sort(unique(base$data$.s))
+  last  <- max(seasons)
+  drop1 <- seasons[length(seasons) - 1L]            # a prior season of `last`
+  n_base <- unique(base$data[.s == last]$mem_n_seasons)
+
+  # `last` trains on one fewer season once `drop1` is excluded
+  ex <- mem_thresholds(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate",
+                       exclude_seasons = drop1)
+  expect_equal(n_for_last(ex), n_base - 1L)
+
+  # the excluded season itself is still thresholded (from its remaining priors)
+  ex$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
+  expect_false(all(is.na(ex$data[.s == drop1]$mem_preepidemic)))
+
+  # excluding a non-existent season is a harmless no-op
+  noop <- mem_thresholds(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate",
+                         exclude_seasons = "1990/1991")
+  expect_equal(n_for_last(noop), n_base)
+})
+
 test_that("status code matrix is produced with valid ordinal codes", {
   z <- mk_seasonal_ensemble()
   out <- mem_thresholds(z$ens, measure = "rate")

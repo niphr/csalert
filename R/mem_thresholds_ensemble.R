@@ -50,10 +50,17 @@ mem_thresholds <- function(x, ...) {
 #' @param prefer_seasons Preferred training depth (provisional below this).
 #' @param i.seasons Max seasons passed to mem::memmodel.
 #' @param min_weeks_per_season Weeks needed for a season to count as training.
+#' @param exclude_seasons Optional character vector of seasons (e.g.
+#'   `c("2009/2010", "2019/2020")`, the `isoyearweek_to_season_c` form) to drop
+#'   from the MEM training baseline -- anomalous seasons (pandemic years, data
+#'   gaps) that would distort the thresholds. Thresholds are still ESTIMATED for
+#'   every season (including excluded ones) from its remaining non-excluded prior
+#'   seasons; only the baseline they are fit on changes.
 #' @export
 mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
                                           prefer_seasons = 5, i.seasons = 10,
-                                          min_weeks_per_season = 30, ...) {
+                                          min_weeks_per_season = 30,
+                                          exclude_seasons = NULL, ...) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!requireNamespace("mem", quietly = TRUE))
     stop("mem_thresholds requires the 'mem' package")
@@ -71,6 +78,13 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
   # (1) estimate per-season leave-future-out thresholds, per time series.
   #     prefer_seasons training seasons are preferred; a season fit on fewer (but
   #     >= min_seasons) is computed but flagged provisional via mem_n_seasons.
+  if (length(exclude_seasons)) {
+    hit <- intersect(exclude_seasons, unique(d$season))
+    if (length(hit))
+      message("mem_thresholds: excluding ", length(hit),
+              " season(s) from the training baseline: ", paste(hit, collapse = ", "))
+  }
+
   thr_all <- list()
   provisional <- character(0)
   for (tsid in unique(d$time_series_id)) {
@@ -81,6 +95,9 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
     train_ok <- names(week_counts)[week_counts >= min_weeks_per_season]
     for (s in sort(unique(ds$season))) {
       prior <- train_ok[train_ok < s]
+      # drop anomalous seasons from the training baseline (thresholds are still
+      # estimated for `s` itself, just not fit on the excluded seasons)
+      if (length(exclude_seasons)) prior <- setdiff(prior, exclude_seasons)
       if (length(prior) < min_seasons) next
       fit <- mem_fit(stats::na.omit(m[, prior, with = FALSE]), i.seasons = i.seasons)
       if (is.null(fit)) next

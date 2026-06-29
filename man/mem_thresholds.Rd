@@ -14,6 +14,7 @@ mem_thresholds(x, ...)
   prefer_seasons = 5,
   i.seasons = 10,
   min_weeks_per_season = 30,
+  exclude_seasons = NULL,
   ...
 )
 }
@@ -31,6 +32,13 @@ mem_thresholds(x, ...)
 \item{i.seasons}{Max seasons passed to mem::memmodel.}
 
 \item{min_weeks_per_season}{Weeks needed for a season to count as training.}
+
+\item{exclude_seasons}{Optional character vector of seasons (e.g.
+`c("2009/2010", "2019/2020")`, the `isoyearweek_to_season_c` form) to drop
+from the MEM training baseline -- anomalous seasons (pandemic years, data
+gaps) that would distort the thresholds. Thresholds are still ESTIMATED for
+every season (including excluded ones) from its remaining non-excluded prior
+seasons; only the baseline they are fit on changes.}
 }
 \description{
 MEM intensity thresholds
