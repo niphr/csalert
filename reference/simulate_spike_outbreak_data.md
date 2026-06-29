@@ -1,0 +1,33 @@
+# Simulate spiked outbreaks —-
+
+Simulation of spiked outbreak as described in Noufaily et al. (2019).
+The method for simulating spiked outbreak is similar to seasonal
+outbreaks simulation but they are shorter in duration and are added only
+the last year of data (prediction data). Spiked outbreaks can start at
+any week during the prediction data
+
+## Usage
+
+``` r
+simulate_spike_outbreak_data(data, n_sp_outbreak = 1, m)
+```
+
+## Arguments
+
+- data:
+
+  A csfmt_rds data object
+
+- n_sp_outbreak:
+
+  Number of spiked outbreaks to be simulated
+
+- m:
+
+  Parameter to determine the size of the outbreak (m times the standard
+  deviation of the baseline count at the starting day of the seasonal
+  outbreak)
+
+## Value
+
+A csfmt_rts_data_v1, data.table
