@@ -1,7 +1,10 @@
 # Determine the short term trend of a timeseries
 
-The method is based upon a published analytics strategy by Benedetti
-(2019) \<doi:10.5588/pha.19.0002\>.
+Fits a quasi-Poisson regression over a moving window of recent weeks and
+classifies the short-term trend of the numerator (optionally per a
+denominator) as increasing or not, together with an estimated doubling
+time. The method is based upon a published analytics strategy by
+Benedetti (2019) \<doi:10.5588/pha.19.0002\>.
 
 ## Usage
 

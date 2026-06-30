@@ -1,10 +1,10 @@
-# Simulate baseline data —- Simulation of baseline data.
+# Simulate baseline surveillance data
 
-This function simulates a time series of daily counts in the absence of
-outbreaks. Data is simulated using a poisson/negative binomial model as
-described in Noufaily et al. (2019). Properties of time series such as
-frequency of baseline observations, trend, seasonal and weekly pattern
-can be specified in the simulation.
+Simulates a time series of daily counts in the absence of outbreaks. The
+counts are drawn from a Poisson or negative binomial model following the
+approach of Noufaily et al. (2019). The baseline frequency, linear
+trend, seasonal pattern and day-of-the-week pattern are all controlled
+through the function arguments.
 
 ## Usage
 
@@ -83,30 +83,62 @@ simulate_baseline_data(
 
 ## Value
 
-A csfmt_rts_data_v1, data.table containing a time series of counts
+A `csfmt_rts_data_v1` (`data.table`) holding one row per day over the
+simulation period, including the columns:
+
+- date:
+
+  Calendar date of the observation.
 
 - wday:
 
-  day-of-the week
+  Day of the week.
+
+- mu:
+
+  Expected count from the baseline model.
 
 - n:
 
-  cases
+  Simulated count.
+
+## References
+
+Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+An improved algorithm for outbreak detection in multiple surveillance
+systems. Statistics in Medicine. 2013.
 
 ## Examples
 
 ``` r
-baseline  <- simulate_baseline_data(
-start_date = as.Date("2012-01-01"),
-end_date = as.Date("2019-12-31"),
-seasonal_pattern_n = 1,
-weekly_pattern_n = 1,
-alpha = 3,
-beta = 0,
-gamma_1 = 0.8,
-gamma_2 = 0.6,
-gamma_3 = 0.8,
-gamma_4 = 0.4,
-phi = 4,
-shift_1 = 29 )
+library(data.table)
+set.seed(4)
+baseline <- simulate_baseline_data(
+  start_date = as.Date("2018-01-01"),
+  end_date = as.Date("2019-12-31"),
+  seasonal_pattern_n = 1,
+  weekly_pattern_n = 1,
+  alpha = 3,
+  beta = 0,
+  gamma_1 = 0.8,
+  gamma_2 = 0.6,
+  gamma_3 = 0.8,
+  gamma_4 = 0.4,
+  phi = 4,
+  shift_1 = 29
+)
+print(baseline[, .(date, wday, mu, n)])
+#>            date  wday        mu     n
+#>          <Date> <num>     <num> <int>
+#>   1: 2018-01-01     2  66.95830    64
+#>   2: 2018-01-02     3  31.40319    32
+#>   3: 2018-01-03     4  22.23175    19
+#>   4: 2018-01-04     5  30.85457    37
+#>   5: 2018-01-05     6  65.65786    72
+#>  ---                                 
+#> 726: 2019-12-27     6  64.73862    68
+#> 727: 2019-12-28     7 119.96484   109
+#> 728: 2019-12-29     1 121.67202   139
+#> 729: 2019-12-30     2  66.95830    60
+#> 730: 2019-12-31     3  31.40319    41
 ```

@@ -1,7 +1,11 @@
-# Determine the short term trend of a timeseries
+# Detect signals using the historical limits method
 
-The method is based upon a published analytics strategy by Benedetti
-(2019) \<doi:10.5588/pha.19.0002\>.
+Flags weeks where the observed value is unusually high compared with a
+baseline built from the same weeks in previous years. For each week, a
+baseline mean and standard deviation are computed from the surrounding
+weeks (`week - 1`, `week`, `week + 1`) in each of the previous
+`baseline_isoyears` years. A week is flagged as `"high"` when its value
+exceeds the upper (99.5%) baseline prediction interval.
 
 ## Usage
 
@@ -25,7 +29,7 @@ signal_detection_hlm(
 
 - x:
 
-  Data object
+  Data object.
 
 - ...:
 
@@ -54,16 +58,17 @@ signal_detection_hlm(
 
 - remove_training_data:
 
-  Boolean. If TRUE, removes the training data (i.e.
-  1:(trend_isoyearweeks-1)) from the returned dataset.
+  Boolean. If TRUE, removes the training data (i.e. the early weeks that
+  have no baseline) from the returned dataset.
 
 ## Value
 
-The original csfmt_rts_data_v1 dataset with extra columns.
-\*\_trend\*\_status contains a factor with levels c("training",
-"forecast", "decreasing", "null", "increasing"), while
-\*\_doublingdays\* contains the expected number of days before the
-numerator doubles.
+The original csfmt_rts_data_v1 dataset with extra columns. `*_status` is
+a factor with levels c("training", "forecast", "null", "high") flagging
+weeks above the baseline, `*_forecasted*` holds the observed value (or
+the baseline median for forecast weeks), and `*_baseline_predinterval_*`
+holds the lower (0.5%), median (50%) and upper (99.5%) baseline
+prediction interval.
 
 ## Examples
 
