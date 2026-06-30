@@ -25,11 +25,25 @@ mem_extract_thresholds <- function(fit) {
 # Fit MEM, with the norsyss fallback to i.method = 3. NULL on failure.
 mem_fit <- function(model_data, i.seasons = 10) {
   if (is.null(model_data) || ncol(model_data) < 1) return(NULL)
+  # Non-zero-season guard: MEM needs >= 2 training seasons with real (non-zero)
+  # signal. Sparse count series (flu deaths, RSV hospitalisations) can have whole
+  # but near-all-zero seasons; skip cleanly rather than let mem::memmodel error
+  # ("at least two seasons of valid data ... required") and spam the run log.
+  if (sum(vapply(model_data, function(v) any(v > 0, na.rm = TRUE), logical(1))) < 2)
+    return(NULL)
   n_seasons <- min(i.seasons, ncol(model_data))
-  fit <- tryCatch(mem::memmodel(model_data, i.seasons = n_seasons), error = function(e) NULL)
-  if (is.null(fit) || is.na(fit$epidemic.thresholds[1]))
-    fit <- tryCatch(mem::memmodel(model_data, i.seasons = n_seasons, i.method = 3),
-                    error = function(e) NULL)
+  # Quiet: mem::memmodel can print/warn on marginal data; surface NA, not noise.
+  fit_quiet <- function(method) {
+    f <- NULL
+    utils::capture.output(suppressWarnings(suppressMessages(
+      f <- tryCatch(
+        if (is.null(method)) mem::memmodel(model_data, i.seasons = n_seasons)
+        else mem::memmodel(model_data, i.seasons = n_seasons, i.method = method),
+        error = function(e) NULL))))
+    f
+  }
+  fit <- fit_quiet(NULL)
+  if (is.null(fit) || is.na(fit$epidemic.thresholds[1])) fit <- fit_quiet(3)
   if (is.null(fit) || is.na(fit$epidemic.thresholds[1])) return(NULL)
   fit
 }

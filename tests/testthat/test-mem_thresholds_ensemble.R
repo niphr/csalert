@@ -89,6 +89,26 @@ test_that("training is capped to the most recent i.seasons (before na.omit)", {
   expect_false(all(is.na(out$data[.s == last]$mem_preepidemic)))  # and still fits
 })
 
+test_that("sparse (near all-zero) seasons skip cleanly -> NA, no error/noise", {
+  iyw <- cstime::date_to_isoyearweek_c(as.Date("2010-08-02") + 7 * (0:(5 * 53 - 1)))
+  d <- data.table::data.table(indicator = "x", location = "n", age = "total",
+                              sex = "total", isoyearweek = iyw)
+  M <- matrix(0, nrow = nrow(d), ncol = 6)            # whole seasons, all zero
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator","location","age","sex"),
+                           draws = list(rate = M))
+  expect_error(out <- mem_thresholds(ens, measure = "rate"), NA)   # no error
+  expect_true(all(is.na(out$data$mem_preepidemic)))                # all NA thresholds
+
+  # one season with signal is still < 2 -> still NA (needs >= 2 non-zero seasons)
+  M2 <- matrix(0, nrow = nrow(d), ncol = 6)
+  s1 <- cstime::isoyearweek_to_season_c(iyw); rows <- s1 == sort(unique(s1))[2]
+  M2[rows, ] <- 5
+  ens2 <- csfmt_ensemble_v3(d, id_cols = c("indicator","location","age","sex"),
+                            draws = list(rate = M2))
+  out2 <- mem_thresholds(ens2, measure = "rate")
+  expect_true(all(is.na(out2$data$mem_preepidemic)))
+})
+
 test_that("status code matrix is produced with valid ordinal codes", {
   z <- mk_seasonal_ensemble()
   out <- mem_thresholds(z$ens, measure = "rate")
