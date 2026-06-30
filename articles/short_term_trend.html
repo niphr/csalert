@@ -86,8 +86,10 @@ White, Chi Zhang</h4>
 
     
     
-<p>In this vignette we illustrate how to compute short term trend with
-<code><a href="../reference/short_term_trend.html">csalert::short_term_trend</a></code>.</p>
+<p>This vignette shows how to compute short-term trend signals using
+<code><a href="../reference/short_term_trend.html">csalert::short_term_trend</a></code>. Two scenarios are covered: a
+single location (Norway) and multiple locations (Norwegian
+counties).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
@@ -101,22 +103,21 @@ White, Chi Zhang</h4>
 <h2 id="single-location">Single location<a class="anchor" aria-label="anchor" href="#single-location"></a>
 </h2>
 <div class="section level3">
-<h3 id="covid-19-hospitalization-data">Covid-19 Hospitalization data<a class="anchor" aria-label="anchor" href="#covid-19-hospitalization-data"></a>
+<h3 id="covid-19-hospitalisation-data">Covid-19 hospitalisation data<a class="anchor" aria-label="anchor" href="#covid-19-hospitalisation-data"></a>
 </h3>
-<p>The Covid-19 hospitalization data contains both daily and weekly
-aggregated number of hospitalization due to Covid (as a main cause) for
-Norway. The data does not distinguish age groups or sex.</p>
-<p>This dataset is extracted on 2022-05-04. The time period is from
-2020-02-21 to 2022-05-03.</p>
-<p>The data in csv and xlsx formats can be found on our <a href="https://github.com/folkehelseinstituttet/surveillance_data" class="external-link">Github
+<p>The dataset contains daily and weekly counts of Covid-19
+hospitalisations in Norway where Covid-19 was recorded as the primary
+cause. It does not distinguish between age groups or sex.</p>
+<p>This extract was pulled on 2022-05-04 and covers 2020-02-21 to
+2022-05-03. The raw data in CSV and XLSX formats are available on the <a href="https://github.com/folkehelseinstituttet/surveillance_data" class="external-link">GitHub
 repository</a>.</p>
 </div>
 <div class="section level3">
 <h3 id="data-in-cstidy-format">Data in <code>cstidy</code> format<a class="anchor" aria-label="anchor" href="#data-in-cstidy-format"></a>
 </h3>
-<p>We have prepared the data into <a href="https://niphr.github.io/cstidy/articles/csfmt_rts_data_v2.html" class="external-link">cstidy
-format</a>, from which we can see the summary of each column, such as
-data type and amount of missing data.</p>
+<p>The data have been pre-processed into <a href="https://niphr.github.io/cstidy/articles/csfmt_rts_data_v2.html" class="external-link">cstidy
+format</a>, which provides a standardised column structure including
+data types and missingness information.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d_hosp</span> <span class="op">&lt;-</span> <span class="fu">cstidy</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstidy/man/nor_covid19_icu_and_hospitalization_csfmt_rts_v1.html" class="external-link">nor_covid19_icu_and_hospitalization_csfmt_rts_v1</a></span></span>
 <span><span class="va">d_hosp</span></span>
@@ -176,13 +177,16 @@ data type and amount of missing data.</p>
 <div class="section level3">
 <h3 id="weekly-observations">Weekly observations<a class="anchor" aria-label="anchor" href="#weekly-observations"></a>
 </h3>
-<p>Now we run the <code>short_term_trend</code> function on weekly
-data.</p>
+<p>The <code>short_term_trend</code> function is run on the weekly
+subset of the data. The <code>trend_isoyearweeks</code> argument sets
+the number of weeks used to estimate the trend, and
+<code>remove_last_isoyearweeks</code> trims the most recent weeks to
+account for reporting delays.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d_hosp_weekly</span> <span class="op">&lt;-</span> <span class="va">d_hosp</span><span class="op">[</span><span class="va">granularity_time</span><span class="op">==</span><span class="st">"isoyearweek"</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">csalert</span><span class="fu">::</span><span class="fu"><a href="../reference/short_term_trend.html">short_term_trend</a></span><span class="op">(</span></span>
-<span>  <span class="va">d_hosp_weekly</span>, </span>
+<span>  <span class="va">d_hosp_weekly</span>,</span>
 <span>  numerator <span class="op">=</span> <span class="st">"hospitalization_with_covid19_as_primary_cause_n"</span>,</span>
 <span>  trend_isoyearweeks <span class="op">=</span> <span class="fl">6</span>,</span>
 <span>  remove_last_isoyearweeks <span class="op">=</span> <span class="fl">1</span></span>
@@ -220,15 +224,16 @@ data.</p>
 <span><span class="co">#&gt; [22] "hospitalization_with_covid19_as_primary_cause_forecasted_n_forecast"          </span></span>
 <span><span class="co">#&gt; [23] "hospitalization_with_covid19_as_primary_cause_trend0_41_status"               </span></span>
 <span><span class="co">#&gt; [24] "hospitalization_with_covid19_as_primary_cause_doublingdays0_41"</span></span></code></pre></div>
-<p>We can check some columns that have been added to the original
-data.</p>
+<p>The function adds several new columns to the original data. The
+example below shows the forecasted counts alongside the trend
+status.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># check some columns </span></span>
+<code class="sourceCode R"><span><span class="co"># check some columns</span></span>
 <span><span class="va">res</span><span class="op">[</span></span>
 <span>  ,</span>
 <span>  <span class="fu">.</span><span class="op">(</span></span>
-<span>    <span class="va">date</span>, </span>
-<span>    <span class="va">hospitalization_with_covid19_as_primary_cause_n</span>, </span>
+<span>    <span class="va">date</span>,</span>
+<span>    <span class="va">hospitalization_with_covid19_as_primary_cause_n</span>,</span>
 <span>    <span class="va">hospitalization_with_covid19_as_primary_cause_forecasted_n</span>,</span>
 <span>    <span class="va">hospitalization_with_covid19_as_primary_cause_trend0_41_status</span></span>
 <span>  <span class="op">)</span></span>
@@ -272,12 +277,17 @@ data.</p>
 <span><span class="co">#&gt; 120:                                                       Forecast</span></span>
 <span><span class="co">#&gt; 121:                                                       Forecast</span></span>
 <span><span class="co">#&gt; 122:                                                       Forecast</span></span></code></pre></div>
-<p>We can visualize the trend indicator with different colors.</p>
+</div>
+<div class="section level3">
+<h3 id="visualising-trend-status">Visualising trend status<a class="anchor" aria-label="anchor" href="#visualising-trend-status"></a>
+</h3>
+<p>Trend status can be mapped to bar fill colours, with error bars
+showing the prediction interval.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
-<span>  <span class="va">res</span>, </span>
+<span>  <span class="va">res</span>,</span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="va">isoyearweek</span>, </span>
+<span>    x <span class="op">=</span> <span class="va">isoyearweek</span>,</span>
 <span>    y <span class="op">=</span> <span class="va">hospitalization_with_covid19_as_primary_cause_forecasted_n</span>,</span>
 <span>    group <span class="op">=</span> <span class="fl">1</span></span>
 <span>  <span class="op">)</span></span>
@@ -295,13 +305,14 @@ data.</p>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="va">q</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_fill_brewer</a></span><span class="op">(</span><span class="st">"6 week trend"</span>, palette <span class="op">=</span> <span class="st">"Set1"</span><span class="op">)</span></span>
 <span><span class="va">q</span></span></code></pre></div>
 <p><img src="short_term_trend_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="700"></p>
-<p>They can also be represented via shapes:</p>
+<p>Point shapes can be used instead, placing a symbol above each bar to
+mark the trend category.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">shape_adjustment_factor</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">hospitalization_with_covid19_as_primary_cause_forecasted_n</span><span class="op">)</span><span class="op">*</span><span class="fl">0.01</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span></span>
-<span>  <span class="va">res</span>, </span>
+<span>  <span class="va">res</span>,</span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="va">isoyearweek</span>, </span>
+<span>    x <span class="op">=</span> <span class="va">isoyearweek</span>,</span>
 <span>    y <span class="op">=</span> <span class="va">hospitalization_with_covid19_as_primary_cause_forecasted_n</span>,</span>
 <span>    group <span class="op">=</span> <span class="fl">1</span></span>
 <span>  <span class="op">)</span></span>
@@ -330,9 +341,12 @@ data.</p>
 <div class="section level2">
 <h2 id="multiple-locations">Multiple locations<a class="anchor" aria-label="anchor" href="#multiple-locations"></a>
 </h2>
+<p>When the data contain multiple locations,
+<code>short_term_trend</code> computes the trend for each one. Here the
+function is applied to weekly Covid-19 case counts at county level.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">cstidy</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstidy/man/nor_covid19_cases_by_time_location_csfmt_rts_v1.html" class="external-link">nor_covid19_cases_by_time_location_csfmt_rts_v1</a></span><span class="op">[</span></span>
-<span>  <span class="va">granularity_time</span> <span class="op">==</span> <span class="st">"isoyearweek"</span> <span class="op">&amp;</span> </span>
+<span>  <span class="va">granularity_time</span> <span class="op">==</span> <span class="st">"isoyearweek"</span> <span class="op">&amp;</span></span>
 <span>  <span class="va">granularity_geo</span> <span class="op">==</span> <span class="st">"county"</span></span>
 <span><span class="op">]</span></span>
 <span></span>
@@ -461,6 +475,11 @@ data.</p>
 <span><span class="co">#&gt; 1340:                                      NA</span></span>
 <span><span class="co">#&gt; 1341:                                      NA</span></span>
 <span><span class="co">#&gt; 1342:                                      NA</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="mapping-trend-status">Mapping trend status<a class="anchor" aria-label="anchor" href="#mapping-trend-status"></a>
+</h3>
+<p>The trend status for a single week can be joined to a county map
+polygon dataset and plotted geographically.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/copy.html" class="external-link">copy</a></span><span class="op">(</span><span class="fu">csmaps</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/csmaps/man/nor_county_map_bxxxx_split_dt.html" class="external-link">nor_county_map_b2020_split_dt</a></span><span class="op">)</span></span>
 <span><span class="va">pd</span><span class="op">[</span></span>
@@ -483,6 +502,7 @@ data.</p>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="va">q</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_brewer.html" class="external-link">scale_fill_brewer</a></span><span class="op">(</span><span class="st">"Covid trends"</span>, palette <span class="op">=</span> <span class="st">"Set1"</span>, direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">q</span></span></code></pre></div>
 <p><img src="short_term_trend_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="700"></p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

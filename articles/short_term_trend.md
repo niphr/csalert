@@ -1,7 +1,9 @@
 # Short term trend
 
-In this vignette we illustrate how to compute short term trend with
+This vignette shows how to compute short-term trend signals using
 [`csalert::short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
+Two scenarios are covered: a single location (Norway) and multiple
+locations (Norwegian counties).
 
 ``` r
 library(ggplot2)
@@ -16,24 +18,23 @@ library(magrittr)
 
 ## Single location
 
-### Covid-19 Hospitalization data
+### Covid-19 hospitalisation data
 
-The Covid-19 hospitalization data contains both daily and weekly
-aggregated number of hospitalization due to Covid (as a main cause) for
-Norway. The data does not distinguish age groups or sex.
+The dataset contains daily and weekly counts of Covid-19
+hospitalisations in Norway where Covid-19 was recorded as the primary
+cause. It does not distinguish between age groups or sex.
 
-This dataset is extracted on 2022-05-04. The time period is from
-2020-02-21 to 2022-05-03.
-
-The data in csv and xlsx formats can be found on our [Github
+This extract was pulled on 2022-05-04 and covers 2020-02-21 to
+2022-05-03. The raw data in CSV and XLSX formats are available on the
+[GitHub
 repository](https://github.com/folkehelseinstituttet/surveillance_data).
 
 ### Data in `cstidy` format
 
-We have prepared the data into [cstidy
+The data have been pre-processed into [cstidy
 format](https://niphr.github.io/cstidy/articles/csfmt_rts_data_v2.html),
-from which we can see the summary of each column, such as data type and
-amount of missing data.
+which provides a standardised column structure including data types and
+missingness information.
 
 ``` r
 d_hosp <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
@@ -94,13 +95,16 @@ d_hosp
 
 ### Weekly observations
 
-Now we run the `short_term_trend` function on weekly data.
+The `short_term_trend` function is run on the weekly subset of the data.
+The `trend_isoyearweeks` argument sets the number of weeks used to
+estimate the trend, and `remove_last_isoyearweeks` trims the most recent
+weeks to account for reporting delays.
 
 ``` r
 d_hosp_weekly <- d_hosp[granularity_time=="isoyearweek"]
 
 res <- csalert::short_term_trend(
-  d_hosp_weekly, 
+  d_hosp_weekly,
   numerator = "hospitalization_with_covid19_as_primary_cause_n",
   trend_isoyearweeks = 6,
   remove_last_isoyearweeks = 1
@@ -140,15 +144,16 @@ colnames(res)
 #> [24] "hospitalization_with_covid19_as_primary_cause_doublingdays0_41"
 ```
 
-We can check some columns that have been added to the original data.
+The function adds several new columns to the original data. The example
+below shows the forecasted counts alongside the trend status.
 
 ``` r
-# check some columns 
+# check some columns
 res[
   ,
   .(
-    date, 
-    hospitalization_with_covid19_as_primary_cause_n, 
+    date,
+    hospitalization_with_covid19_as_primary_cause_n,
     hospitalization_with_covid19_as_primary_cause_forecasted_n,
     hospitalization_with_covid19_as_primary_cause_trend0_41_status
   )
@@ -194,13 +199,16 @@ res[
 #> 122:                                                       Forecast
 ```
 
-We can visualize the trend indicator with different colors.
+### Visualising trend status
+
+Trend status can be mapped to bar fill colours, with error bars showing
+the prediction interval.
 
 ``` r
 q <- ggplot(
-  res, 
+  res,
   aes(
-    x = isoyearweek, 
+    x = isoyearweek,
     y = hospitalization_with_covid19_as_primary_cause_forecasted_n,
     group = 1
   )
@@ -221,14 +229,15 @@ q
 
 ![](short_term_trend_files/figure-html/unnamed-chunk-5-1.png)
 
-They can also be represented via shapes:
+Point shapes can be used instead, placing a symbol above each bar to
+mark the trend category.
 
 ``` r
 shape_adjustment_factor <- max(res$hospitalization_with_covid19_as_primary_cause_forecasted_n)*0.01
 q <- ggplot(
-  res, 
+  res,
   aes(
-    x = isoyearweek, 
+    x = isoyearweek,
     y = hospitalization_with_covid19_as_primary_cause_forecasted_n,
     group = 1
   )
@@ -257,9 +266,13 @@ q
 
 ## Multiple locations
 
+When the data contain multiple locations, `short_term_trend` computes
+the trend for each one. Here the function is applied to weekly Covid-19
+case counts at county level.
+
 ``` r
 d <- cstidy::nor_covid19_cases_by_time_location_csfmt_rts_v1[
-  granularity_time == "isoyearweek" & 
+  granularity_time == "isoyearweek" &
   granularity_geo == "county"
 ]
 
@@ -389,6 +402,11 @@ print(trend)
 #> 1341:                                      NA
 #> 1342:                                      NA
 ```
+
+### Mapping trend status
+
+The trend status for a single week can be joined to a county map polygon
+dataset and plotted geographically.
 
 ``` r
 pd <- copy(csmaps::nor_county_map_b2020_split_dt)
