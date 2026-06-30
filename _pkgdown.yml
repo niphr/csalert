@@ -17,6 +17,28 @@ template:
           text: "Browse the reference →"
           href: "reference/index.html"
 
+reference:
+  - title: "Signal detection"
+    desc: "Detect anomalies and compute prediction thresholds from historical surveillance data."
+    contents:
+      - signal_detection_hlm
+      - prediction_interval
+      - prediction_interval.glm
+
+  - title: "Short-term trend estimation"
+    desc: "Estimate the direction and magnitude of recent trends in a time series."
+    contents:
+      - short_term_trend
+      - short_term_trend_sts_v1
+
+  - title: "Data simulation"
+    desc: "Generate synthetic baseline and outbreak data for testing and evaluation."
+    contents:
+      - simulate_baseline_data
+      - simulate_seasonal_outbreak_data
+      - simulate_spike_outbreak_data
+      - add_holiday_effect
+
 authors:
   footer:
     roles: [cre, aut]
