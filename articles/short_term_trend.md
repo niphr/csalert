@@ -31,7 +31,7 @@ repository](https://github.com/folkehelseinstituttet/surveillance_data).
 ### Data in `cstidy` format
 
 We have prepared the data into [cstidy
-format](https://www.csids.no/cstidy/articles/csfmt_rts_data_v2.html),
+format](https://niphr.github.io/cstidy/articles/csfmt_rts_data_v2.html),
 from which we can see the summary of each column, such as data type and
 amount of missing data.
 
