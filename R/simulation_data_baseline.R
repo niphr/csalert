@@ -41,13 +41,14 @@ periodic_pattern <- function(n_p = 2,
         return(c)
 }
 
-#' Simulate baseline data ----
-#' Simulation of baseline data.
+#' Simulate baseline surveillance data
 #'
 #' @description
-#' This function simulates a time series of daily counts in the absence of outbreaks. Data is simulated using a poisson/negative binomial model as described in
-#' Noufaily et al. (2019).
-#' Properties of time series such as frequency of baseline observations, trend, seasonal and weekly pattern can be specified in the simulation.
+#' Simulates a time series of daily counts in the absence of outbreaks. The
+#' counts are drawn from a Poisson or negative binomial model following the
+#' approach of Noufaily et al. (2019). The baseline frequency, linear trend,
+#' seasonal pattern and day-of-the-week pattern are all controlled through the
+#' function arguments.
 #'
 #' @param start_date Starting date of the simulation period.
 #'   Date is in the format of 'yyyy-mm-dd'.
@@ -69,28 +70,40 @@ periodic_pattern <- function(n_p = 2,
 #' @param shift_1 Horizontal shift parameter to help control over week/month peaks.
 #'
 #' @return
-#' A csfmt_rts_data_v1, data.table containing a time series of counts
+#' A \code{csfmt_rts_data_v1} (\code{data.table}) holding one row per day over the
+#' simulation period, including the columns:
 #'
 #' \describe{
-#'   \item{wday}{day-of-the week}
-#'   \item{n}{cases}
+#'   \item{date}{Calendar date of the observation.}
+#'   \item{wday}{Day of the week.}
+#'   \item{mu}{Expected count from the baseline model.}
+#'   \item{n}{Simulated count.}
 #' }
+#'
+#' @references
+#' Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+#' An improved algorithm for outbreak detection in multiple surveillance
+#' systems. Statistics in Medicine. 2013.
 #'
 #' @export
 #' @examples
-#' baseline  <- simulate_baseline_data(
-#' start_date = as.Date("2012-01-01"),
-#' end_date = as.Date("2019-12-31"),
-#' seasonal_pattern_n = 1,
-#' weekly_pattern_n = 1,
-#' alpha = 3,
-#' beta = 0,
-#' gamma_1 = 0.8,
-#' gamma_2 = 0.6,
-#' gamma_3 = 0.8,
-#' gamma_4 = 0.4,
-#' phi = 4,
-#' shift_1 = 29 )
+#' library(data.table)
+#' set.seed(4)
+#' baseline <- simulate_baseline_data(
+#'   start_date = as.Date("2018-01-01"),
+#'   end_date = as.Date("2019-12-31"),
+#'   seasonal_pattern_n = 1,
+#'   weekly_pattern_n = 1,
+#'   alpha = 3,
+#'   beta = 0,
+#'   gamma_1 = 0.8,
+#'   gamma_2 = 0.6,
+#'   gamma_3 = 0.8,
+#'   gamma_4 = 0.4,
+#'   phi = 4,
+#'   shift_1 = 29
+#' )
+#' print(baseline[, .(date, wday, mu, n)])
 
 
 simulate_baseline_data <-  function(start_date,
@@ -179,27 +192,64 @@ simulate_baseline_data <-  function(start_date,
 
 
 
-#' Simulate seasonal outbreaks ----
+#' Add seasonal outbreaks to simulated data
+#'
 #' @description
-#' Simulation of seasonal outbreaks for syndromes/diseases that follows seasonal trends.
-#' Seasonal outbreaks are more variable both in size and timing than  seasonal patterns.
-#' The number of seasonal outbreaks occur in a year are defined by n_season_outbreak.
-#' The parameters week_season_start and week_season_end define the season window.
-#' The start of the seasonal outbreak is drawn from the season window weeks, with higher probability of outbreak occurs around the peak of the season (week_season_peak).
-#' The seasonal outbreak size (excess number of cases that occurs during the outbreak) is simulated using a poisson distribution as described in Noufaily et al. (2019).
+#' Adds seasonal outbreaks to a simulated baseline time series, for syndromes or
+#' diseases that follow seasonal trends. Seasonal outbreaks vary more in size and
+#' timing than the underlying seasonal pattern. The number of outbreaks per
+#' affected year is set by \code{n_season_outbreak}, and \code{week_season_start}
+#' to \code{week_season_end} define the season window. The outbreak start is drawn
+#' from the season window, with a higher probability near the peak
+#' (\code{week_season_peak}). The outbreak size (the excess number of cases) is
+#' drawn from a Poisson distribution following Noufaily et al. (2019).
 #'
 #' @param data
-#' A csfmt_rds data object
-#' @param week_season_start Starting season week number
-#' @param week_season_peak Peak of the season week number
-#' @param week_season_end Ending season week number
-#' @param n_season_outbreak Number of seasonal outbreaks to be simulated
-#' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak)
-
+#' A \code{csfmt_rts_data_v1} data object, typically the output of
+#' \code{\link{simulate_baseline_data}}.
+#' @param week_season_start Starting season week number.
+#' @param week_season_peak Peak of the season week number.
+#' @param week_season_end Ending season week number.
+#' @param n_season_outbreak Number of seasonal outbreaks to be simulated.
+#' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak).
+#'
 #' @return
-#' A csfmt_rts_data_v1, data.table
+#' A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
+#' simulated seasonal outbreak counts added to column \code{n} and additional
+#' columns describing the outbreaks (e.g. \code{seasonal_outbreak},
+#' \code{seasonal_outbreak_n}).
+#'
+#' @references
+#' Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+#' An improved algorithm for outbreak detection in multiple surveillance
+#' systems. Statistics in Medicine. 2013.
 #'
 #' @export
+#' @examples
+#' library(data.table)
+#' set.seed(4)
+#' baseline <- simulate_baseline_data(
+#'   start_date = as.Date("2018-01-01"),
+#'   end_date = as.Date("2019-12-31"),
+#'   seasonal_pattern_n = 1,
+#'   weekly_pattern_n = 1,
+#'   alpha = 3,
+#'   beta = 0,
+#'   gamma_1 = 0.8,
+#'   gamma_2 = 0.6,
+#'   gamma_3 = 0.8,
+#'   gamma_4 = 0.4,
+#'   phi = 4,
+#'   shift_1 = 29
+#' )
+#' d <- simulate_seasonal_outbreak_data(
+#'   baseline,
+#'   week_season_start = 40,
+#'   week_season_peak = 4,
+#'   week_season_end = 20,
+#'   n_season_outbreak = 1
+#' )
+#' print(d[, .(date, n, seasonal_outbreak, seasonal_outbreak_n)])
 
 
 simulate_seasonal_outbreak_data <-  function(data,
@@ -301,22 +351,55 @@ simulate_seasonal_outbreak_data <-  function(data,
 
 
 
-#' Simulate spiked outbreaks ----
+#' Add spiked outbreaks to simulated data
+#'
 #' @description
-
-#' Simulation of spiked outbreak as described in Noufaily et al. (2019). The method for simulating spiked outbreak is similar to
-#' seasonal outbreaks simulation but they are shorter in duration and are added only the last year of data (prediction data).
-#' Spiked outbreaks can start at any week during the prediction data
+#' Adds spiked outbreaks to a simulated baseline time series, following Noufaily
+#' et al. (2019). The method is similar to \code{\link{simulate_seasonal_outbreak_data}},
+#' but the outbreaks are shorter in duration and are added only within the last
+#' year of data (the prediction period). A spiked outbreak can start at any week
+#' during that period.
 #'
 #' @param data
-#' A csfmt_rds data object
-#' @param n_sp_outbreak Number of spiked outbreaks to be simulated
-#' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak)
+#' A \code{csfmt_rts_data_v1} data object, typically the output of
+#' \code{\link{simulate_baseline_data}}.
+#' @param n_sp_outbreak Number of spiked outbreaks to be simulated.
+#' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the spiked outbreak).
 #'
 #' @return
-#' A csfmt_rts_data_v1, data.table
+#' A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
+#' simulated spiked outbreak counts added to column \code{n} and additional
+#' columns describing the outbreaks (e.g. \code{sp_outbreak}, \code{sp_outbreak_n}).
+#'
+#' @references
+#' Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+#' An improved algorithm for outbreak detection in multiple surveillance
+#' systems. Statistics in Medicine. 2013.
 #'
 #' @export
+#' @examples
+#' library(data.table)
+#' set.seed(4)
+#' baseline <- simulate_baseline_data(
+#'   start_date = as.Date("2018-01-01"),
+#'   end_date = as.Date("2019-12-31"),
+#'   seasonal_pattern_n = 1,
+#'   weekly_pattern_n = 1,
+#'   alpha = 3,
+#'   beta = 0,
+#'   gamma_1 = 0.8,
+#'   gamma_2 = 0.6,
+#'   gamma_3 = 0.8,
+#'   gamma_4 = 0.4,
+#'   phi = 4,
+#'   shift_1 = 29
+#' )
+#' d <- simulate_spike_outbreak_data(
+#'   baseline,
+#'   n_sp_outbreak = 1,
+#'   m = 2
+#' )
+#' print(d[, .(date, n, sp_outbreak, sp_outbreak_n)])
 
 
 simulate_spike_outbreak_data <-  function(data,
@@ -401,18 +484,50 @@ simulate_spike_outbreak_data <-  function(data,
 
 
 
-#' Holiday effect ----
+#' Apply a public holiday effect to simulated data
+#'
 #' @description
-#' The effect of public holiday on a time series of daily counts
+#' Multiplies the daily counts on public holidays by a fixed factor, so that
+#' simulated data can reflect the effect of holidays on a time series of daily
+#' counts.
+#'
 #' @param data
-#' A csfmt_rds data object
-#' @param holiday_data dates
-#' @param holiday_effect Ending date of the simulation period.
+#' A \code{csfmt_rts_data_v1} data object, typically the output of
+#' \code{\link{simulate_baseline_data}}.
+#' @param holiday_data A \code{data.table} with a \code{date} column and a logical
+#' \code{is_holiday} column, used to flag which dates are public holidays.
+#' @param holiday_effect Multiplicative factor applied to the count \code{n} on
+#' holidays.
 #'
 #' @return
-#' A csfmt_rts_data_v1, data.table containing
+#' A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
+#' count \code{n} multiplied by \code{holiday_effect} on flagged holidays, and a
+#' \code{holiday} column indicating those dates.
 #'
 #' @export
+#' @examples
+#' library(data.table)
+#' set.seed(4)
+#' baseline <- simulate_baseline_data(
+#'   start_date = as.Date("2018-01-01"),
+#'   end_date = as.Date("2019-12-31"),
+#'   seasonal_pattern_n = 1,
+#'   weekly_pattern_n = 1,
+#'   alpha = 3,
+#'   beta = 0,
+#'   gamma_1 = 0.8,
+#'   gamma_2 = 0.6,
+#'   gamma_3 = 0.8,
+#'   gamma_4 = 0.4,
+#'   phi = 4,
+#'   shift_1 = 29
+#' )
+#' holidays <- data.table(
+#'   date = as.Date(c("2018-12-25", "2019-01-01", "2019-12-25")),
+#'   is_holiday = TRUE
+#' )
+#' d <- add_holiday_effect(baseline, holiday_data = holidays, holiday_effect = 2)
+#' print(d[holiday == TRUE, .(date, n, holiday)])
 
 
 add_holiday_effect <-  function(data,

@@ -2,20 +2,51 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{add_holiday_effect}
 \alias{add_holiday_effect}
-\title{Holiday effect ----}
+\title{Apply a public holiday effect to simulated data}
 \usage{
 add_holiday_effect(data, holiday_data, holiday_effect = 2)
 }
 \arguments{
-\item{data}{A csfmt_rds data object}
+\item{data}{A \code{csfmt_rts_data_v1} data object, typically the output of
+\code{\link{simulate_baseline_data}}.}
 
-\item{holiday_data}{dates}
+\item{holiday_data}{A \code{data.table} with a \code{date} column and a logical
+\code{is_holiday} column, used to flag which dates are public holidays.}
 
-\item{holiday_effect}{Ending date of the simulation period.}
+\item{holiday_effect}{Multiplicative factor applied to the count \code{n} on
+holidays.}
 }
 \value{
-A csfmt_rts_data_v1, data.table containing
+A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
+count \code{n} multiplied by \code{holiday_effect} on flagged holidays, and a
+\code{holiday} column indicating those dates.
 }
 \description{
-The effect of public holiday on a time series of daily counts
+Multiplies the daily counts on public holidays by a fixed factor, so that
+simulated data can reflect the effect of holidays on a time series of daily
+counts.
+}
+\examples{
+library(data.table)
+set.seed(4)
+baseline <- simulate_baseline_data(
+  start_date = as.Date("2018-01-01"),
+  end_date = as.Date("2019-12-31"),
+  seasonal_pattern_n = 1,
+  weekly_pattern_n = 1,
+  alpha = 3,
+  beta = 0,
+  gamma_1 = 0.8,
+  gamma_2 = 0.6,
+  gamma_3 = 0.8,
+  gamma_4 = 0.4,
+  phi = 4,
+  shift_1 = 29
+)
+holidays <- data.table(
+  date = as.Date(c("2018-12-25", "2019-01-01", "2019-12-25")),
+  is_holiday = TRUE
+)
+d <- add_holiday_effect(baseline, holiday_data = holidays, holiday_effect = 2)
+print(d[holiday == TRUE, .(date, n, holiday)])
 }

@@ -57,7 +57,11 @@ short_term_trend(x, ...)
 The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
 }
 \description{
-The method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.
+Fits a quasi-Poisson regression over a moving window of recent weeks and
+classifies the short-term trend of the numerator (optionally per a
+denominator) as increasing or not, together with an estimated doubling time.
+The method is based upon a published analytics strategy by Benedetti (2019)
+<doi:10.5588/pha.19.0002>.
 }
 \examples{
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1

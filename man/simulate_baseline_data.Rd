@@ -2,8 +2,7 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{simulate_baseline_data}
 \alias{simulate_baseline_data}
-\title{Simulate baseline data ----
-Simulation of baseline data.}
+\title{Simulate baseline surveillance data}
 \usage{
 simulate_baseline_data(
   start_date,
@@ -48,30 +47,44 @@ Date is in the format of 'yyyy-mm-dd'.}
 \item{shift_1}{Horizontal shift parameter to help control over week/month peaks.}
 }
 \value{
-A csfmt_rts_data_v1, data.table containing a time series of counts
+A \code{csfmt_rts_data_v1} (\code{data.table}) holding one row per day over the
+simulation period, including the columns:
 
 \describe{
-  \item{wday}{day-of-the week}
-  \item{n}{cases}
+  \item{date}{Calendar date of the observation.}
+  \item{wday}{Day of the week.}
+  \item{mu}{Expected count from the baseline model.}
+  \item{n}{Simulated count.}
 }
 }
 \description{
-This function simulates a time series of daily counts in the absence of outbreaks. Data is simulated using a poisson/negative binomial model as described in
-Noufaily et al. (2019).
-Properties of time series such as frequency of baseline observations, trend, seasonal and weekly pattern can be specified in the simulation.
+Simulates a time series of daily counts in the absence of outbreaks. The
+counts are drawn from a Poisson or negative binomial model following the
+approach of Noufaily et al. (2019). The baseline frequency, linear trend,
+seasonal pattern and day-of-the-week pattern are all controlled through the
+function arguments.
 }
 \examples{
-baseline  <- simulate_baseline_data(
-start_date = as.Date("2012-01-01"),
-end_date = as.Date("2019-12-31"),
-seasonal_pattern_n = 1,
-weekly_pattern_n = 1,
-alpha = 3,
-beta = 0,
-gamma_1 = 0.8,
-gamma_2 = 0.6,
-gamma_3 = 0.8,
-gamma_4 = 0.4,
-phi = 4,
-shift_1 = 29 )
+library(data.table)
+set.seed(4)
+baseline <- simulate_baseline_data(
+  start_date = as.Date("2018-01-01"),
+  end_date = as.Date("2019-12-31"),
+  seasonal_pattern_n = 1,
+  weekly_pattern_n = 1,
+  alpha = 3,
+  beta = 0,
+  gamma_1 = 0.8,
+  gamma_2 = 0.6,
+  gamma_3 = 0.8,
+  gamma_4 = 0.4,
+  phi = 4,
+  shift_1 = 29
+)
+print(baseline[, .(date, wday, mu, n)])
+}
+\references{
+Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+An improved algorithm for outbreak detection in multiple surveillance
+systems. Statistics in Medicine. 2013.
 }

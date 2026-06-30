@@ -19,10 +19,17 @@ gen_data_signal_detection_hlm <- function(seed = 4){
   return(d)
 }
 
-#' Determine the short term trend of a timeseries
+#' Detect signals using the historical limits method
 #'
-#' The method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.
-#' @param x Data object
+#' @description
+#' Flags weeks where the observed value is unusually high compared with a baseline
+#' built from the same weeks in previous years. For each week, a baseline mean and
+#' standard deviation are computed from the surrounding weeks
+#' (\code{week - 1}, \code{week}, \code{week + 1}) in each of the previous
+#' \code{baseline_isoyears} years. A week is flagged as \code{"high"} when its
+#' value exceeds the upper (99.5\%) baseline prediction interval.
+#'
+#' @param x Data object.
 #' @param ... Not in use.
 #' @rdname signal_detection_hlm
 #' @export
@@ -49,9 +56,9 @@ signal_detection_hlm <- function(
 #' @param remove_last_isoyearweeks Number of isoyearweeks you want to remove at the end (due to unreliable data)
 #' @param forecast_isoyearweeks Number of isoyearweeks you want to forecast into the future
 #' @param value_naming_prefix "from_numerator", "generic", or a custom prefix
-#' @param remove_training_data Boolean. If TRUE, removes the training data (i.e. 1:(trend_isoyearweeks-1)) from the returned dataset.
+#' @param remove_training_data Boolean. If TRUE, removes the training data (i.e. the early weeks that have no baseline) from the returned dataset.
 #' @param ... Not in use.
-#' @returns The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
+#' @returns The original csfmt_rts_data_v1 dataset with extra columns. \code{*_status} is a factor with levels c("training", "forecast", "null", "high") flagging weeks above the baseline, \code{*_forecasted*} holds the observed value (or the baseline median for forecast weeks), and \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and upper (99.5\%) baseline prediction interval.
 #' @examples
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]

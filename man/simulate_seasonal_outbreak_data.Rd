@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{simulate_seasonal_outbreak_data}
 \alias{simulate_seasonal_outbreak_data}
-\title{Simulate seasonal outbreaks ----}
+\title{Add seasonal outbreaks to simulated data}
 \usage{
 simulate_seasonal_outbreak_data(
   data,
@@ -14,26 +14,63 @@ simulate_seasonal_outbreak_data(
 )
 }
 \arguments{
-\item{data}{A csfmt_rds data object}
+\item{data}{A \code{csfmt_rts_data_v1} data object, typically the output of
+\code{\link{simulate_baseline_data}}.}
 
-\item{week_season_start}{Starting season week number}
+\item{week_season_start}{Starting season week number.}
 
-\item{week_season_peak}{Peak of the season week number}
+\item{week_season_peak}{Peak of the season week number.}
 
-\item{week_season_end}{Ending season week number}
+\item{week_season_end}{Ending season week number.}
 
-\item{n_season_outbreak}{Number of seasonal outbreaks to be simulated}
+\item{n_season_outbreak}{Number of seasonal outbreaks to be simulated.}
 
-\item{m}{Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak)}
+\item{m}{Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak).}
 }
 \value{
-A csfmt_rts_data_v1, data.table
+A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
+simulated seasonal outbreak counts added to column \code{n} and additional
+columns describing the outbreaks (e.g. \code{seasonal_outbreak},
+\code{seasonal_outbreak_n}).
 }
 \description{
-Simulation of seasonal outbreaks for syndromes/diseases that follows seasonal trends.
-Seasonal outbreaks are more variable both in size and timing than  seasonal patterns.
-The number of seasonal outbreaks occur in a year are defined by n_season_outbreak.
-The parameters week_season_start and week_season_end define the season window.
-The start of the seasonal outbreak is drawn from the season window weeks, with higher probability of outbreak occurs around the peak of the season (week_season_peak).
-The seasonal outbreak size (excess number of cases that occurs during the outbreak) is simulated using a poisson distribution as described in Noufaily et al. (2019).
+Adds seasonal outbreaks to a simulated baseline time series, for syndromes or
+diseases that follow seasonal trends. Seasonal outbreaks vary more in size and
+timing than the underlying seasonal pattern. The number of outbreaks per
+affected year is set by \code{n_season_outbreak}, and \code{week_season_start}
+to \code{week_season_end} define the season window. The outbreak start is drawn
+from the season window, with a higher probability near the peak
+(\code{week_season_peak}). The outbreak size (the excess number of cases) is
+drawn from a Poisson distribution following Noufaily et al. (2019).
+}
+\examples{
+library(data.table)
+set.seed(4)
+baseline <- simulate_baseline_data(
+  start_date = as.Date("2018-01-01"),
+  end_date = as.Date("2019-12-31"),
+  seasonal_pattern_n = 1,
+  weekly_pattern_n = 1,
+  alpha = 3,
+  beta = 0,
+  gamma_1 = 0.8,
+  gamma_2 = 0.6,
+  gamma_3 = 0.8,
+  gamma_4 = 0.4,
+  phi = 4,
+  shift_1 = 29
+)
+d <- simulate_seasonal_outbreak_data(
+  baseline,
+  week_season_start = 40,
+  week_season_peak = 4,
+  week_season_end = 20,
+  n_season_outbreak = 1
+)
+print(d[, .(date, n, seasonal_outbreak, seasonal_outbreak_n)])
+}
+\references{
+Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+An improved algorithm for outbreak detection in multiple surveillance
+systems. Statistics in Medicine. 2013.
 }

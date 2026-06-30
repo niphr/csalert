@@ -2,7 +2,7 @@
 % Please edit documentation in R/short_term_trend_sts_v1.R
 \name{short_term_trend_sts_v1}
 \alias{short_term_trend_sts_v1}
-\title{Determine the short term trend of a timeseries}
+\title{Determine the short term trend of a surveillance time series}
 \usage{
 short_term_trend_sts_v1(sts, control = list(w = 5, alpha = 0.05))
 }
@@ -19,8 +19,12 @@ short_term_trend_sts_v1(sts, control = list(w = 5, alpha = 0.05))
 sts object with the alarms slot set to 0/1 if not-increasing/increasing.
 }
 \description{
-The method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.
-This function has been frozen on 2024-06-24. It is designed to use sts
+Fits a quasi-Poisson regression over a moving window of recent observations of
+a \code{surveillance} \code{sts} object and sets the alarm slot to 1 for
+time points with a significant increasing trend (0 otherwise). The method is
+based upon a published analytics strategy by Benedetti (2019)
+<doi:10.5588/pha.19.0002>. This function was frozen on 2024-06-24 and operates
+on \code{sts} objects.
 }
 \examples{
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1

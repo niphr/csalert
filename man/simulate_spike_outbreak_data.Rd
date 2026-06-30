@@ -2,22 +2,56 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{simulate_spike_outbreak_data}
 \alias{simulate_spike_outbreak_data}
-\title{Simulate spiked outbreaks ----}
+\title{Add spiked outbreaks to simulated data}
 \usage{
 simulate_spike_outbreak_data(data, n_sp_outbreak = 1, m)
 }
 \arguments{
-\item{data}{A csfmt_rds data object}
+\item{data}{A \code{csfmt_rts_data_v1} data object, typically the output of
+\code{\link{simulate_baseline_data}}.}
 
-\item{n_sp_outbreak}{Number of spiked outbreaks to be simulated}
+\item{n_sp_outbreak}{Number of spiked outbreaks to be simulated.}
 
-\item{m}{Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak)}
+\item{m}{Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the spiked outbreak).}
 }
 \value{
-A csfmt_rts_data_v1, data.table
+A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
+simulated spiked outbreak counts added to column \code{n} and additional
+columns describing the outbreaks (e.g. \code{sp_outbreak}, \code{sp_outbreak_n}).
 }
 \description{
-Simulation of spiked outbreak as described in Noufaily et al. (2019). The method for simulating spiked outbreak is similar to
-seasonal outbreaks simulation but they are shorter in duration and are added only the last year of data (prediction data).
-Spiked outbreaks can start at any week during the prediction data
+Adds spiked outbreaks to a simulated baseline time series, following Noufaily
+et al. (2019). The method is similar to \code{\link{simulate_seasonal_outbreak_data}},
+but the outbreaks are shorter in duration and are added only within the last
+year of data (the prediction period). A spiked outbreak can start at any week
+during that period.
+}
+\examples{
+library(data.table)
+set.seed(4)
+baseline <- simulate_baseline_data(
+  start_date = as.Date("2018-01-01"),
+  end_date = as.Date("2019-12-31"),
+  seasonal_pattern_n = 1,
+  weekly_pattern_n = 1,
+  alpha = 3,
+  beta = 0,
+  gamma_1 = 0.8,
+  gamma_2 = 0.6,
+  gamma_3 = 0.8,
+  gamma_4 = 0.4,
+  phi = 4,
+  shift_1 = 29
+)
+d <- simulate_spike_outbreak_data(
+  baseline,
+  n_sp_outbreak = 1,
+  m = 2
+)
+print(d[, .(date, n, sp_outbreak, sp_outbreak_n)])
+}
+\references{
+Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
+An improved algorithm for outbreak detection in multiple surveillance
+systems. Statistics in Medicine. 2013.
 }
