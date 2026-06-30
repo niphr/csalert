@@ -2,6 +2,20 @@ url: https://niphr.github.io/csalert/
 
 template:
   package: cstemplate
+  params:
+    hero:
+      overline: "R package · Surveillance alerts"
+      title: "Alerts from surveillance data."
+      lede: >
+        Create alerts and detect trends in public-health surveillance data, built on
+        a published analytics strategy (Benedetti, 2019).
+      cta:
+        primary:
+          text: "Get started"
+          href: "articles/short_term_trend.html"
+        secondary:
+          text: "Browse the reference →"
+          href: "reference/index.html"
 
 authors:
   footer:
