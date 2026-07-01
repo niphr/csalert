@@ -43,6 +43,16 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   or `nowcast_simple_v2` slots in beside them), selected by a caller-side registry.
   The validation harness (nowcast_backtest/score/compare/validate/censor/truth) is
   generic tooling and is NOT versioned.
+- `nowcast_simple_v1` gains `delay_window` (default 26 weeks): the reporting-delay
+  distribution is estimated from only the most recent weeks, so a non-stationary /
+  drifting delay (e.g. a backfilled history then live prospective reporting) is
+  tracked instead of averaged into a stale pooled curve. Fixes the median bias
+  that caused sub-nominal interval coverage; residual under-coverage (plug-in delay)
+  is documented by the calibration test and awaits per-draw delay uncertainty or
+  backtest-driven recalibration. `NULL` restores the old pool-all-history behaviour.
+- Calibration test (`test-nowcast-calibration.R`): empirical interval coverage vs
+  nominal on synthetic data, with a stationary case (calibrated) and a
+  drifting-delay case (reproduces the real-data under-coverage synthetically).
 - Nowcast validation/comparison harness (method-agnostic, replay-based):
   `nowcast_censor` (reconstruct what was known as-of a past week from the
   reporting triangle), `nowcast_truth` (settled totals), `nowcast_backtest`

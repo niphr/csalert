@@ -7,8 +7,18 @@
 # ensemble. The completed reference-week totals become the ensemble's draw matrix.
 
 # P(reported by delay d), d = 0..max_delay-1, from this series' line list.
-nowcast_delay_cumdist <- function(ds, ref_col, rep_col, val_col, as_of, max_delay) {
+# delay_window (weeks) restricts the estimate to recent reference weeks, so a
+# DRIFTING/non-stationary reporting delay (e.g. a backfilled history followed by
+# live prospective reporting) is tracked instead of averaged into a stale pooled
+# curve. NULL = pool all history.
+nowcast_delay_cumdist <- function(ds, ref_col, rep_col, val_col, as_of, max_delay,
+                                  delay_window = NULL) {
   ds <- ds[get(val_col) > 0]
+  if (!is.null(delay_window)) {
+    weeks <- cstime::dates_by_isoyearweek$isoyearweek
+    cutoff <- match(as_of, weeks) - delay_window
+    ds <- ds[match(get(ref_col), weeks) > cutoff]
+  }
   ll <- ds[rep(seq_len(.N), ds[[val_col]])]
   if (nrow(ll) == 0) return(rep(1, max_delay))    # nothing observed -> no completion
   ref_date <- cstime::isoyearweek_to_last_date(ll[[ref_col]])
@@ -117,9 +127,14 @@ nowcast_simple_v1 <- function(x, ...) {
 #' @param denominator_col Optional denominator column in the triangle to nowcast
 #'   alongside the numerator (index-aligned, for rates). The completed draw matrix
 #'   is added as a second measure.
+#' @param delay_window Estimate the reporting-delay distribution from only the
+#'   most recent `delay_window` reference weeks (weeks), so a non-stationary /
+#'   drifting delay is tracked rather than averaged into a stale pooled curve.
+#'   Default 26; `NULL` pools all history.
 #' @export
 nowcast_simple_v1.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
-                                                denominator_col = NULL, ...) {
+                                                denominator_col = NULL,
+                                                delay_window = 26, ...) {
   if (!requireNamespace("flexsurv", quietly = TRUE))
     stop("nowcast_simple_v1 requires the 'flexsurv' package")
   id_cols <- attr(x, "id_cols")
@@ -149,7 +164,8 @@ nowcast_simple_v1.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 
     rts <- reporting_triangle_matrix(x, max_delay, value_col = vc)
     chunks <- lapply(series_ids, function(tsid) {
       cum_by_delay <- nowcast_delay_cumdist(d_tri[time_series_id == tsid],
-                                            ref_col, rep_col, vc, as_of, max_delay)
+                                            ref_col, rep_col, vc, as_of, max_delay,
+                                            delay_window = delay_window)
       nowcast_complete(rts[[tsid]]$mat, cum_by_delay, n_sim)
     })
     draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)

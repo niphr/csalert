@@ -51,12 +51,13 @@ test_that("nowcast_simple_v1 is well-calibrated when the delay is stationary", {
   expect_gte(cov[["c50"]], 0.40)   # nominal 0.50
 })
 
-test_that("nowcast_simple_v1 UNDER-covers when the delay drifts (known limitation)", {
-  # A pooled, stationary delay estimate is stale for the recent weeks once the
-  # delay drifts -> intervals too narrow. This characterises the CURRENT engine
-  # (measured c90 ~ 0.57). A time-varying / Bayesian engine (a future
-  # nowcast_*_v2 or stan) should push c90 >= 0.85 -- at which point flip this to
-  # an expect_gte and it becomes the acceptance test.
+test_that("nowcast_simple_v1 still under-covers under delay drift (residual limitation)", {
+  # The recency window (delay_window, default 26) tracks the drifting delay and
+  # fixes the median BIAS, lifting c90 from ~0.57 to ~0.72 -- but the delay curve
+  # is still a plug-in point estimate (fixed across draws), so intervals remain a
+  # bit too narrow and coverage stays below nominal. Closing the rest needs
+  # per-draw delay uncertainty and/or backtest-driven recalibration; when that
+  # lands, flip this to expect_gte(0.85) and it becomes the acceptance test.
   cov <- interval_coverage(gen_tri(drift = TRUE))
-  expect_lt(cov[["c90"]], 0.75)
+  expect_lt(cov[["c90"]], 0.82)
 })

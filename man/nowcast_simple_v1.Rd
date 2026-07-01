@@ -7,7 +7,14 @@
 \usage{
 nowcast_simple_v1(x, ...)
 
-\method{nowcast_simple_v1}{csfmt_reporting_triangle_v3}(x, max_delay, n_sim = 1000, denominator_col = NULL, ...)
+\method{nowcast_simple_v1}{csfmt_reporting_triangle_v3}(
+  x,
+  max_delay,
+  n_sim = 1000,
+  denominator_col = NULL,
+  delay_window = 26,
+  ...
+)
 }
 \arguments{
 \item{x}{A `csfmt_reporting_triangle_v3`.}
@@ -21,6 +28,11 @@ nowcast_simple_v1(x, ...)
 \item{denominator_col}{Optional denominator column in the triangle to nowcast
 alongside the numerator (index-aligned, for rates). The completed draw matrix
 is added as a second measure.}
+
+\item{delay_window}{Estimate the reporting-delay distribution from only the
+most recent `delay_window` reference weeks (weeks), so a non-stationary /
+drifting delay is tracked rather than averaged into a stale pooled curve.
+Default 26; `NULL` pools all history.}
 }
 \description{
 Nowcast a reporting triangle into an ensemble (simple flexsurv+negbin engine)
