@@ -41,8 +41,8 @@ test_that("estimate + apply calibration lifts drift coverage to nominal", {
   truth <- nowcast_truth(tri, 5)
 
   before <- cov_at(bt, truth)
-  cal    <- nowcast_estimate_calibration(bt, truth, level = 0.9)
-  bt_cal <- nowcast_apply_calibration(bt, cal)
+  cal    <- nowcast_estimate_calibration_v1(bt, truth, level = 0.9)
+  bt_cal <- nowcast_apply_calibration_v1(bt, cal)
   after  <- cov_at(bt_cal, truth)
 
   expect_s3_class(cal, "nowcast_calibration")
@@ -58,8 +58,8 @@ test_that("apply passes through groups with no learned factor", {
   bt <- nowcast_backtest(tri, m, max_delay = 5, horizons = 1:2,
                          probs = c(.05, .5, .95), seed = 1)
   truth <- nowcast_truth(tri, 5)
-  cal <- nowcast_estimate_calibration(bt[horizon == 1], truth, level = 0.9)  # only h1 learned
-  out <- nowcast_apply_calibration(bt, cal)
+  cal <- nowcast_estimate_calibration_v1(bt[horizon == 1], truth, level = 0.9)  # only h1 learned
+  out <- nowcast_apply_calibration_v1(bt, cal)
   # horizon 2 (unseen) is unchanged
   h2 <- merge(bt[horizon == 2], out[horizon == 2],
               by = c("reference", "horizon", "quantile_level"), suffixes = c(".in", ".out"))

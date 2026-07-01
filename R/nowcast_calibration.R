@@ -1,4 +1,4 @@
-# nowcast_estimate_calibration / nowcast_apply_calibration: turn a backtest into a
+# nowcast_estimate_calibration_v1 / nowcast_apply_calibration_v1: turn a backtest into a
 # calibration correction and apply it, so a nowcast's intervals achieve nominal
 # coverage regardless of what the engine gets wrong internally.
 #
@@ -20,7 +20,7 @@
 #' Estimate a nowcast calibration from a backtest
 #'
 #' Learns a per-group interval-scaling correction (conformal) from past nowcasts
-#' scored against settled truth. See [nowcast_apply_calibration] to use it.
+#' scored against settled truth. See [nowcast_apply_calibration_v1] to use it.
 #' @param backtest Long quantile nowcasts (from [nowcast_backtest]): `reference`,
 #'   the `by` column(s), `quantile_level`, `predicted`.
 #' @param truth Settled totals (from [nowcast_truth]): `reference`, `truth`.
@@ -28,7 +28,7 @@
 #' @param by Grouping column(s) the factor varies over (default "horizon").
 #' @returns A `nowcast_calibration`: per-group raw coverage + scale `factor`.
 #' @export
-nowcast_estimate_calibration <- function(backtest, truth, level = 0.9, by = "horizon") {
+nowcast_estimate_calibration_v1 <- function(backtest, truth, level = 0.9, by = "horizon") {
   d <- merge(data.table::as.data.table(backtest),
              data.table::as.data.table(truth), by = "reference")
   qlevs <- sort(unique(d$quantile_level))
@@ -71,10 +71,10 @@ print.nowcast_calibration <- function(x, ...) {
 #' @param x Long quantile predictions (`reference`, the calibration's `by`
 #'   column(s), `quantile_level`, `predicted`) -- e.g. a fresh [nowcast_backtest]
 #'   output or a melted collapse.
-#' @param calibration A `nowcast_calibration` from [nowcast_estimate_calibration].
+#' @param calibration A `nowcast_calibration` from [nowcast_estimate_calibration_v1].
 #' @returns `x` with `predicted` recalibrated.
 #' @export
-nowcast_apply_calibration <- function(x, calibration) {
+nowcast_apply_calibration_v1 <- function(x, calibration) {
   stopifnot(inherits(calibration, "nowcast_calibration"))
   d <- data.table::as.data.table(data.table::copy(x))
   by <- calibration$by
