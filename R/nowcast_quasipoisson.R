@@ -29,17 +29,21 @@
   if (length(train) < 3L) return(draws)
   y_train <- obs_total[train]
 
-  horizons <- sort(unique(age[!settled & age >= 0L & age < (max_delay - 1L)]))
-  for (h in horizons) {
-    cols <- seq_len(h + 1L)                               # observed delays 0..h -> matrix cols
+  # one regression per number of weeks OBSERVED (1-based): weeks_observed w means
+  # the reference week is age w-1, so delays 0..w-1 are in. (age 0 = the current
+  # week with its delay-0 reports = 1 week observed.)
+  ages <- sort(unique(age[!settled & age >= 0L & age < (max_delay - 1L)]))
+  for (h in ages) {
+    w <- h + 1L                                           # weeks observed
+    cols <- seq_len(w)                                    # observed delays 0..w-1 -> matrix cols
     tgt  <- which(!settled & age == h)
     if (!length(tgt)) next
     Xtr <- mat[train, cols, drop = FALSE]
     df  <- data.frame(y = y_train, Xtr); names(df) <- c("y", paste0("d", cols))
-    form <- stats::as.formula(paste("y ~ 0 +", paste(paste0("d", cols), collapse = " + ")))
+    form <- stats::as.formula(paste("y ~", paste(paste0("d", cols), collapse = " + ")))  # + intercept
     s0  <- sum(y_train) / max(sum(Xtr), 1)                # overall inflation, a stable start
     fit <- tryCatch(stats::glm(form, family = stats::quasipoisson(link = "identity"),
-                               data = df, start = rep(s0, length(cols))),
+                               data = df, start = c(0, rep(s0, length(cols)))),
                     error = function(e) NULL)
     if (is.null(fit) || anyNA(stats::coef(fit))) next
     Xnew <- as.data.frame(mat[tgt, cols, drop = FALSE]); names(Xnew) <- paste0("d", cols)
