@@ -188,8 +188,8 @@ simulate_baseline_data <-  function(start_date,
 #' The start of the seasonal outbreak is drawn from the season window weeks, with higher probability of outbreak occurs around the peak of the season (week_season_peak).
 #' The seasonal outbreak size (excess number of cases that occurs during the outbreak) is simulated using a poisson distribution as described in Noufaily et al. (2019).
 #'
-#' @param data
-#' A csfmt_rds data object
+#' @param data A `data.table` of daily counts (as returned by
+#'   [simulate_baseline_data]) to add the outbreak signal to.
 #' @param week_season_start Starting season week number
 #' @param week_season_peak Peak of the season week number
 #' @param week_season_end Ending season week number
@@ -308,8 +308,8 @@ simulate_seasonal_outbreak_data <-  function(data,
 #' seasonal outbreaks simulation but they are shorter in duration and are added only the last year of data (prediction data).
 #' Spiked outbreaks can start at any week during the prediction data
 #'
-#' @param data
-#' A csfmt_rds data object
+#' @param data A `data.table` of daily counts (as returned by
+#'   [simulate_baseline_data]) to add the outbreak signal to.
 #' @param n_sp_outbreak Number of spiked outbreaks to be simulated
 #' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak)
 #'
@@ -403,15 +403,13 @@ simulate_spike_outbreak_data <-  function(data,
 
 #' Holiday effect ----
 #' @description
-#' The effect of public holiday on a time series of daily counts
-#' @param data
-#' A csfmt_rds data object
-#' @param holiday_data dates
-#' @param holiday_effect Ending date of the simulation period.
-#'
-#' @return
-#' A csfmt_rts_data_v1, data.table containing
-#'
+#' Multiply the daily counts on public-holiday dates by a fixed factor, to inject
+#' a holiday dip/bump into a simulated series.
+#' @param data A `data.table` of daily counts (with a `date` and `n` column).
+#' @param holiday_data A vector of holiday dates to apply the effect on.
+#' @param holiday_effect Multiplicative factor applied to `n` on holiday dates
+#'   (e.g. 2 doubles, 0.5 halves). Default 2.
+#' @returns The input `data.table` with `n` scaled on holiday dates.
 #' @export
 
 

@@ -16,3 +16,6 @@ Character vector of quantile labels.
 `0.025 -> "q02x5"`, `0.5 -> "q50x0"`, `0.975 -> "q97x5"`, `0.005 -> "q00x5"`.
 Two integer-percent digits, then `x`, then one decimal-percent digit.
 }
+\examples{
+q_label(c(0.025, 0.5, 0.975))
+}

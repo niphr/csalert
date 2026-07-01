@@ -34,6 +34,12 @@ most recent `delay_window` reference weeks (weeks), so a non-stationary /
 drifting delay is tracked rather than averaged into a stale pooled curve.
 Default 26; `NULL` pools all history.}
 }
+\value{
+A `csfmt_ensemble_v3` with one row per reference week and an
+  `n_sim`-column draw matrix of the nowcasted total per week (settled weeks are
+  degenerate at their observed total; recent weeks carry the completion
+  uncertainty). A second measure is added when `denominator_col` is given.
+}
 \description{
 Nowcast a reporting triangle into an ensemble (survrtrunc delay + negbin engine)
 }

@@ -1,5 +1,20 @@
 # Version 2026.7.1
 
+## Documentation
+
+- New vignette **"Nowcasting a reporting triangle with csfmt_ensemble_v3"** — a
+  runnable end-to-end walk-through (synthetic triangle -> nowcast -> collapse ->
+  backtest coverage/revision/completion -> naming grammar).
+- Documented the previously-bare `print.csfmt_ensemble_v3` and
+  `print.nowcast_calibration` methods; added the missing `@returns` to the
+  ensemble/nowcast S3 methods (`mem_thresholds`, `short_term_trend`,
+  `signal_detection_hlm`, `nowcast_quasipoisson_v1`, `nowcast_survrtrunc_v1`).
+- Added runnable `@examples` to the naming-grammar functions (`csfmt_var`,
+  `csfmt_parse`, `q_label`, `q_value`).
+- Fixed unescaped `%` in `nowcast_revision` / `reporting_completion` roxygen that
+  had been corrupting their generated `.Rd`, plus copy-paste errors in the
+  simulation-helper docs.
+
 ## csfmt_ensemble_v3 surveillance engine
 
 A new draw-parallel ensemble format and the full analysis pipeline built on it

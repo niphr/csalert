@@ -24,6 +24,8 @@
 #' Two integer-percent digits, then `x`, then one decimal-percent digit.
 #' @param p Numeric vector of probabilities in [0, 1].
 #' @returns Character vector of quantile labels.
+#' @examples
+#' q_label(c(0.025, 0.5, 0.975))
 #' @export
 q_label <- function(p) {
   stopifnot(is.numeric(p))
@@ -41,6 +43,8 @@ q_label <- function(p) {
 #' Quantile label -> probability (inverse of [q_label])
 #' @param label Character vector of quantile labels, e.g. "q02x5".
 #' @returns Numeric vector of probabilities.
+#' @examples
+#' q_value(c("q02x5", "q50x0", "q97x5"))
 #' @export
 q_value <- function(label) {
   stopifnot(is.character(label))
@@ -60,6 +64,9 @@ q_value <- function(label) {
 #' @param per Optional rate scaling (e.g. 100 -> `_pr100`).
 #' @param suffix Optional unit suffix (e.g. "_n").
 #' @returns Character scalar column name.
+#' @examples
+#' csfmt_var("numerator", role = "nowcasted", q = 0.5)   # "numerator_nowcasted_q50x0"
+#' csfmt_var("consults", denom = "population", per = 100) # a rate column name
 #' @export
 csfmt_var <- function(measure, denom = NULL, role = NULL, q = NULL,
                       level = NULL, per = NULL, suffix = NULL) {
@@ -81,7 +88,10 @@ csfmt_var <- function(measure, denom = NULL, role = NULL, q = NULL,
 
 #' Parse a csfmt measure column name into components (inverse of [csfmt_var])
 #' @param varname Character scalar column name.
-#' @returns Named list with the components that were present.
+#' @returns Named list with the components that were present (e.g. `measure`,
+#'   `role`, `q`, `denom`, `per`), i.e. the inverse of [csfmt_var].
+#' @examples
+#' csfmt_parse("numerator_nowcasted_q50x0")
 #' @export
 csfmt_parse <- function(varname) {
   stopifnot(is.character(varname), length(varname) == 1L)

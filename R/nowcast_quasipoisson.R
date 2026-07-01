@@ -84,6 +84,11 @@ nowcast_quasipoisson_v1 <- function(x, ...) UseMethod("nowcast_quasipoisson_v1")
 #' @param denominator_col Optional denominator column to nowcast alongside.
 #' @param delay_window Train on only settled weeks within roughly this many weeks
 #'   (tracks a drifting regime). Default 26; `NULL` uses all settled weeks.
+#' @returns A `csfmt_ensemble_v3` with one row per reference week and an
+#'   `n_sim`-column draw matrix of the nowcasted total per week (settled weeks
+#'   degenerate at their observed total; incomplete weeks carry the regression's
+#'   parameter + dispersion uncertainty). A second measure is added when
+#'   `denominator_col` is given.
 #' @export
 nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
                                                 denominator_col = NULL, delay_window = 26, ...) {

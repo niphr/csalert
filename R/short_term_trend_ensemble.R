@@ -50,6 +50,9 @@ rolling_slope_matrix <- function(Y, width) {
 #' @rdname short_term_trend
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
+#' @returns The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
+#'   to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
+#'   ready for the quantile collapse.
 #' @export
 short_term_trend.csfmt_ensemble_v3 <- function(x, measure, trend_isoyearweeks = 3, ...) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))

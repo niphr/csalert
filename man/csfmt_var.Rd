@@ -35,3 +35,7 @@ Character scalar column name.
 \description{
 Construct a csfmt measure column name from components
 }
+\examples{
+csfmt_var("numerator", role = "nowcasted", q = 0.5)   # "numerator_nowcasted_q50x0"
+csfmt_var("consults", denom = "population", per = 100) # a rate column name
+}

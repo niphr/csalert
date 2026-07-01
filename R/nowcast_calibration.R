@@ -54,6 +54,13 @@ nowcast_estimate_calibration_v1 <- function(backtest, truth, level = 0.9, by = "
             class = "nowcast_calibration")
 }
 
+#' Print a `nowcast_calibration`
+#'
+#' Shows the nominal interval level, the grouping, and the per-group calibration
+#' factor table (factor > 1 widens an under-dispersed engine; < 1 narrows).
+#' @param x A `nowcast_calibration` from [nowcast_estimate_calibration_v1].
+#' @param ... Ignored (for S3 consistency).
+#' @returns `x`, invisibly.
 #' @export
 print.nowcast_calibration <- function(x, ...) {
   cat(sprintf("<nowcast_calibration>  %g%% interval, by %s\n",

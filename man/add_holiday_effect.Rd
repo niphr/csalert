@@ -7,15 +7,17 @@
 add_holiday_effect(data, holiday_data, holiday_effect = 2)
 }
 \arguments{
-\item{data}{A csfmt_rds data object}
+\item{data}{A `data.table` of daily counts (with a `date` and `n` column).}
 
-\item{holiday_data}{dates}
+\item{holiday_data}{A vector of holiday dates to apply the effect on.}
 
-\item{holiday_effect}{Ending date of the simulation period.}
+\item{holiday_effect}{Multiplicative factor applied to `n` on holiday dates
+(e.g. 2 doubles, 0.5 halves). Default 2.}
 }
 \value{
-A csfmt_rts_data_v1, data.table containing
+The input `data.table` with `n` scaled on holiday dates.
 }
 \description{
-The effect of public holiday on a time series of daily counts
+Multiply the daily counts on public-holiday dates by a fixed factor, to inject
+a holiday dip/bump into a simulated series.
 }

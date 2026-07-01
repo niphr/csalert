@@ -30,6 +30,13 @@ nowcast_quasipoisson_v1(x, ...)
 \item{delay_window}{Train on only settled weeks within roughly this many weeks
 (tracks a drifting regime). Default 26; `NULL` uses all settled weeks.}
 }
+\value{
+A `csfmt_ensemble_v3` with one row per reference week and an
+  `n_sim`-column draw matrix of the nowcasted total per week (settled weeks
+  degenerate at their observed total; incomplete weeks carry the regression's
+  parameter + dispersion uncertainty). A second measure is added when
+  `denominator_col` is given.
+}
 \description{
 A discriminative alternative to [nowcast_survrtrunc_v1]: for each horizon it
 regresses the settled total on the counts reported so far

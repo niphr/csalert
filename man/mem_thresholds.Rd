@@ -40,6 +40,11 @@ gaps) that would distort the thresholds. Thresholds are still ESTIMATED for
 every season (including excluded ones) from its remaining non-excluded prior
 seasons; only the baseline they are fit on changes.}
 }
+\value{
+The `csfmt_ensemble_v3` with per-draw MEM intensity columns added to
+  `$draws` (the ordinal 1..5 status for `measure` and its threshold levels), so
+  the intensity level propagates through the later quantile collapse.
+}
 \description{
 MEM intensity thresholds
 }

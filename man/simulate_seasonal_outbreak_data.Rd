@@ -14,7 +14,8 @@ simulate_seasonal_outbreak_data(
 )
 }
 \arguments{
-\item{data}{A csfmt_rds data object}
+\item{data}{A `data.table` of daily counts (as returned by
+[simulate_baseline_data]) to add the outbreak signal to.}
 
 \item{week_season_start}{Starting season week number}
 

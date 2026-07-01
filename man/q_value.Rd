@@ -15,3 +15,6 @@ Numeric vector of probabilities.
 \description{
 Quantile label -> probability (inverse of [q_label])
 }
+\examples{
+q_value(c("q02x5", "q50x0", "q97x5"))
+}

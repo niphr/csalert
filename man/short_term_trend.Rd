@@ -61,6 +61,10 @@ short_term_trend(x, ...)
 }
 \value{
 The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
+
+The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
+  to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
+  ready for the quantile collapse.
 }
 \description{
 The method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.

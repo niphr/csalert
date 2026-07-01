@@ -19,9 +19,9 @@
 #' @param truth Output of [nowcast_truth] (settled totals per reference week).
 #' @param by Grouping columns for the summary (default "horizon").
 #' @param thresholds Absolute-revision cut-offs to report the exceedance
-#'   probability for (default 25% and 50%).
+#'   probability for (default 25\% and 50\%).
 #' @returns One row per group: `n`, `median_signed` (bias), `median_abs`,
-#'   `q05`/`q95` (the 5-95% revision band), and `p_gt_<t>` for each threshold.
+#'   `q05`/`q95` (the 5-95\% revision band), and `p_gt_<t>` for each threshold.
 #' @export
 nowcast_revision <- function(backtest, truth, by = "horizon",
                              thresholds = c(0.25, 0.5)) {

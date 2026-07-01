@@ -14,11 +14,11 @@ nowcast_revision(backtest, truth, by = "horizon", thresholds = c(0.25, 0.5))
 \item{by}{Grouping columns for the summary (default "horizon").}
 
 \item{thresholds}{Absolute-revision cut-offs to report the exceedance
-probability for (default 25% and 50%).}
+probability for (default 25\% and 50\%).}
 }
 \value{
 One row per group: `n`, `median_signed` (bias), `median_abs`,
-  `q05`/`q95` (the 5-95% revision band), and `p_gt_<t>` for each threshold.
+  `q05`/`q95` (the 5-95\% revision band), and `p_gt_<t>` for each threshold.
 }
 \description{
 Point-estimate revision of a nowcast backtest, by horizon

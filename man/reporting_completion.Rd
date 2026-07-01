@@ -28,7 +28,7 @@ whether completion time is trending up or down.}
 \value{
 One row per series (and per period when stratified): identity columns
   + `period` + `n_settled`, `mean_delay`, `complete_by_md` (fraction in by
-  `max_delay`), and `pct_w1`..`pct_w<max_delay>` (the pooled % of cases reported
+  `max_delay`), and `pct_w1`..`pct_w<max_delay>` (the pooled \% of cases reported
   after that many weeks observed -- the delay ECDF, no interpolation).
 }
 \description{

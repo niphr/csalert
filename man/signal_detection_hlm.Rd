@@ -43,6 +43,11 @@ signal_detection_hlm(x, ...)
 }
 \value{
 The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
+
+The `csfmt_ensemble_v3` with a per-draw exceedance column added to
+  `$draws` for `measure` (1 where the draw exceeds its HLM baseline threshold,
+  else 0), so the exceedance probability falls out of the quantile collapse.
+  Weeks without a full baseline are NA.
 }
 \description{
 The method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.

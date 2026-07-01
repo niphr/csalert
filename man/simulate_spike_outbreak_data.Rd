@@ -7,7 +7,8 @@
 simulate_spike_outbreak_data(data, n_sp_outbreak = 1, m)
 }
 \arguments{
-\item{data}{A csfmt_rds data object}
+\item{data}{A `data.table` of daily counts (as returned by
+[simulate_baseline_data]) to add the outbreak signal to.}
 
 \item{n_sp_outbreak}{Number of spiked outbreaks to be simulated}
 

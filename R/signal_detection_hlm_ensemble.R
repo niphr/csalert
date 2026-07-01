@@ -11,6 +11,10 @@
 #' @rdname signal_detection_hlm
 #' @param measure The `$draws` measure to detect signals on.
 #' @param baseline_isoyears Years of history used for the baseline.
+#' @returns The `csfmt_ensemble_v3` with a per-draw exceedance column added to
+#'   `$draws` for `measure` (1 where the draw exceeds its HLM baseline threshold,
+#'   else 0), so the exceedance probability falls out of the quantile collapse.
+#'   Weeks without a full baseline are NA.
 #' @export
 signal_detection_hlm.csfmt_ensemble_v3 <- function(x, measure, baseline_isoyears = 5, ...) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))

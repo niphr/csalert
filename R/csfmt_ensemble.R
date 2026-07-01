@@ -96,6 +96,13 @@ validate_ensemble <- function(ens) {
   invisible(ens)
 }
 
+#' Print a `csfmt_ensemble_v3`
+#'
+#' Compact one-line summary: number of rows, number of time series, and the names
+#' of the per-measure draw matrices.
+#' @param x A `csfmt_ensemble_v3`.
+#' @param ... Ignored (for S3 consistency).
+#' @returns `x`, invisibly.
 #' @export
 print.csfmt_ensemble_v3 <- function(x, ...) {
   cat(sprintf("<csfmt_ensemble_v3> %d rows | %d series | draws: %s\n",

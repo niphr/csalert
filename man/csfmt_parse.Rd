@@ -10,8 +10,12 @@ csfmt_parse(varname)
 \item{varname}{Character scalar column name.}
 }
 \value{
-Named list with the components that were present.
+Named list with the components that were present (e.g. `measure`,
+  `role`, `q`, `denom`, `per`), i.e. the inverse of [csfmt_var].
 }
 \description{
 Parse a csfmt measure column name into components (inverse of [csfmt_var])
+}
+\examples{
+csfmt_parse("numerator_nowcasted_q50x0")
 }
