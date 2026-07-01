@@ -3,7 +3,7 @@
 \name{nowcast_quasipoisson_v1}
 \alias{nowcast_quasipoisson_v1}
 \alias{nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3}
-\title{Nowcast a reporting triangle into an ensemble (quasipoisson chain-ladder GLM)}
+\title{Nowcast a reporting triangle into an ensemble (quasipoisson reporting regression)}
 \usage{
 nowcast_quasipoisson_v1(x, ...)
 
@@ -27,13 +27,15 @@ nowcast_quasipoisson_v1(x, ...)
 
 \item{denominator_col}{Optional denominator column to nowcast alongside.}
 
-\item{delay_window}{Fit on only the most recent `delay_window` reference weeks
-(tracks a drifting regime). Default 26; `NULL` uses all history.}
+\item{delay_window}{Train on only settled weeks within roughly this many weeks
+(tracks a drifting regime). Default 26; `NULL` uses all settled weeks.}
 }
 \description{
-A chain-ladder GLM alternative to [nowcast_survrtrunc_v1]: models the reporting
-triangle counts as `count ~ factor(ref) + factor(delay)` (quasipoisson) and
-completes recent weeks by simulating the missing cells (parameter + negbin
-observation uncertainty), so its intervals are honestly dispersed. Shares the
-contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
+A discriminative alternative to [nowcast_survrtrunc_v1]: for each horizon it
+regresses the settled total on the counts reported so far
+(`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson/identity, no intercept)
+and completes the incomplete weeks by simulating from that fit -- parameter
+uncertainty plus a dispersion-matched negbin. No per-week magnitude parameter,
+so it is robust for the recent weeks and honestly dispersed. Shares the contract
+`f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
 }

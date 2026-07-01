@@ -1,81 +1,72 @@
-# nowcast_quasipoisson_v1: chain-ladder nowcast via a (quasi)Poisson GLM on the
-# reporting triangle, emitting posterior-predictive DRAWS (not an analytic
-# interval).
+# nowcast_quasipoisson_v1: a DISCRIMINATIVE (regression) nowcast -- predict each
+# week's eventual TOTAL directly from the counts reported so far, rather than
+# modelling every triangle cell.
 #
-# Fit  count[ref, delay] ~ factor(ref) + factor(delay)  (quasipoisson) on the
-# observed cells of the recent window: the reference effect is the week's
-# magnitude, the delay effect the reporting profile. Then complete each
-# not-yet-fully-reported week by SIMULATING its missing cells -- draw the GLM
-# coefficients from their sampling distribution (MVN, so the uncertainty is
-# correlated across a week's cells), predict each missing cell's mean, and draw
-# the count from a negative binomial matched to the estimated dispersion. Summing
-# observed + simulated cells gives the completed-total draws.
+# For each horizon h (weeks a reference week has been observed) fit, on the SETTLED
+# weeks, a quasipoisson regression with identity link and no intercept:
 #
-# This propagates BOTH parameter and observation/overdispersion uncertainty and
-# stays non-negative integer -- honestly dispersed by construction (unlike a
-# plug-in), and no Farrington/normal-interval approximation is needed because the
-# ensemble is simulated directly. Any fit/rank issue falls back to the observed
-# totals (never errors). delay_window keeps the fit on the current regime, as in
-# nowcast_survrtrunc_v1.
+#     total  ~  b0 * n[delay 0] + b1 * n[delay 1] + ... + bh * n[delay h]
+#
+# i.e. "each case reported at delay d implies, on average, b_d cases in total."
+# There is NO per-week magnitude parameter (the thing that made the chain-ladder
+# noisy for exactly the recent weeks); the b's are shared and learned from many
+# complete weeks, then applied to the incomplete weeks at that horizon. Draws come
+# from the fit's prediction uncertainty (parameter) + a dispersion-matched negbin
+# (observation) -> honestly dispersed. delay_window keeps the training weeks recent
+# so the mapping tracks a drifting regime. Any fit issue leaves that horizon's
+# weeks at their observed total (never errors).
 
-# Complete a reference x delay count matrix into n_sim totals via GLM simulation.
+# Complete a reference x delay matrix into n_sim totals via per-horizon regression.
 .glm_complete <- function(mat, refs, as_of, max_delay, n_sim, delay_window) {
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   as_of_i <- match(as_of, weeks); ref_i <- match(refs, weeks)
-  nref <- length(refs)
+  age <- as_of_i - ref_i                                  # weeks observed so far
   obs_total <- rowSums(mat)
-  draws <- matrix(obs_total, nref, n_sim)                 # default: settled weeks = observed
+  draws <- matrix(obs_total, length(refs), n_sim)         # settled weeks = observed
+  settled <- age >= (max_delay - 1L)
+  # train on recent settled weeks so the partial->total mapping tracks drift
+  train <- which(settled & (if (is.null(delay_window)) TRUE else age < delay_window + max_delay))
+  if (length(train) < 3L) return(draws)
+  y_train <- obs_total[train]
 
-  incomplete <- (as_of_i - ref_i) < (max_delay - 1L)      # still has unobservable cells
-  in_win <- if (is.null(delay_window)) rep(TRUE, nref) else (as_of_i - ref_i) < delay_window
-  fit_rows <- which(in_win)
-  if (!any(incomplete & in_win) || length(fit_rows) < 2L) return(draws)
-
-  grid <- data.table::CJ(ri = fit_rows, dj = seq_len(max_delay))
-  grid[, `:=`(ref = factor(refs[ri]), delay = factor(dj),
-              count = mat[cbind(ri, dj)],
-              observed = (ref_i[ri] + (dj - 1L)) <= as_of_i)]
-  if (data.table::uniqueN(grid[observed == TRUE]$delay) < 2L) return(draws)   # no delay signal
-
-  fit <- tryCatch(stats::glm(count ~ ref + delay, family = stats::quasipoisson(),
-                             data = grid[observed == TRUE]), error = function(e) NULL)
-  if (is.null(fit)) return(draws)
-  un <- grid[observed == FALSE & ri %in% which(incomplete)]
-  if (!nrow(un)) return(draws)
-
-  beta <- stats::coef(fit)
-  if (anyNA(beta)) return(draws)                          # rank-deficient -> skip
-  X <- tryCatch(stats::model.matrix(stats::delete.response(stats::terms(fit)),
-                                    data = un, contrasts.arg = fit$contrasts),
-                error = function(e) NULL)
-  V <- tryCatch(stats::vcov(fit), error = function(e) NULL)
-  if (is.null(X) || is.null(V)) return(draws)
-  keep <- intersect(colnames(X), names(beta))
-  if (!length(keep)) return(draws)
-  X <- X[, keep, drop = FALSE]; b <- beta[keep]; V <- V[keep, keep, drop = FALSE]
-  L <- tryCatch(chol(V), error = function(e) NULL); if (is.null(L)) return(draws)
-
-  Z <- matrix(stats::rnorm(length(b) * n_sim), length(b), n_sim)
-  beta_star <- b + t(L) %*% Z                             # p x n_sim (correlated draws)
-  mu <- exp(pmin(X %*% beta_star, 700))                   # ncell x n_sim, overflow-guarded
-  phi <- max(summary(fit)$dispersion, 1)
-  size <- if (phi > 1) mu / (phi - 1) else matrix(Inf, nrow(mu), ncol(mu))
-  cnt <- matrix(stats::rnbinom(length(mu), size = size, mu = mu), nrow(mu), ncol(mu))
-  cnt[!is.finite(cnt)] <- 0
-
-  add <- rowsum(cnt, un$ri)                               # (unique ri) x n_sim
-  ri_add <- as.integer(rownames(add))
-  draws[ri_add, ] <- obs_total[ri_add] + add
+  horizons <- sort(unique(age[!settled & age >= 0L & age < (max_delay - 1L)]))
+  for (h in horizons) {
+    cols <- seq_len(h + 1L)                               # observed delays 0..h -> matrix cols
+    tgt  <- which(!settled & age == h)
+    if (!length(tgt)) next
+    Xtr <- mat[train, cols, drop = FALSE]
+    df  <- data.frame(y = y_train, Xtr); names(df) <- c("y", paste0("d", cols))
+    form <- stats::as.formula(paste("y ~ 0 +", paste(paste0("d", cols), collapse = " + ")))
+    s0  <- sum(y_train) / max(sum(Xtr), 1)                # overall inflation, a stable start
+    fit <- tryCatch(stats::glm(form, family = stats::quasipoisson(link = "identity"),
+                               data = df, start = rep(s0, length(cols))),
+                    error = function(e) NULL)
+    if (is.null(fit) || anyNA(stats::coef(fit))) next
+    Xnew <- as.data.frame(mat[tgt, cols, drop = FALSE]); names(Xnew) <- paste0("d", cols)
+    pr <- tryCatch(stats::predict(fit, newdata = Xnew, type = "response", se.fit = TRUE),
+                   error = function(e) NULL)
+    if (is.null(pr)) next
+    phi <- max(summary(fit)$dispersion, 1)
+    for (ti in seq_along(tgt)) {
+      mu <- pmax(stats::rnorm(n_sim, pr$fit[ti], pr$se.fit[ti]), 1e-6)   # parameter uncertainty
+      size <- if (phi > 1) mu / (phi - 1) else Inf
+      cnt <- stats::rnbinom(n_sim, size = size, mu = mu)                 # observation + overdispersion
+      cnt[!is.finite(cnt)] <- obs_total[tgt[ti]]
+      draws[tgt[ti], ] <- pmax(cnt, obs_total[tgt[ti]])                  # nowcast >= observed
+    }
+  }
   draws
 }
 
-#' Nowcast a reporting triangle into an ensemble (quasipoisson chain-ladder GLM)
+#' Nowcast a reporting triangle into an ensemble (quasipoisson reporting regression)
 #'
-#' A chain-ladder GLM alternative to [nowcast_survrtrunc_v1]: models the reporting
-#' triangle counts as `count ~ factor(ref) + factor(delay)` (quasipoisson) and
-#' completes recent weeks by simulating the missing cells (parameter + negbin
-#' observation uncertainty), so its intervals are honestly dispersed. Shares the
-#' contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
+#' A discriminative alternative to [nowcast_survrtrunc_v1]: for each horizon it
+#' regresses the settled total on the counts reported so far
+#' (`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson/identity, no intercept)
+#' and completes the incomplete weeks by simulating from that fit -- parameter
+#' uncertainty plus a dispersion-matched negbin. No per-week magnitude parameter,
+#' so it is robust for the recent weeks and honestly dispersed. Shares the contract
+#' `f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
 #' @param x A `csfmt_reporting_triangle_v3`.
 #' @param ... Passed to methods.
 #' @rdname nowcast_quasipoisson_v1
@@ -87,8 +78,8 @@ nowcast_quasipoisson_v1 <- function(x, ...) UseMethod("nowcast_quasipoisson_v1")
 #' @param max_delay Delay horizon in weeks.
 #' @param n_sim Number of nowcast draws.
 #' @param denominator_col Optional denominator column to nowcast alongside.
-#' @param delay_window Fit on only the most recent `delay_window` reference weeks
-#'   (tracks a drifting regime). Default 26; `NULL` uses all history.
+#' @param delay_window Train on only settled weeks within roughly this many weeks
+#'   (tracks a drifting regime). Default 26; `NULL` uses all settled weeks.
 #' @export
 nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
                                                 denominator_col = NULL, delay_window = 26, ...) {
