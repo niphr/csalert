@@ -79,6 +79,12 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   nowcasts), `nowcast_score` (WIS + interval coverage by horizon via
   `scoringutils`), and `nowcast_compare` (rank engines head-to-head, e.g. a real
   nowcast vs the passthrough baseline). `scoringutils` added to Suggests.
+- `reporting_completion`: the empirical reporting-delay summary of a triangle --
+  from the settled weeks, the mean delay, the weeks-observed to reach
+  25/50/75/90/95% of a reference week's cases, and the fraction actually in by
+  `max_delay`. `period = "year"` / `"month"` stratifies the settled weeks in time
+  (by the ISO year / midweek-day month) so a drift in reporting speed shows up as
+  a trend in mean delay instead of being averaged away.
 
 # version 2024.6.24
 
