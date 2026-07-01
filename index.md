@@ -23,8 +23,3 @@ intervals returned as new columns alongside the original data.
 Both trend functions append a doubling-days column that estimates how
 many days at the current rate it would take for the count to double,
 giving an interpretable speed-of-change measure.
-
-## Overview
-
-[csalert](https://niphr.github.io/csalert/) helps create alerts from
-public health surveillance data.
