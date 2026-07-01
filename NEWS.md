@@ -41,6 +41,13 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   the contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`. Behaviour is
   unchanged; the descriptive names make room for further engines (e.g. a stan
   method) selected by a caller-side registry.
+- Nowcast validation/comparison harness (method-agnostic, replay-based):
+  `nowcast_censor` (reconstruct what was known as-of a past week from the
+  reporting triangle), `nowcast_truth` (settled totals), `nowcast_backtest`
+  (replay any `f(triangle) -> ensemble` across as-of weeks into tidy quantile
+  nowcasts), `nowcast_score` (WIS + interval coverage by horizon via
+  `scoringutils`), and `nowcast_compare` (rank engines head-to-head, e.g. a real
+  nowcast vs the passthrough baseline). `scoringutils` added to Suggests.
 
 # version 2024.6.24
 
