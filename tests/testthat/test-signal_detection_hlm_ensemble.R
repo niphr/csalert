@@ -44,7 +44,7 @@ test_that("hlm status collapses to exceedance probabilities", {
   spike <- max(z$ens$data$isoyearweek)
   z$ens$draws$rate[z$ens$data$isoyearweek == spike, ] <- 1000
   out <- signal_detection_hlm(z$ens, measure = "rate", baseline_isoyears = 3) |>
-    collapse(probs = c(0.5))
+    ens_collapse(probs = c(0.5))
   expect_true("rate_hlmstatus_prob_high" %in% names(out))
   expect_equal(out[out$isoyearweek == spike][["rate_hlmstatus_prob_high"]], 1)
 })

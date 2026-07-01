@@ -32,7 +32,7 @@ simulate_triangle <- function(n_weeks = 18, lambda = 60, max_delay = 4, seed = 1
 test_that("nowcast returns an ensemble with nowcasted draws aligned to references", {
   sim <- simulate_triangle()
   tri <- csfmt_reporting_triangle_v3(sim$tri, id_cols = c("indicator", "location", "age", "sex"))
-  ens <- nowcast(tri, max_delay = 4, n_sim = 200)
+  ens <- nowcast_simple(tri, max_delay = 4, n_sim = 200)
 
   expect_s3_class(ens, "csfmt_ensemble_v3")
   expect_true("numerator_nowcasted" %in% names(ens$draws))
@@ -47,7 +47,7 @@ test_that("nowcast surfaces the observed denominator total (role = observed)", {
   tri <- csfmt_reporting_triangle_v3(
     sim$tri, id_cols = c("indicator", "location", "age", "sex"),
     value_col = "numerator")
-  ens <- nowcast(tri, max_delay = 4, n_sim = 100, denominator_col = "denominator")
+  ens <- nowcast_simple(tri, max_delay = 4, n_sim = 100, denominator_col = "denominator")
 
   # both measures get nowcast draws ...
   expect_true(all(c("numerator_nowcasted", "denominator_nowcasted") %in% names(ens$draws)))
@@ -64,7 +64,7 @@ test_that("observed_ensemble passes the triangle through without nowcasting", {
   sim <- simulate_triangle(n_weeks = 12, lambda = 40, max_delay = 4, seed = 5)
   tri <- csfmt_reporting_triangle_v3(
     sim$tri, id_cols = c("indicator", "location", "age", "sex"))
-  ens <- observed_ensemble(tri, max_delay = 4)
+  ens <- nowcast_passthrough_to_ensemble(tri, max_delay = 4)
 
   expect_s3_class(ens, "csfmt_ensemble_v3")
   # degenerate: a single draw column
@@ -73,7 +73,7 @@ test_that("observed_ensemble passes the triangle through without nowcasting", {
   expect_equal(as.numeric(ens$draws$numerator_nowcasted[, 1]), ens$data$original)
 
   # collapse -> every quantile equals the observed point
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
   expect_equal(out$numerator_nowcasted_q50x0, out$original)
   expect_equal(out$numerator_nowcasted_q02x5, out$original)
   expect_equal(out$numerator_nowcasted_q97x5, out$original)
@@ -82,8 +82,8 @@ test_that("observed_ensemble passes the triangle through without nowcasting", {
 test_that("nowcast recovers the truncated cases (>= observed, with coverage)", {
   sim <- simulate_triangle(n_weeks = 18, lambda = 60, max_delay = 4, seed = 1)
   tri <- csfmt_reporting_triangle_v3(sim$tri, id_cols = c("indicator", "location", "age", "sex"))
-  ens <- nowcast(tri, max_delay = 4, n_sim = 500)
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  ens <- nowcast_simple(tri, max_delay = 4, n_sim = 500)
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
   out <- merge(out, sim$truth, by = "isoyearweek")
 
   med <- out[["numerator_nowcasted_q50x0"]]

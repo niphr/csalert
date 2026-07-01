@@ -8,7 +8,7 @@ test_that("collapse adds named quantile columns and drops the draws", {
   ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
 
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
   expect_s3_class(out, "data.table")
   expect_true(all(c("cases_q02x5", "cases_q50x0", "cases_q97x5") %in% names(out)))
   expect_false("draws" %in% names(out))   # plain data.table, no draws
@@ -22,14 +22,14 @@ test_that("collapse quantiles match a direct rowQuantiles", {
   ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                         draws = list(cases = M))
 
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
   rq <- matrixStats::rowQuantiles(ens$draws$cases, probs = c(0.025, 0.5, 0.975))
   expect_equal(out$cases_q50x0, rq[, 2])
   expect_equal(out$cases_q02x5, rq[, 1])
   expect_equal(out$cases_q97x5, rq[, 3])
 })
 
-test_that("collapse(heal = TRUE) heals into a clean csfmt_rts_data_v3", {
+test_that("ens_collapse(heal = TRUE) heals into a clean csfmt_rts_data_v3", {
   skip_if_not_installed("cstidy")
   set.seed(4)
   d <- data.table::data.table(location_code = "norge", age = "total", sex = "total",
@@ -38,7 +38,7 @@ test_that("collapse(heal = TRUE) heals into a clean csfmt_rts_data_v3", {
   ens <- csfmt_ensemble_v3(d, id_cols = c("location_code", "age", "sex"),
                            draws = list(cases = M))
 
-  out <- collapse(ens, probs = 0.5, heal = TRUE)
+  out <- ens_collapse(ens, probs = 0.5, heal = TRUE)
   expect_s3_class(out, "csfmt_rts_data_v3")
   expect_true(all(c("isoyear", "season", "granularity_geo") %in% names(out)))
   expect_false(any(is.na(out$isoyear)))               # healed from isoyearweek
@@ -57,7 +57,7 @@ test_that("collapse handles multiple measures (nowcast + trend)", {
                         draws = list(cases = M))
   ens <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
 
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
   expect_true(all(c("cases_q50x0", "cases_trend_gr_q50x0", "cases_trend_beta1_q50x0")
                   %in% names(out)))
   expect_equal(nrow(out), n)

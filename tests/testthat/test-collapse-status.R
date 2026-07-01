@@ -11,7 +11,7 @@ test_that("collapse reduces an ordinal status matrix to probs + ordinal quantile
   ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
                            draws = list(rate_status = code))
 
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
 
   # probability per level
   expect_equal(out$rate_status_prob_preepidemic, c(0.4, 0))
@@ -42,7 +42,7 @@ test_that("status collapse composes after mem on a real ensemble", {
     data.table::data.table(indicator = "flu", location = "nation", age = "total", isoyearweek = iyw),
     id_cols = c("indicator", "location", "age"), draws = list(rate = M))
   ens <- mem_thresholds(ens, measure = "rate")
-  out <- collapse(ens, probs = c(0.025, 0.5, 0.975))
+  out <- ens_collapse(ens, probs = c(0.025, 0.5, 0.975))
 
   expect_true(any(grepl("rate_status_prob_", names(out))))
   expect_true("rate_status_q50x0" %in% names(out))
