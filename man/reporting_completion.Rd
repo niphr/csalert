@@ -8,7 +8,6 @@ reporting_completion(
   triangle,
   max_delay,
   delay_window = NULL,
-  probs = c(0.25, 0.5, 0.75, 0.9, 0.95),
   period = c("all", "year", "month")
 )
 }
@@ -21,8 +20,6 @@ reporting_completion(
 weeks (drift-aware). `NULL` uses all settled weeks. Ignored for the shape of
 `period` stratification, which slices time itself.}
 
-\item{probs}{Completion levels to report the weeks-observed for.}
-
 \item{period}{Time stratification of the settled weeks, by the calendar year /
 month of each week's Thursday: `"all"` (one pooled curve, default),
 `"year"`, or `"month"` (one row per period). Use `"year"`/`"month"` to see
@@ -31,8 +28,8 @@ whether completion time is trending up or down.}
 \value{
 One row per series (and per period when stratified): identity columns
   + `period` + `n_settled`, `mean_delay`, `complete_by_md` (fraction in by
-  `max_delay`), and `w25`..`w95` (weeks observed to reach each level; NA if not
-  reached within `max_delay`).
+  `max_delay`), and `pct_w1`..`pct_w<max_delay>` (the pooled % of cases reported
+  after that many weeks observed -- the delay ECDF, no interpolation).
 }
 \description{
 Empirical reporting-completion summary from a reporting triangle

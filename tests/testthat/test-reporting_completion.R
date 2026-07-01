@@ -20,13 +20,17 @@ test_that("reporting_completion recovers the known delay curve + quartiles", {
 
   rc <- reporting_completion(tri, max_delay = max_delay)
   expect_equal(nrow(rc), 1L)
-  expect_true(all(c("period", "mean_delay", "complete_by_md", "w25", "w50", "w90") %in% names(rc)))
+  expect_true(all(c("period", "mean_delay", "complete_by_md",
+                    "pct_w1", "pct_w2", "pct_w3", "pct_w4") %in% names(rc)))
   expect_equal(rc$period, "all")
   expect_equal(rc$complete_by_md, 1, tolerance = 0.02)     # ~all in by max_delay
   expect_equal(rc$mean_delay, 1.0, tolerance = 0.15)       # 0*.4+1*.3+2*.2+3*.1 = 1.0
-  expect_equal(rc$w25, 1, tolerance = 0.1)                 # 25% in by delay 0 = 1 week
-  expect_true(rc$w50 > 1 && rc$w50 < 2)                    # 50% between weeks 1 and 2
-  expect_equal(rc$w90, 3, tolerance = 0.3)                 # 90% by delay 2 = 3 weeks
+  # delay ECDF: known cumulative .4 .7 .9 1.0 -> pct_wN ~ 40, 70, 90, 100
+  expect_equal(rc$pct_w1, 40, tolerance = 6)               # ~40% in after 1 week
+  expect_equal(rc$pct_w2, 70, tolerance = 6)               # ~70% after 2 weeks
+  expect_equal(rc$pct_w3, 90, tolerance = 6)               # ~90% after 3 weeks
+  expect_equal(rc$pct_w4, 100, tolerance = 2)              # ~all after 4 weeks
+  expect_true(all(diff(c(rc$pct_w1, rc$pct_w2, rc$pct_w3, rc$pct_w4)) >= 0))  # monotone
 
   # period stratification: the ~60-week span covers >1 calendar year and several
   # months -> multiple rows, each a valid summary, labelled by period.

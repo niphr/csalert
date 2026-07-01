@@ -3,11 +3,12 @@
 #
 # From the SETTLED weeks (old enough to know their final total -- else the
 # right-truncation makes recent weeks look more complete than they are), pool the
-# cumulative fraction reported by each delay, then read off: the mean delay, the
-# weeks-observed to reach 25/50/75/90/95% (interpolated, 1-based so "1" = the
-# current week with only its delay-0 reports), and how complete a week actually is
-# by max_delay (< 1 means reporting still dribbles in past the horizon -- itself a
-# signal).
+# cumulative fraction reported by each delay, then read off: the mean delay, and
+# the delay ECDF evaluated at each DISCRETE weeks-observed -- pct_wN = the pooled %
+# of a reference week's cases in once it has been observed for N weeks (N=1 is only
+# its delay-0 reports). No interpolation: these are the step heights themselves.
+# complete_by_md (= pct at max_delay / 100) < 1 means reporting still dribbles in
+# past the horizon -- itself a signal.
 #
 # `period` stratifies the settled weeks in time (by the week's Thursday) so a
 # DRIFT in reporting speed is visible: one pooled curve hides a reporting system
@@ -20,18 +21,16 @@
 #' @param delay_window Optional: use only settled weeks within roughly this many
 #'   weeks (drift-aware). `NULL` uses all settled weeks. Ignored for the shape of
 #'   `period` stratification, which slices time itself.
-#' @param probs Completion levels to report the weeks-observed for.
 #' @param period Time stratification of the settled weeks, by the calendar year /
 #'   month of each week's Thursday: `"all"` (one pooled curve, default),
 #'   `"year"`, or `"month"` (one row per period). Use `"year"`/`"month"` to see
 #'   whether completion time is trending up or down.
 #' @returns One row per series (and per period when stratified): identity columns
 #'   + `period` + `n_settled`, `mean_delay`, `complete_by_md` (fraction in by
-#'   `max_delay`), and `w25`..`w95` (weeks observed to reach each level; NA if not
-#'   reached within `max_delay`).
+#'   `max_delay`), and `pct_w1`..`pct_w<max_delay>` (the pooled % of cases reported
+#'   after that many weeks observed -- the delay ECDF, no interpolation).
 #' @export
 reporting_completion <- function(triangle, max_delay, delay_window = NULL,
-                                 probs = c(.25, .5, .75, .9, .95),
                                  period = c("all", "year", "month")) {
   period <- match.arg(period)
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
@@ -59,18 +58,14 @@ reporting_completion <- function(triangle, max_delay, delay_window = NULL,
     if (sum(ok) < 3L) return(NULL)
     cum  <- t(apply(M[ok, , drop = FALSE], 1, cumsum))
     frac <- colSums(cum) / sum(tot[ok])                 # pooled cumulative fraction by delay
-    wto <- vapply(probs, function(p) {
-      d <- which(frac >= p)[1]                          # first delay (1-based col) reaching p
-      if (is.na(d)) return(NA_real_)
-      if (d == 1L) return(1)                            # in by delay 0 -> 1 week observed
-      f0 <- frac[d - 1L]; f1 <- frac[d]
-      (d - 1L) + (p - f0) / (f1 - f0)                   # interpolated weeks observed (1-based)
-    }, numeric(1))
     incr <- c(frac[1], diff(frac))
     row <- data.table::data.table(n_settled = sum(ok),
              mean_delay = round(sum((seq_along(frac) - 1L) * incr), 2),  # mean delay in weeks
              complete_by_md = round(frac[length(frac)], 3))
-    for (i in seq_along(probs)) row[[paste0("w", probs[i] * 100)]] <- round(wto[i], 1)
+    # the delay ECDF read at each DISCRETE weeks-observed: pct_wN = pooled % of a
+    # reference week's cases reported once it has been observed for N weeks
+    # (N = delay + 1). No interpolation -- these are the step heights themselves.
+    for (i in seq_along(frac)) row[[paste0("pct_w", i)]] <- round(frac[i] * 100, 1)
     row
   }
 
