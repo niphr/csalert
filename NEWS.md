@@ -79,6 +79,12 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   nowcasts), `nowcast_score` (WIS + interval coverage by horizon via
   `scoringutils`), and `nowcast_compare` (rank engines head-to-head, e.g. a real
   nowcast vs the passthrough baseline). `scoringutils` added to Suggests.
+- `nowcast_revision`: the point-estimate (median) revision of a backtest, by
+  horizon -- how far the number published at a given maturity sits from the
+  eventually-settled truth, as a fraction of that truth. Scale-free and
+  comparable across indicators (unlike WIS): reports the signed bias, the typical
+  absolute revision, a 5-95% band (the revision "funnel"), and the tail
+  probabilities (how often today's number still moves by >25% / >50%).
 - `reporting_completion`: the empirical reporting-delay summary of a triangle --
   from the settled weeks, the mean delay, the weeks-observed to reach
   25/50/75/90/95% of a reference week's cases, and the fraction actually in by
