@@ -52,7 +52,7 @@ test_that("nowcast_truth recovers the settled totals for old-enough weeks", {
 
 test_that("nowcast_backtest replays a method into a tidy long table", {
   s <- sim_backtest_triangle()
-  passthrough <- function(x) nowcast_passthrough_to_ensemble(x, max_delay = s$max_delay)
+  passthrough <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)
   bt <- nowcast_backtest(s$tri, passthrough, max_delay = s$max_delay, horizons = 1:2)
 
   expect_true(all(c("reference", "as_of", "horizon", "quantile_level", "predicted") %in% names(bt)))
@@ -65,7 +65,7 @@ test_that("nowcast_backtest replays a method into a tidy long table", {
 test_that("nowcast_score returns WIS + coverage by horizon", {
   skip_if_not_installed("scoringutils")
   s <- sim_backtest_triangle()
-  passthrough <- function(x) nowcast_passthrough_to_ensemble(x, max_delay = s$max_delay)
+  passthrough <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)
   bt <- nowcast_backtest(s$tri, passthrough, max_delay = s$max_delay, horizons = 1:2)
   sc <- nowcast_score(bt, nowcast_truth(s$tri, s$max_delay))
 
@@ -74,14 +74,25 @@ test_that("nowcast_score returns WIS + coverage by horizon", {
   expect_true(all(is.finite(sc$scores$wis)))
 })
 
+test_that("nowcast_validate wraps backtest+score and is deterministic given a seed", {
+  skip_if_not_installed("scoringutils")
+  skip_if_not_installed("flexsurv")
+  s <- sim_backtest_triangle()
+  m <- function(x) nowcast_simple_v1(x, max_delay = s$max_delay, n_sim = 100)
+  v1 <- nowcast_validate(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
+  v2 <- nowcast_validate(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
+  expect_true(!is.null(v1) && "wis" %in% names(v1$scores))
+  expect_equal(v1$scores$wis, v2$scores$wis)   # same seed -> identical scorecard
+})
+
 test_that("nowcast_compare ranks a real nowcast against the passthrough baseline", {
   skip_if_not_installed("scoringutils")
   skip_if_not_installed("flexsurv")
   s <- sim_backtest_triangle()
   card <- nowcast_compare(s$tri, max_delay = s$max_delay, horizons = 1:2,
     methods = list(
-      simple      = function(x) nowcast_simple(x, max_delay = s$max_delay, n_sim = 200),
-      passthrough = function(x) nowcast_passthrough_to_ensemble(x, max_delay = s$max_delay)))
+      simple      = function(x) nowcast_simple_v1(x, max_delay = s$max_delay, n_sim = 200),
+      passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)))
 
   expect_true(all(c("method", "horizon", "wis") %in% names(card)))
   expect_setequal(unique(card$method), c("simple", "passthrough"))

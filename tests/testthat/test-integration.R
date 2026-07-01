@@ -23,7 +23,7 @@ test_that("the full draw-parallel pipeline composes via the pipe", {
   tri_dt[, `:=`(indicator = "flu", location = "nation", age = "total", sex = "total")]
 
   out <- csfmt_reporting_triangle_v3(tri_dt, id_cols = c("indicator", "location", "age", "sex")) |>
-    nowcast_simple(max_delay = 4, n_sim = 200) |>
+    nowcast_simple_v1(max_delay = 4, n_sim = 200) |>
     short_term_trend(measure = "numerator_nowcasted", trend_isoyearweeks = 3) |>
     ens_collapse(probs = c(0.025, 0.5, 0.975))
 

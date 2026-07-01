@@ -13,8 +13,8 @@
 # with all of ITS parameters baked in (e.g. via a closure). That keeps engines
 # with different signatures (n_sim, priors, ...) composable through one interface:
 #   nowcast_compare(tri, methods = list(
-#     simple      = function(x) nowcast_simple(x, max_delay = 5, n_sim = 1000),
-#     passthrough = function(x) nowcast_passthrough_to_ensemble(x, max_delay = 5)))
+#     simple      = function(x) nowcast_simple_v1(x, max_delay = 5, n_sim = 1000),
+#     passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 5)))
 
 #' Censor a reporting triangle to what was known "as of" a past week
 #'
@@ -75,13 +75,16 @@ nowcast_truth <- function(triangle, max_delay) {
 #' @param horizons Integer weeks-back to keep (0 = the as-of week itself).
 #' @param probs Quantile probabilities to extract.
 #' @param measure Ensemble measure to score; default the numerator's nowcast.
+#' @param seed Optional integer base seed. Each as-of is seeded as
+#'   `seed + week-index`, so a given cell is reproducible regardless of the as-of
+#'   list order (the nowcast draws for week W depend only on `seed` and `W`).
 #' @returns A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
 #'   `predicted`.
 #' @export
 nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
                              horizons = 1:2,
                              probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-                             measure = NULL) {
+                             measure = NULL, seed = NULL) {
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"), is.function(method))
   if (data.table::uniqueN(triangle$time_series_id) > 1L)
     stop("nowcast_backtest expects a single-series triangle; filter to one series first")
@@ -96,6 +99,7 @@ nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
 
   out <- list()
   for (as_of in as_of_weeks) {
+    if (!is.null(seed)) set.seed(seed + match(as_of, weeks))   # reproducible per cell
     ens <- tryCatch(method(nowcast_censor(triangle, as_of)),
                     error = function(e) { warning("as_of ", as_of, ": ", conditionMessage(e),
                                                   call. = FALSE); NULL })
@@ -167,4 +171,29 @@ nowcast_compare <- function(triangle, methods, max_delay, as_of_weeks = NULL,
     out[[nm]] <- s
   }
   data.table::rbindlist(out, fill = TRUE)
+}
+
+#' Validate one nowcast method on one triangle (backtest -> score, in one call)
+#'
+#' Thin wrapper: replay `method` across `as_of_weeks`, then score against settled
+#' truth. Seeded per cell (`seed`) so the scorecard is a deterministic function of
+#' the data -- recompute it every run and overwrite; the numbers don't drift with
+#' run cadence. Returns NULL if the replay produced nothing (e.g. a passthrough on
+#' a delay-0 series, or too little history).
+#' @param triangle A `csfmt_reporting_triangle_v3` (single series).
+#' @param method A function `f(triangle) -> csfmt_ensemble_v3` (params baked in).
+#' @param max_delay Delay horizon in weeks.
+#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest].
+#' @param by Grouping for the score summary (default "horizon").
+#' @returns `list(scores, coverage)` (as from [nowcast_score]) or NULL.
+#' @export
+nowcast_validate <- function(triangle, method, max_delay, as_of_weeks = NULL,
+                             horizons = 1:2,
+                             probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
+                             by = "horizon", seed = NULL) {
+  bt <- nowcast_backtest(triangle, method, as_of_weeks = as_of_weeks,
+                         max_delay = max_delay, horizons = horizons,
+                         probs = probs, seed = seed)
+  if (!nrow(bt)) return(NULL)
+  nowcast_score(bt, nowcast_truth(triangle, max_delay), by = by)
 }

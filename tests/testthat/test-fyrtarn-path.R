@@ -24,7 +24,7 @@ test_that("num + denom nowcast -> rate -> MEM -> collapse runs end-to-end", {
     numerator = num, denominator = denom)
 
   tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator_tag", "location_code", "age", "sex"))
-  ens <- nowcast_simple(tri, max_delay = 4, n_sim = 50, denominator_col = "denominator")
+  ens <- nowcast_simple_v1(tri, max_delay = 4, n_sim = 50, denominator_col = "denominator")
   expect_true(all(c("numerator_nowcasted", "denominator_nowcasted") %in% names(ens$draws)))
 
   ens <- ens_add_rate(ens, "numerator_nowcasted", "denominator_nowcasted", per = 100)

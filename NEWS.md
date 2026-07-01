@@ -36,11 +36,13 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   the ensemble class carries the "operates on an ensemble" meaning. Behaviour is
   unchanged. (`add_holiday_effect` is a simulation-data helper on a plain
   data.table and keeps its name.)
-- `nowcast` and `observed_ensemble` are renamed to `nowcast_simple` and
-  `nowcast_passthrough_to_ensemble` -- concrete, named nowcast engines that share
-  the contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`. Behaviour is
-  unchanged; the descriptive names make room for further engines (e.g. a stan
-  method) selected by a caller-side registry.
+- `nowcast` and `observed_ensemble` are renamed to `nowcast_simple_v1` and
+  `nowcast_passthrough_to_ensemble_v1` -- concrete, VERSIONED nowcast engines that
+  share the contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`. Behaviour
+  is unchanged; the `_vN` suffix versions the algorithm (a future `nowcast_stan_v1`
+  or `nowcast_simple_v2` slots in beside them), selected by a caller-side registry.
+  The validation harness (nowcast_backtest/score/compare/validate/censor/truth) is
+  generic tooling and is NOT versioned.
 - Nowcast validation/comparison harness (method-agnostic, replay-based):
   `nowcast_censor` (reconstruct what was known as-of a past week from the
   reporting triangle), `nowcast_truth` (settled totals), `nowcast_backtest`

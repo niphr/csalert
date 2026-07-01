@@ -11,7 +11,8 @@ nowcast_backtest(
   max_delay,
   horizons = 1:2,
   probs = c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975),
-  measure = NULL
+  measure = NULL,
+  seed = NULL
 )
 }
 \arguments{
@@ -29,6 +30,10 @@ after a `max_delay`-week burn-in, replayed as-of itself.}
 \item{probs}{Quantile probabilities to extract.}
 
 \item{measure}{Ensemble measure to score; default the numerator's nowcast.}
+
+\item{seed}{Optional integer base seed. Each as-of is seeded as
+`seed + week-index`, so a given cell is reproducible regardless of the as-of
+list order (the nowcast draws for week W depend only on `seed` and `W`).}
 }
 \value{
 A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
