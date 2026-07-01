@@ -8,16 +8,25 @@
 # happen BEFORE collapse, while the draws still exist.
 
 #' Collapse a csfmt_ensemble_v3 to a quantile-summary
-#' @param ens A `csfmt_ensemble_v3`.
+#'
+#' An ensemble operation (`ens_` family): dispatches on the ensemble class,
+#' matching [nowcast()] / [short_term_trend()].
+#' @param x A `csfmt_ensemble_v3`.
 #' @param probs Numeric vector of probabilities for the quantile columns.
 #' @param heal If TRUE, heal the result into a `cstidy::csfmt_rts_data_v3` (the
 #'   clean weekly csfmt) instead of returning a plain data.table.
+#' @param ... Passed to methods.
 #' @returns A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
 #'   `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
 #' @export
-collapse <- function(ens, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-                     heal = FALSE) {
-  stopifnot(inherits(ens, "csfmt_ensemble_v3"), is.numeric(probs))
+ens_collapse <- function(x, ...) UseMethod("ens_collapse")
+
+#' @rdname ens_collapse
+#' @export
+ens_collapse.csfmt_ensemble_v3 <- function(x, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
+                     heal = FALSE, ...) {
+  stopifnot(is.numeric(probs))
+  ens <- x
   d <- data.table::copy(ens$data)
 
   for (m in names(ens$draws)) {

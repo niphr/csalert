@@ -31,6 +31,11 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
 - `add_holiday_effect` for the ensemble format.
 - Input QC: `qc_surveillance_data` (generic input QC, verdict only) and
   `qc_week_over_week` (A/B revision comparison across runs).
+- `add_rate` and `collapse` are renamed to `ens_add_rate` / `ens_collapse` and
+  are now S3 generics dispatching on `csfmt_ensemble_v3` (the `ens_` family), so
+  the ensemble class carries the "operates on an ensemble" meaning. Behaviour is
+  unchanged. (`add_holiday_effect` is a simulation-data helper on a plain
+  data.table and keeps its name.)
 
 # version 2024.6.24
 

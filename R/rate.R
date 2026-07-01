@@ -8,19 +8,28 @@
 # (coherence guard); a violation warns rather than silently exceeding 100%.
 
 #' Add a rate measure to an ensemble
-#' @param ens A `csfmt_ensemble_v3`.
+#'
+#' An ensemble operation (`ens_` family): dispatches on the ensemble class, so
+#' the class -- not a name prefix on the caller -- carries the "operates on an
+#' ensemble" meaning, matching [nowcast()] / [short_term_trend()].
+#' @param x A `csfmt_ensemble_v3`.
 #' @param numerator,denominator Measure names present in `$draws`.
 #' @param per Scaling factor (e.g. 100 for percent).
 #' @param name Optional output measure name (defaults to the grammar name).
-#' @returns `ens` with the rate measure added to `$draws`.
+#' @param ... Passed to methods.
+#' @returns `x` with the rate measure added to `$draws`.
 #' @export
-add_rate <- function(ens, numerator, denominator, per = 100, name = NULL) {
-  stopifnot(inherits(ens, "csfmt_ensemble_v3"))
-  if (!all(c(numerator, denominator) %in% names(ens$draws)))
+ens_add_rate <- function(x, ...) UseMethod("ens_add_rate")
+
+#' @rdname ens_add_rate
+#' @export
+ens_add_rate.csfmt_ensemble_v3 <- function(x, numerator, denominator, per = 100,
+                                            name = NULL, ...) {
+  if (!all(c(numerator, denominator) %in% names(x$draws)))
     stop("numerator and denominator must both be measures in $draws")
 
-  N <- ens$draws[[numerator]]
-  D <- ens$draws[[denominator]]
+  N <- x$draws[[numerator]]
+  D <- x$draws[[denominator]]
   if (any(N > D, na.rm = TRUE))
     warning("numerator > denominator in some draws; rate capped at `per`")
 
@@ -29,6 +38,6 @@ add_rate <- function(ens, numerator, denominator, per = 100, name = NULL) {
   rate[rate > per] <- per                 # coherence cap (num <= denom)
 
   if (is.null(name)) name <- csfmt_var(numerator, denom = denominator, per = per)
-  ens$draws[[name]] <- rate
-  validate_ensemble(ens)
+  x$draws[[name]] <- rate
+  validate_ensemble(x)
 }
