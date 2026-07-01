@@ -53,6 +53,14 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
 - Calibration test (`test-nowcast-calibration.R`): empirical interval coverage vs
   nominal on synthetic data, with a stationary case (calibrated) and a
   drifting-delay case (reproduces the real-data under-coverage synthetically).
+- Backtest-driven recalibration: `nowcast_estimate_calibration` learns a
+  per-group (default horizon) conformal interval-scaling correction from past
+  nowcasts vs settled truth, and `nowcast_apply_calibration` applies it so a
+  method's intervals hit nominal coverage regardless of internal misspecification
+  (a `nowcast_calibration` S3 object with a print method sits between). Turns the
+  backtest into calibration data: engine -> backtest -> estimate -> apply ->
+  honest intervals. Distribution-free (split conformal); estimate on past
+  backtests, apply to the current nowcast.
 - Nowcast validation/comparison harness (method-agnostic, replay-based):
   `nowcast_censor` (reconstruct what was known as-of a past week from the
   reporting triangle), `nowcast_truth` (settled totals), `nowcast_backtest`
