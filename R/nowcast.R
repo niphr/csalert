@@ -1,6 +1,6 @@
 # nowcast: csfmt_reporting_triangle_v3 -> csfmt_ensemble_v3.
 #
-# Ports the luftveis nowcast_simple_v1, but on the data.table reshape instead of
+# Ports the luftveis nowcast_survrtrunc_v1, but on the data.table reshape instead of
 # epinowcast: estimate the reporting-delay distribution by truncated survival
 # (flexsurv::survrtrunc), then for each not-yet-fully-reported reference week
 # complete the count with a negative-binomial draw. n_sim draws -> the nowcast
@@ -65,13 +65,13 @@ nowcast_complete <- function(mat, cum_by_delay, n_sim) {
 
 #' Build an ensemble from a reporting triangle WITHOUT nowcasting (passthrough)
 #'
-#' The passthrough counterpart to [nowcast_simple_v1]: collapse the triangle to the
+#' The passthrough counterpart to [nowcast_survrtrunc_v1]: collapse the triangle to the
 #' observed (reported-so-far) totals per reference week and wrap them as a
 #' degenerate single-draw ensemble. An indicator that should NOT be
 #' nowcast-completed (because reporting is effectively complete, or the analyst
 #' has chosen not to model the delay) then flows through the SAME
 #' rate/trend/MEM/collapse pipeline with its observed values unchanged. It emits
-#' the same `<measure>_nowcasted` columns as [nowcast_simple_v1] -- here equal to the
+#' the same `<measure>_nowcasted` columns as [nowcast_survrtrunc_v1] -- here equal to the
 #' observed value -- so all downstream code is identical; the single draw makes
 #' every collapsed quantile equal the observed point.
 #' @param x A `csfmt_reporting_triangle_v3`.
@@ -111,17 +111,17 @@ nowcast_passthrough_to_ensemble_v1 <- function(x, max_delay, denominator_col = N
   csfmt_ensemble_v3(data, id_cols = id_cols, time_col = "isoyearweek", draws = draws)
 }
 
-#' Nowcast a reporting triangle into an ensemble (simple flexsurv+negbin engine)
+#' Nowcast a reporting triangle into an ensemble (survrtrunc delay + negbin engine)
 #' @param x A `csfmt_reporting_triangle_v3`.
 #' @param ... Passed to methods.
-#' @rdname nowcast_simple_v1
+#' @rdname nowcast_survrtrunc_v1
 #' @export
-nowcast_simple_v1 <- function(x, ...) {
-  UseMethod("nowcast_simple_v1")
+nowcast_survrtrunc_v1 <- function(x, ...) {
+  UseMethod("nowcast_survrtrunc_v1")
 }
 
-#' @method nowcast_simple_v1 csfmt_reporting_triangle_v3
-#' @rdname nowcast_simple_v1
+#' @method nowcast_survrtrunc_v1 csfmt_reporting_triangle_v3
+#' @rdname nowcast_survrtrunc_v1
 #' @param max_delay Delay horizon in weeks.
 #' @param n_sim Number of nowcast draws.
 #' @param denominator_col Optional denominator column in the triangle to nowcast
@@ -132,11 +132,11 @@ nowcast_simple_v1 <- function(x, ...) {
 #'   drifting delay is tracked rather than averaged into a stale pooled curve.
 #'   Default 26; `NULL` pools all history.
 #' @export
-nowcast_simple_v1.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
+nowcast_survrtrunc_v1.csfmt_reporting_triangle_v3 <- function(x, max_delay, n_sim = 1000,
                                                 denominator_col = NULL,
                                                 delay_window = 26, ...) {
   if (!requireNamespace("flexsurv", quietly = TRUE))
-    stop("nowcast_simple_v1 requires the 'flexsurv' package")
+    stop("nowcast_survrtrunc_v1 requires the 'flexsurv' package")
   id_cols <- attr(x, "id_cols")
   ref_col <- attr(x, "reference_col"); rep_col <- attr(x, "reporting_col")
   val_col <- attr(x, "value_col");     as_of   <- attr(x, "as_of")

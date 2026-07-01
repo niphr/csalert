@@ -10,7 +10,7 @@
 #' Collapse a csfmt_ensemble_v3 to a quantile-summary
 #'
 #' An ensemble operation (`ens_` family): dispatches on the ensemble class,
-#' matching [nowcast_simple_v1()] / [short_term_trend()].
+#' matching [nowcast_survrtrunc_v1()] / [short_term_trend()].
 #' @param x A `csfmt_ensemble_v3`.
 #' @param probs Numeric vector of probabilities for the quantile columns.
 #' @param heal If TRUE, heal the result into a `cstidy::csfmt_rts_data_v3` (the

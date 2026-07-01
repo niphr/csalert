@@ -36,14 +36,14 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   the ensemble class carries the "operates on an ensemble" meaning. Behaviour is
   unchanged. (`add_holiday_effect` is a simulation-data helper on a plain
   data.table and keeps its name.)
-- `nowcast` and `observed_ensemble` are renamed to `nowcast_simple_v1` and
+- `nowcast` and `observed_ensemble` are renamed to `nowcast_survrtrunc_v1` and
   `nowcast_passthrough_to_ensemble_v1` -- concrete, VERSIONED nowcast engines that
   share the contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`. Behaviour
   is unchanged; the `_vN` suffix versions the algorithm (a future `nowcast_stan_v1`
   or `nowcast_simple_v2` slots in beside them), selected by a caller-side registry.
   The validation harness (nowcast_backtest/score/compare/validate/censor/truth) is
   generic tooling and is NOT versioned.
-- `nowcast_simple_v1` gains `delay_window` (default 26 weeks): the reporting-delay
+- `nowcast_survrtrunc_v1` gains `delay_window` (default 26 weeks): the reporting-delay
   distribution is estimated from only the most recent weeks, so a non-stationary /
   drifting delay (e.g. a backfilled history then live prospective reporting) is
   tracked instead of averaged into a stale pooled curve. Fixes the median bias
@@ -53,6 +53,17 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
 - Calibration test (`test-nowcast-calibration.R`): empirical interval coverage vs
   nominal on synthetic data, with a stationary case (calibrated) and a
   drifting-delay case (reproduces the real-data under-coverage synthetically).
+- `nowcast_simple_v1` renamed to `nowcast_survrtrunc_v1` (the name now states the
+  method: right-truncated survival delay + negbin completion).
+- New engine `nowcast_quasipoisson_v1`: a chain-ladder GLM --
+  `count ~ factor(ref) + factor(delay)` (quasipoisson) with posterior-predictive
+  DRAWS (sample coefficients from their MVN sampling distribution, predict the
+  missing cells, draw counts from a dispersion-matched negbin). Propagates
+  parameter + observation uncertainty, so it is honestly dispersed by
+  construction -- on a drifting-delay synthetic it covers ~0.86 vs the plug-in
+  survrtrunc's ~0.72 (nominal 0.90), with no recalibration. Base stats only.
+  Same `f(triangle) -> ensemble` contract -> drops into the registry as a
+  candidate key.
 - Backtest-driven recalibration: `nowcast_estimate_calibration_v1` learns a
   per-group (default horizon) conformal interval-scaling correction from past
   nowcasts vs settled truth, and `nowcast_apply_calibration_v1` applies it so a

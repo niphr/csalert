@@ -35,7 +35,7 @@ cov_at <- function(dt, truth, lo = 0.05, hi = 0.95) {
 
 test_that("estimate + apply calibration lifts drift coverage to nominal", {
   tri <- gen_drift()
-  m <- function(x) nowcast_simple_v1(x, max_delay = 5, n_sim = 500, delay_window = 26)
+  m <- function(x) nowcast_survrtrunc_v1(x, max_delay = 5, n_sim = 500, delay_window = 26)
   bt <- nowcast_backtest(tri, m, max_delay = 5, horizons = 1:2,
                          probs = c(.05, .25, .5, .75, .95), seed = 1)
   truth <- nowcast_truth(tri, 5)
@@ -54,7 +54,7 @@ test_that("estimate + apply calibration lifts drift coverage to nominal", {
 
 test_that("apply passes through groups with no learned factor", {
   tri <- gen_drift()
-  m <- function(x) nowcast_simple_v1(x, max_delay = 5, n_sim = 300, delay_window = 26)
+  m <- function(x) nowcast_survrtrunc_v1(x, max_delay = 5, n_sim = 300, delay_window = 26)
   bt <- nowcast_backtest(tri, m, max_delay = 5, horizons = 1:2,
                          probs = c(.05, .5, .95), seed = 1)
   truth <- nowcast_truth(tri, 5)

@@ -30,5 +30,5 @@ A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
 }
 \description{
 An ensemble operation (`ens_` family): dispatches on the ensemble class,
-matching [nowcast_simple_v1()] / [short_term_trend()].
+matching [nowcast_survrtrunc_v1()] / [short_term_trend()].
 }

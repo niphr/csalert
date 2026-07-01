@@ -4,7 +4,7 @@
 #
 # Key lesson (and the reason the old coverage test missed it): a calibration test
 # only bites if the generator contains the misspecification the engine is
-# vulnerable to. nowcast_simple_v1 pools ALL history into one stationary delay
+# vulnerable to. nowcast_survrtrunc_v1 pools ALL history into one stationary delay
 # estimate -- it is well-calibrated when the reporting delay is stationary, but
 # UNDER-covers badly when the delay DRIFTS over time (which real reporting does:
 # ~0.57 vs 0.90 nominal, matching the real-data backtest). Overdispersion in the
@@ -34,9 +34,9 @@ gen_tri <- function(n_weeks = 70, max_delay = 5, seed = 3, drift = FALSE) {
   csfmt_reporting_triangle_v3(tri[], id_cols = c("indicator", "location", "age", "sex"))
 }
 
-# Empirical interval coverage of nowcast_simple_v1, over a replay of the triangle.
+# Empirical interval coverage of nowcast_survrtrunc_v1, over a replay of the triangle.
 interval_coverage <- function(tri, max_delay = 5) {
-  m <- function(x) nowcast_simple_v1(x, max_delay = max_delay, n_sim = 500)
+  m <- function(x) nowcast_survrtrunc_v1(x, max_delay = max_delay, n_sim = 500)
   bt <- nowcast_backtest(tri, m, max_delay = max_delay, horizons = 1:2,
                          probs = c(.05, .25, .5, .75, .95), seed = 1)
   d <- merge(bt, nowcast_truth(tri, max_delay), by = "reference")
@@ -45,13 +45,13 @@ interval_coverage <- function(tri, max_delay = 5) {
     c50 = mean(w$truth >= w[["0.25"]] & w$truth <= w[["0.75"]]))
 }
 
-test_that("nowcast_simple_v1 is well-calibrated when the delay is stationary", {
+test_that("nowcast_survrtrunc_v1 is well-calibrated when the delay is stationary", {
   cov <- interval_coverage(gen_tri(drift = FALSE))
   expect_gte(cov[["c90"]], 0.83)   # nominal 0.90
   expect_gte(cov[["c50"]], 0.40)   # nominal 0.50
 })
 
-test_that("nowcast_simple_v1 still under-covers under delay drift (residual limitation)", {
+test_that("nowcast_survrtrunc_v1 still under-covers under delay drift (residual limitation)", {
   # The recency window (delay_window, default 26) tracks the drifting delay and
   # fixes the median BIAS, lifting c90 from ~0.57 to ~0.72 -- but the delay curve
   # is still a plug-in point estimate (fixed across draws), so intervals remain a

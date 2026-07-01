@@ -13,7 +13,7 @@
 # with all of ITS parameters baked in (e.g. via a closure). That keeps engines
 # with different signatures (n_sim, priors, ...) composable through one interface:
 #   nowcast_compare(tri, methods = list(
-#     simple      = function(x) nowcast_simple_v1(x, max_delay = 5, n_sim = 1000),
+#     simple      = function(x) nowcast_survrtrunc_v1(x, max_delay = 5, n_sim = 1000),
 #     passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 5)))
 
 #' Censor a reporting triangle to what was known "as of" a past week
