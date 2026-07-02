@@ -18,6 +18,58 @@ template:
           href: "reference/index.html"
 
 reference:
+  - title: "Ensemble format and naming grammar"
+    desc: >
+      The draw-parallel ensemble container, the reporting-triangle input format,
+      and the self-describing column-naming grammar they share.
+    contents:
+      - csfmt_ensemble_v3
+      - validate_ensemble
+      - print.csfmt_ensemble_v3
+      - csfmt_reporting_triangle_v3
+      - reporting_triangle_matrix
+      - set_time_series_id
+      - csfmt_var
+      - csfmt_parse
+      - csfmt_interpret
+      - q_label
+      - q_value
+
+  - title: "Ensemble analysis pipeline"
+    desc: >
+      Stages that add draw columns to an ensemble, then collapse it to a quantile
+      summary (optionally healed into a cstidy csfmt_rts_data_v3).
+    contents:
+      - ens_add_rate
+      - ens_collapse
+      - mem_thresholds_v1
+      - rolling_slope_matrix
+
+  - title: "Nowcasting engines"
+    desc: "Complete a right-truncated reporting triangle into a csfmt_ensemble_v3."
+    contents:
+      - nowcast_quasipoisson_v1
+      - nowcast_passthrough_to_ensemble_v1
+
+  - title: "Nowcast diagnostics"
+    desc: >
+      Replay a method against what was known in the past and score it: interval
+      coverage, point-estimate revision, and reporting completion.
+    contents:
+      - nowcast_censor
+      - nowcast_truth
+      - nowcast_backtest
+      - nowcast_evaluate_v1
+      - reporting_completion
+      - reporting_completion_trend_v1
+      - compare_results
+
+  - title: "Input quality control"
+    desc: "Verdict-only checks on surveillance input and week-over-week revisions."
+    contents:
+      - qc_surveillance_data
+      - qc_week_over_week
+
   - title: "Signal detection"
     desc: "Detect anomalies and compute prediction thresholds from historical surveillance data."
     contents:
