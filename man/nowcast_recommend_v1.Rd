@@ -34,3 +34,10 @@ fastest) and audits a configured choice: it "meets" the recommendation when its
 mean score is within `margin` of the best. Lets a pipeline keep a fixed
 configured model while flagging when a candidate clearly beats it.
 }
+\examples{
+cmp <- data.table::data.table(
+  horizon    = rep(0:1, 2),
+  median_abs = c(0.30, 0.05, 0.10, 0.02),      # "fast" revises less than "slow"
+  method     = rep(c("slow", "fast"), each = 2))
+nowcast_recommend_v1(cmp, configured = "slow")$recommended   # "fast"
+}

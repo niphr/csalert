@@ -28,3 +28,16 @@ Merges coverage (are the intervals honest?) and revision (how much will the
 number still move?) into one per-group table. Coverage is computed straight
 from the interval quantiles, so this needs no `scoringutils`.
 }
+\examples{
+# a small reporting triangle: 30 weeks, each reported over delays 0-2
+w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:29, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:29, each = 3) + rep(0:2, 30)],
+  numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
+tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
+
+method <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)
+bt <- nowcast_backtest(tri, method, max_delay = 3, horizons = 0:2, seed = 1)
+nowcast_evaluate_v1(bt, nowcast_truth(tri, 3))
+}

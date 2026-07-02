@@ -134,6 +134,16 @@ nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
 #'   per-week draws). Passed to [nowcast_backtest].
 #' @returns A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])
 #'   with a `method` column.
+#' @examples
+#' w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+#' d <- data.table::data.table(
+#'   isoyearweek_reference = w[i + rep(0:29, each = 3)],
+#'   isoyearweek_reporting = w[i + rep(0:29, each = 3) + rep(0:2, 30)],
+#'   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
+#' tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
+#'
+#' nowcast_compare_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
+#'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
 #' @export
 nowcast_compare_v1 <- function(triangle, methods, max_delay, as_of_weeks = NULL,
                             horizons = 1:2,

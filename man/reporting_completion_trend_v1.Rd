@@ -24,3 +24,12 @@ Convenience over [reporting_completion]: the completion curve sliced by calendar
 stacked with a `scope` column. One table that shows whether reporting is
 speeding up or slowing down over time.
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
+tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
+reporting_completion_trend_v1(tri, max_delay = 3, n_months = 6)
+}

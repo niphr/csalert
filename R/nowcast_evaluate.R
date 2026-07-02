@@ -27,6 +27,18 @@
 #'   `coverage_90`), and the point-estimate revision (`median_signed` = bias,
 #'   `median_abs`, `q05`/`q95` = the 5-95\% revision band, and `p_gt_<t>` for each
 #'   threshold).
+#' @examples
+#' # a small reporting triangle: 30 weeks, each reported over delays 0-2
+#' w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+#' d <- data.table::data.table(
+#'   isoyearweek_reference = w[i + rep(0:29, each = 3)],
+#'   isoyearweek_reporting = w[i + rep(0:29, each = 3) + rep(0:2, 30)],
+#'   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
+#' tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
+#'
+#' method <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)
+#' bt <- nowcast_backtest(tri, method, max_delay = 3, horizons = 0:2, seed = 1)
+#' nowcast_evaluate_v1(bt, nowcast_truth(tri, 3))
 #' @export
 nowcast_evaluate_v1 <- function(backtest, truth, by = "horizon",
                                 thresholds = c(0.25, 0.5)) {
@@ -84,6 +96,12 @@ nowcast_evaluate_v1 <- function(backtest, truth, by = "horizon",
 #' @returns A list: `configured`, `configured_score`, `recommended`,
 #'   `recommended_score`, `meets` (logical), and `by_method` (a data.table of the
 #'   per-method mean metric, ascending).
+#' @examples
+#' cmp <- data.table::data.table(
+#'   horizon    = rep(0:1, 2),
+#'   median_abs = c(0.30, 0.05, 0.10, 0.02),      # "fast" revises less than "slow"
+#'   method     = rep(c("slow", "fast"), each = 2))
+#' nowcast_recommend_v1(cmp, configured = "slow")$recommended   # "fast"
 #' @export
 nowcast_recommend_v1 <- function(comparison, configured, metric = "median_abs",
                                  margin = 0.05) {

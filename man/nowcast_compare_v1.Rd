@@ -37,3 +37,14 @@ Backtests and evaluates each method on the same replay, and stacks the
 per-horizon evaluation with a `method` column so engines can be ranked
 head-to-head (e.g. a real nowcast vs the passthrough baseline).
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:29, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:29, each = 3) + rep(0:2, 30)],
+  numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
+tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
+
+nowcast_compare_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
+  passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
+}

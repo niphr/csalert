@@ -29,7 +29,9 @@
   missing `@returns` to the ensemble/nowcast S3 methods (`mem_thresholds_v1`,
   `short_term_trend`, `signal_detection_hlm`, `nowcast_quasipoisson_v1`).
 - Added runnable `@examples` to the naming-grammar functions (`csfmt_var`,
-  `csfmt_parse`, `q_label`, `q_value`).
+  `csfmt_parse`, `q_label`, `q_value`) and to the nowcast analysis functions
+  (`nowcast_evaluate_v1`, `nowcast_compare_v1`, `nowcast_recommend_v1`,
+  `reporting_completion_trend_v1`).
 - Fixed unescaped `%` in the nowcast / `reporting_completion` roxygen that had
   been corrupting their generated `.Rd`, plus copy-paste errors in the
   simulation-helper docs.
