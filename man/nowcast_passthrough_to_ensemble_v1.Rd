@@ -18,13 +18,12 @@ way (its observed total is also surfaced as `<denom>_observed`).}
 A `csfmt_ensemble_v3` with single-column draw matrices.
 }
 \description{
-The passthrough counterpart to [nowcast_survrtrunc_v1]: collapse the triangle to the
-observed (reported-so-far) totals per reference week and wrap them as a
-degenerate single-draw ensemble. An indicator that should NOT be
-nowcast-completed (because reporting is effectively complete, or the analyst
-has chosen not to model the delay) then flows through the SAME
+Collapse the triangle to the observed (reported-so-far) totals per reference
+week and wrap them as a degenerate single-draw ensemble. An indicator that
+should NOT be nowcast-completed (because reporting is effectively complete, or
+the analyst has chosen not to model the delay) then flows through the SAME
 rate/trend/MEM/collapse pipeline with its observed values unchanged. It emits
-the same `<measure>_nowcasted` columns as [nowcast_survrtrunc_v1] -- here equal to the
-observed value -- so all downstream code is identical; the single draw makes
+the same `<measure>_nowcasted` columns as the modelling engines -- here equal to
+the observed value -- so all downstream code is identical; the single draw makes
 every collapsed quantile equal the observed point.
 }

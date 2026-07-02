@@ -28,7 +28,7 @@ mk_seasonal_ensemble <- function(n_seasons = 10, n_draws = 6, baseline = 1, peak
 
 test_that("thresholds are attached, ordered, and leave-future-out", {
   z <- mk_seasonal_ensemble()
-  out <- mem_thresholds(z$ens, measure = "rate")
+  out <- mem_thresholds_v1(z$ens, measure = "rate")
 
   expect_true(all(c("mem_preepidemic", "mem_medium", "mem_high", "mem_veryhigh")
                   %in% names(out$data)))
@@ -43,19 +43,19 @@ test_that("thresholds are attached, ordered, and leave-future-out", {
   first_season <- min(out$data$.s)
   expect_true(all(is.na(out$data[.s == first_season]$mem_preepidemic)))
 
-  # provisional tracking (ported from luftveis add_mem_thresholds)
+  # provisional tracking (ported from luftveis add_mem_thresholds_v1)
   expect_true("mem_n_seasons" %in% names(out$data))
   expect_true(all(stats::na.omit(out$data$mem_n_seasons) >= 2))
 })
 
 test_that("exclude_seasons drops seasons from the training baseline", {
-  # NB mem_thresholds mutates $data by reference, so each call gets a FRESH
+  # NB mem_thresholds_v1 mutates $data by reference, so each call gets a FRESH
   # ensemble (same seed -> identical data, independent objects).
   n_for_last <- function(out) {
     out$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
     unique(out$data[.s == max(.s)]$mem_n_seasons)
   }
-  base <- mem_thresholds(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate")
+  base <- mem_thresholds_v1(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate")
   base$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
   seasons <- sort(unique(base$data$.s))
   last  <- max(seasons)
@@ -63,7 +63,7 @@ test_that("exclude_seasons drops seasons from the training baseline", {
   n_base <- unique(base$data[.s == last]$mem_n_seasons)
 
   # `last` trains on one fewer season once `drop1` is excluded
-  ex <- mem_thresholds(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate",
+  ex <- mem_thresholds_v1(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate",
                        exclude_seasons = drop1)
   expect_equal(n_for_last(ex), n_base - 1L)
 
@@ -72,7 +72,7 @@ test_that("exclude_seasons drops seasons from the training baseline", {
   expect_false(all(is.na(ex$data[.s == drop1]$mem_preepidemic)))
 
   # excluding a non-existent season is a harmless no-op
-  noop <- mem_thresholds(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate",
+  noop <- mem_thresholds_v1(mk_seasonal_ensemble(n_seasons = 10)$ens, measure = "rate",
                          exclude_seasons = "1990/1991")
   expect_equal(n_for_last(noop), n_base)
 })
@@ -82,7 +82,7 @@ test_that("training is capped to the most recent i.seasons (before na.omit)", {
   # i.seasons -- and na.omit must apply only to those, not to older seasons that
   # memmodel would never use (else partial old seasons starve the fit -> NA).
   z <- mk_seasonal_ensemble(n_seasons = 13)
-  out <- mem_thresholds(z$ens, measure = "rate", i.seasons = 10)
+  out <- mem_thresholds_v1(z$ens, measure = "rate", i.seasons = 10)
   out$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
   last <- max(out$data$.s)
   expect_equal(unique(out$data[.s == last]$mem_n_seasons), 10L)   # capped, not 12
@@ -96,7 +96,7 @@ test_that("sparse (near all-zero) seasons skip cleanly -> NA, no error/noise", {
   M <- matrix(0, nrow = nrow(d), ncol = 6)            # whole seasons, all zero
   ens <- csfmt_ensemble_v3(d, id_cols = c("indicator","location","age","sex"),
                            draws = list(rate = M))
-  expect_error(out <- mem_thresholds(ens, measure = "rate"), NA)   # no error
+  expect_error(out <- mem_thresholds_v1(ens, measure = "rate"), NA)   # no error
   expect_true(all(is.na(out$data$mem_preepidemic)))                # all NA thresholds
 
   # one season with signal is still < 2 -> still NA (needs >= 2 non-zero seasons)
@@ -105,13 +105,13 @@ test_that("sparse (near all-zero) seasons skip cleanly -> NA, no error/noise", {
   M2[rows, ] <- 5
   ens2 <- csfmt_ensemble_v3(d, id_cols = c("indicator","location","age","sex"),
                             draws = list(rate = M2))
-  out2 <- mem_thresholds(ens2, measure = "rate")
+  out2 <- mem_thresholds_v1(ens2, measure = "rate")
   expect_true(all(is.na(out2$data$mem_preepidemic)))
 })
 
 test_that("status code matrix is produced with valid ordinal codes", {
   z <- mk_seasonal_ensemble()
-  out <- mem_thresholds(z$ens, measure = "rate")
+  out <- mem_thresholds_v1(z$ens, measure = "rate")
   status_key <- csfmt_var("rate", role = "status")
   expect_true(status_key %in% names(out$draws))
 
@@ -125,7 +125,7 @@ test_that("status code matrix is produced with valid ordinal codes", {
 
 test_that("winter peak classifies elevated, summer as preepidemic", {
   z <- mk_seasonal_ensemble()
-  out <- mem_thresholds(z$ens, measure = "rate")
+  out <- mem_thresholds_v1(z$ens, measure = "rate")
   code <- out$draws[[csfmt_var("rate", role = "status")]]
   wk <- out$data$isoyearweek
   w  <- as.integer(substr(wk, 6, 7))

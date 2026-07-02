@@ -1,6 +1,6 @@
 # Historical-limits signal detection (HLM) on a csfmt_ensemble_v3.
 #
-# Same two-part shape as mem_thresholds: estimate the seasonal baseline from the
+# Same two-part shape as mem_thresholds_v1: estimate the seasonal baseline from the
 # POINT history (same calendar week in prior years, +-1 week), derive the upper
 # limit qnorm(0.995, baseline_mean, baseline_sd), then CLASSIFY every DRAW against
 # that limit -> an ordinal status code matrix (1 = null, 2 = high). Weeks without

@@ -26,5 +26,5 @@ ens_add_rate(x, ...)
 \description{
 An ensemble operation (`ens_` family): dispatches on the ensemble class, so
 the class -- not a name prefix on the caller -- carries the "operates on an
-ensemble" meaning, matching [nowcast_survrtrunc_v1()] / [short_term_trend()].
+ensemble" meaning, matching [nowcast_quasipoisson_v1()] / [short_term_trend()].
 }

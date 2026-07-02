@@ -38,7 +38,7 @@ A `csfmt_ensemble_v3` with one row per reference week and an
   `denominator_col` is given.
 }
 \description{
-A discriminative alternative to [nowcast_survrtrunc_v1]: for each horizon it
+A discriminative (regression) nowcast engine: for each horizon it
 regresses the settled total on the counts reported so far
 (`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson/identity, no intercept)
 and completes the incomplete weeks by simulating from that fit -- parameter

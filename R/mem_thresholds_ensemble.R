@@ -51,14 +51,14 @@ mem_fit <- function(model_data, i.seasons = 10) {
 #' MEM intensity thresholds
 #' @param x Data object.
 #' @param ... Passed to methods.
-#' @rdname mem_thresholds
+#' @rdname mem_thresholds_v1
 #' @export
-mem_thresholds <- function(x, ...) {
-  UseMethod("mem_thresholds")
+mem_thresholds_v1 <- function(x, ...) {
+  UseMethod("mem_thresholds_v1")
 }
 
-#' @method mem_thresholds csfmt_ensemble_v3
-#' @rdname mem_thresholds
+#' @method mem_thresholds_v1 csfmt_ensemble_v3
+#' @rdname mem_thresholds_v1
 #' @param measure The `$draws` measure to threshold on (a rate or count).
 #' @param min_seasons Hard floor of complete prior seasons needed to fit.
 #' @param prefer_seasons Preferred training depth (provisional below this).
@@ -74,13 +74,13 @@ mem_thresholds <- function(x, ...) {
 #'   `$draws` (the ordinal 1..5 status for `measure` and its threshold levels), so
 #'   the intensity level propagates through the later quantile collapse.
 #' @export
-mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
+mem_thresholds_v1.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
                                           prefer_seasons = 5, i.seasons = 10,
                                           min_weeks_per_season = 30,
                                           exclude_seasons = NULL, ...) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!requireNamespace("mem", quietly = TRUE))
-    stop("mem_thresholds requires the 'mem' package")
+    stop("mem_thresholds_v1 requires the 'mem' package")
   if (!measure %in% names(x$draws))
     stop(sprintf("measure '%s' not in $draws", measure))
 
@@ -98,7 +98,7 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
   if (length(exclude_seasons)) {
     hit <- intersect(exclude_seasons, unique(d$season))
     if (length(hit))
-      message("mem_thresholds: excluding ", length(hit),
+      message("mem_thresholds_v1: excluding ", length(hit),
               " season(s) from the training baseline: ", paste(hit, collapse = ", "))
   }
 
@@ -130,7 +130,7 @@ mem_thresholds.csfmt_ensemble_v3 <- function(x, measure, min_seasons = 2,
   }
   thr <- data.table::rbindlist(thr_all)
   if (length(provisional))
-    message("mem_thresholds: ", length(provisional), " season(s) fit on < ",
+    message("mem_thresholds_v1: ", length(provisional), " season(s) fit on < ",
             prefer_seasons, " training seasons (provisional); see mem_n_seasons.")
 
   # attach per-week threshold columns to $data (NA where unfit)

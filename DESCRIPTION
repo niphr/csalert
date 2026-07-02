@@ -33,7 +33,6 @@ Suggests: testthat,
     covidnor,
     csdata,
     csmaps,
-    flexsurv,
     ggrepel,
     mem,
     plnr

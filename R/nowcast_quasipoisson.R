@@ -64,7 +64,7 @@
 
 #' Nowcast a reporting triangle into an ensemble (quasipoisson reporting regression)
 #'
-#' A discriminative alternative to [nowcast_survrtrunc_v1]: for each horizon it
+#' A discriminative (regression) nowcast engine: for each horizon it
 #' regresses the settled total on the counts reported so far
 #' (`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson/identity, no intercept)
 #' and completes the incomplete weeks by simulating from that fit -- parameter

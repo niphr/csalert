@@ -1,7 +1,6 @@
 # The full fyrtarn-style path end-to-end:
-# triangle(num+denom) -> nowcast -> add_rate (% positive) -> mem_thresholds -> collapse.
+# triangle(num+denom) -> nowcast -> add_rate (% positive) -> mem_thresholds_v1 -> collapse.
 
-skip_if_not_installed("flexsurv")
 skip_if_not_installed("mem")
 
 test_that("num + denom nowcast -> rate -> MEM -> collapse runs end-to-end", {
@@ -24,14 +23,14 @@ test_that("num + denom nowcast -> rate -> MEM -> collapse runs end-to-end", {
     numerator = num, denominator = denom)
 
   tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator_tag", "location_code", "age", "sex"))
-  ens <- nowcast_survrtrunc_v1(tri, max_delay = 4, n_sim = 50, denominator_col = "denominator")
+  ens <- nowcast_quasipoisson_v1(tri, max_delay = 4, n_sim = 50, denominator_col = "denominator")
   expect_true(all(c("numerator_nowcasted", "denominator_nowcasted") %in% names(ens$draws)))
 
   ens <- ens_add_rate(ens, "numerator_nowcasted", "denominator_nowcasted", per = 100)
   rate_key <- csfmt_var("numerator_nowcasted", denom = "denominator_nowcasted", per = 100)
   expect_true(rate_key %in% names(ens$draws))
 
-  ens <- mem_thresholds(ens, measure = rate_key)
+  ens <- mem_thresholds_v1(ens, measure = rate_key)
   expect_true(any(!is.na(ens$data$mem_preepidemic)))      # thresholds fit on the % positive
 
   out <- ens_collapse(ens, probs = 0.5)
