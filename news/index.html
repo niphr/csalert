@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2024.6.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,7 +18,8 @@
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle with csfmt_ensemble_v3</a></li>
+    <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item dropdown">
@@ -49,6 +50,65 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.7.1" id="version-202671">Version 2026.7.1<a class="anchor" aria-label="anchor" href="#version-202671"></a></h2>
+<div class="section level3">
+<h3 id="simplification-2026-7-1">Simplification<a class="anchor" aria-label="anchor" href="#simplification-2026-7-1"></a></h3>
+<ul><li>
+<strong><code>reporting_completion_trend_v1</code></strong> returns the completion curve by calendar year (all) + by month (last N, per series) with a <code>scope</code> column – the year/month trend that the luftveis pipeline used to assemble by hand.</li>
+<li>
+<strong><code>nowcast_evaluate_v1</code></strong> is now the single entry point for scoring nowcasts: give it a triangle and one method (or a NAMED list), and it replays each – paired by a shared <code>seed</code> – and returns one per-horizon table of interval coverage + point-estimate revision, with a <code>method</code> column. It subsumes the former <code>nowcast_score</code> (coverage, via scoringutils), <code>nowcast_revision</code>, <code>nowcast_compare</code> and <code>nowcast_validate</code>; coverage is read straight off the interval quantiles, so <strong><code>scoringutils</code> is no longer a dependency</strong> (WIS was dropped).</li>
+<li>Removed the unused <strong><code>nowcast_survrtrunc_v1</code></strong> engine (and its <code>flexsurv</code> dependency) and the conformal <strong>calibration</strong> functions (<code>nowcast_estimate_calibration_v1</code> / <code>_apply_</code> / <code>print.nowcast_calibration</code>) — both had been dropped from the production pipeline.</li>
+<li>Renamed <code>mem_thresholds</code> -&gt; <strong><code>mem_thresholds_v1</code></strong> (versioned-engine convention).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-2026-7-1">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-7-1"></a></h3>
+<ul><li>New vignette <strong>“Nowcasting a reporting triangle with csfmt_ensemble_v3”</strong> — a runnable end-to-end walk-through (synthetic triangle -&gt; nowcast -&gt; collapse -&gt; backtest coverage/revision/completion -&gt; naming grammar).</li>
+<li>Documented the previously-bare <code>print.csfmt_ensemble_v3</code> method; added the missing <code>@returns</code> to the ensemble/nowcast S3 methods (<code>mem_thresholds_v1</code>, <code>short_term_trend</code>, <code>signal_detection_hlm</code>, <code>nowcast_quasipoisson_v1</code>).</li>
+<li>Added runnable <code>@examples</code> to the naming-grammar functions (<code>csfmt_var</code>, <code>csfmt_parse</code>, <code>q_label</code>, <code>q_value</code>) and to the nowcast analysis functions (<code>nowcast_evaluate_v1</code>, <code>reporting_completion_trend_v1</code>).</li>
+<li>Fixed unescaped <code>%</code> in the nowcast / <code>reporting_completion</code> roxygen that had been corrupting their generated <code>.Rd</code>, plus copy-paste errors in the simulation-helper docs.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="csfmt_ensemble_v3-surveillance-engine-2026-7-1">csfmt_ensemble_v3 surveillance engine<a class="anchor" aria-label="anchor" href="#csfmt_ensemble_v3-surveillance-engine-2026-7-1"></a></h3>
+<p>A new draw-parallel ensemble format and the full analysis pipeline built on it (reporting triangle -&gt; nowcast -&gt; trend -&gt; MEM thresholds -&gt; quantile collapse).</p>
+<ul><li>
+<code>csfmt_ensemble_v3</code>: S3 container (<code>$data</code> data.table + per-measure <code>$draws</code> matrices) with invariants enforced by <code>validate_ensemble</code>.</li>
+<li>Naming grammar: <code>csfmt_var</code> / <code>csfmt_parse</code> (order-independent parse of trailing coordinates), <code>q_label</code> / <code>q_value</code>, and <code>csfmt_interpret</code> for self-describing datasets.</li>
+<li>
+<code>csfmt_reporting_triangle_v3</code>: reference-by-delay input format with a reshape that completes the reference axis.</li>
+<li>
+<code>nowcast()</code>: reporting triangle -&gt; ensemble via flexsurv <code>survrtrunc</code> + negbin (no epinowcast dependency). Can nowcast a denominator alongside the numerator (full % positive -&gt; MEM path) and surface the observed denominator total. The reporting-before-reference check is NA-safe.</li>
+<li>
+<code>observed_ensemble()</code>: passthrough (degenerate single-draw) ensemble for indicators that should not be nowcasted.</li>
+<li>
+<code>collapse()</code>: ensemble -&gt; quantile summary; <code>collapse(heal = TRUE)</code> heals the result into cstidy <code>csfmt_rts_data_v3</code>.</li>
+<li>
+<code>add_rate()</code>: numerator-vs-denominator rate (% positive).</li>
+<li>
+<code>short_term_trend.csfmt_ensemble</code>: batched, shared-design-matrix kernel that also emits P(increasing).</li>
+<li>
+<code>mem_thresholds.csfmt_ensemble_v3</code>: MEM intensity thresholds with provisional seasons; <code>exclude_seasons</code> drops anomalous seasons from the baseline; training is capped to the most recent <code>i.seasons</code> before <code>na.omit</code>; a non-zero-season guard plus a quiet <code>memmodel</code> wrapper prevent sparse indicators from erroring.</li>
+<li>
+<code>signal_detection_hlm.csfmt_ensemble_v3</code>: per-draw exceedance detection.</li>
+<li>
+<code>add_holiday_effect</code> for the ensemble format.</li>
+<li>Input QC: <code>qc_surveillance_data</code> (generic input QC, verdict only) and <code>qc_week_over_week</code> (A/B revision comparison across runs).</li>
+<li>
+<code>add_rate</code> and <code>collapse</code> are renamed to <code>ens_add_rate</code> / <code>ens_collapse</code> and are now S3 generics dispatching on <code>csfmt_ensemble_v3</code> (the <code>ens_</code> family), so the ensemble class carries the “operates on an ensemble” meaning. Behaviour is unchanged. (<code>add_holiday_effect</code> is a simulation-data helper on a plain data.table and keeps its name.)</li>
+<li>
+<code>nowcast</code> and <code>observed_ensemble</code> are renamed to <code>nowcast_survrtrunc_v1</code> and <code>nowcast_passthrough_to_ensemble_v1</code> – concrete, VERSIONED nowcast engines that share the contract <code>f(reporting_triangle, ...) -&gt; csfmt_ensemble_v3</code>. Behaviour is unchanged; the <code>_vN</code> suffix versions the algorithm (a future <code>nowcast_stan_v1</code> or <code>nowcast_simple_v2</code> slots in beside them), selected by a caller-side registry. The validation harness (nowcast_backtest/score/compare/validate/censor/truth) is generic tooling and is NOT versioned.</li>
+<li>
+<code>nowcast_survrtrunc_v1</code> gains <code>delay_window</code> (default 26 weeks): the reporting-delay distribution is estimated from only the most recent weeks, so a non-stationary / drifting delay (e.g. a backfilled history then live prospective reporting) is tracked instead of averaged into a stale pooled curve. Fixes the median bias that caused sub-nominal interval coverage; residual under-coverage (plug-in delay) is documented by the calibration test and awaits per-draw delay uncertainty or backtest-driven recalibration. <code>NULL</code> restores the old pool-all-history behaviour.</li>
+<li>Calibration test (<code>test-nowcast-calibration.R</code>): empirical interval coverage vs nominal on synthetic data, with a stationary case (calibrated) and a drifting-delay case (reproduces the real-data under-coverage synthetically).</li>
+<li>
+<code>nowcast_simple_v1</code> renamed to <code>nowcast_survrtrunc_v1</code> (the name now states the method: right-truncated survival delay + negbin completion).</li>
+<li>New engine <code>nowcast_quasipoisson_v1</code>: a discriminative (regression) nowcast – for each horizon, regress the settled TOTAL on the counts reported so far (<code>total ~ n[delay 0] + n[delay 1] + ...</code>, quasipoisson/identity, no intercept) on the recent settled weeks, then simulate the incomplete weeks (parameter uncertainty from the fit + a dispersion-matched negbin). No per-week magnitude parameter, so it is robust for the recent weeks and honestly dispersed – drifting-delay synthetic coverage ~0.79 vs the plug-in survrtrunc’s ~0.72 (nominal 0.90). Base stats only; same <code>f(triangle) -&gt; ensemble</code> contract -&gt; drops into the registry as a candidate key.</li>
+<li>Backtest-driven recalibration: <code>nowcast_estimate_calibration_v1</code> learns a per-group (default horizon) conformal interval-scaling correction from past nowcasts vs settled truth, and <code>nowcast_apply_calibration_v1</code> applies it so a method’s intervals hit nominal coverage regardless of internal misspecification (a <code>nowcast_calibration</code> S3 object with a print method sits between). Turns the backtest into calibration data: engine -&gt; backtest -&gt; estimate -&gt; apply -&gt; honest intervals. Distribution-free (split conformal); estimate on past backtests, apply to the current nowcast.</li>
+<li>Nowcast validation harness (method-agnostic, replay-based): <code>nowcast_censor</code> (reconstruct what was known as-of a past week from the reporting triangle), <code>nowcast_truth</code> (settled totals), <code>nowcast_backtest</code> (replay any <code>f(triangle) -&gt; ensemble</code> across as-of weeks into tidy quantile nowcasts), and <code>nowcast_evaluate_v1</code> (score one or several methods on interval coverage + point-estimate revision by horizon – see the Simplification section above).</li>
+<li>
+<code>reporting_completion</code>: the empirical reporting-delay summary of a triangle – from the settled weeks, the mean delay, the weeks-observed to reach 25/50/75/90/95% of a reference week’s cases, and the fraction actually in by <code>max_delay</code>. <code>period = "year"</code> / <code>"month"</code> stratifies the settled weeks in time (by the ISO year / midweek-day month) so a drift in reporting speed shows up as a trend in mean delay instead of being averaged away.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2024.6.24" id="version-2024624">version 2024.6.24<a class="anchor" aria-label="anchor" href="#version-2024624"></a></h2><p class="text-muted">CRAN release: 2024-06-24</p>
 <ul><li>Inclusion of short_term_trend_sts_v1.</li>

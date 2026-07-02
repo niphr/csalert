@@ -20,13 +20,13 @@ Source:
 [`DESCRIPTION`](https://github.com/niphr/csalert/blob/main/DESCRIPTION)
 
 Salamanca BV, Zhang C, White RA (2026). *csalert: Alerts from Public
-Health Surveillance Data*. R package version 2024.6.24,
+Health Surveillance Data*. R package version 2026.7.1,
 <https://niphr.github.io/csalert/>.
 
     @Manual{,
       title = {csalert: Alerts from Public Health Surveillance Data},
       author = {Beatriz Valcarcel Salamanca and Chi Zhang and Richard Aubrey White},
       year = {2026},
-      note = {R package version 2024.6.24},
+      note = {R package version 2026.7.1},
       url = {https://niphr.github.io/csalert/},
     }

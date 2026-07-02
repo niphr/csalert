@@ -28,6 +28,9 @@ short_term_trend(
   alpha = 0.05,
   ...
 )
+
+# S3 method for class 'csfmt_ensemble_v3'
+short_term_trend(x, measure, trend_isoyearweeks = 3, ...)
 ```
 
 ## Arguments
@@ -55,7 +58,7 @@ short_term_trend(
 
 - trend_isoyearweeks:
 
-  Same as trend_dates, but used if granularity_geo=='isoyearweek'
+  Rolling window width in isoyearweeks (\>= 2).
 
 - remove_last_isoyearweeks:
 
@@ -95,6 +98,10 @@ short_term_trend(
 
   Significance level for change in trend.
 
+- measure:
+
+  Character: the \`\$draws\` measure to compute the trend on.
+
 ## Value
 
 The original csfmt_rts_data_v1 dataset with extra columns.
@@ -102,6 +109,10 @@ The original csfmt_rts_data_v1 dataset with extra columns.
 "forecast", "decreasing", "null", "increasing"), while
 \*\_doublingdays\* contains the expected number of days before the
 numerator doubles.
+
+The \`csfmt_ensemble_v3\` with per-draw short-term-trend columns added
+to \`\$draws\` for \`measure\` (the rolling slope/level and a
+P(increasing)), ready for the quantile collapse.
 
 ## Examples
 

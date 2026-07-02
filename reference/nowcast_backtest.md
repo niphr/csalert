@@ -1,0 +1,66 @@
+# Replay a nowcast method across as-of weeks (backtest)
+
+For each \`as_of\` week, censor the triangle to what was known then, run
+the method, collapse to quantiles, and collect the nowcast for the
+reference weeks at the requested horizons (horizon = weeks between
+reference and as-of). An as-of week whose method call errors (e.g. too
+little history) is skipped with a warning rather than aborting the
+sweep.
+
+## Usage
+
+``` r
+nowcast_backtest(
+  triangle,
+  method,
+  as_of_weeks = NULL,
+  max_delay,
+  horizons = 1:2,
+  probs = c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975),
+  measure = NULL,
+  seed = NULL
+)
+```
+
+## Arguments
+
+- triangle:
+
+  A \`csfmt_reporting_triangle_v3\` (single series).
+
+- method:
+
+  A function \`f(triangle) -\> csfmt_ensemble_v3\` (params baked in).
+
+- as_of_weeks:
+
+  ISO-week strings to replay. Default: every reference week after a
+  \`max_delay\`-week burn-in, replayed as-of itself.
+
+- max_delay:
+
+  Delay horizon (used for the default as-of set and burn-in).
+
+- horizons:
+
+  Integer weeks-back to keep (0 = the as-of week itself).
+
+- probs:
+
+  Quantile probabilities to extract.
+
+- measure:
+
+  Ensemble measure to score; default the numerator's nowcast.
+
+- seed:
+
+  Optional integer base seed. Each as-of is seeded as \`seed +
+  week-index\`, so a given cell is reproducible regardless of the as-of
+  list order (the nowcast draws for week W depend only on \`seed\` and
+  \`W\`).
+
+## Value
+
+A long data.table: \`reference\`, \`as_of\`, \`horizon\`,
+\`quantile_level\`, \`predicted\`.

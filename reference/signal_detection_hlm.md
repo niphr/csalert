@@ -23,6 +23,9 @@ signal_detection_hlm(
   remove_training_data = FALSE,
   ...
 )
+
+# S3 method for class 'csfmt_ensemble_v3'
+signal_detection_hlm(x, measure, baseline_isoyears = 5, ...)
 ```
 
 ## Arguments
@@ -41,7 +44,7 @@ signal_detection_hlm(
 
 - baseline_isoyears:
 
-  Number of years in the past you want to include as baseline
+  Years of history used for the baseline.
 
 - remove_last_isoyearweeks:
 
@@ -61,6 +64,10 @@ signal_detection_hlm(
   Boolean. If TRUE, removes the training data (i.e. the early weeks that
   have no baseline) from the returned dataset.
 
+- measure:
+
+  The \`\$draws\` measure to detect signals on.
+
 ## Value
 
 The original csfmt_rts_data_v1 dataset with extra columns. `*_status` is
@@ -69,6 +76,11 @@ weeks above the baseline, `*_forecasted*` holds the observed value (or
 the baseline median for forecast weeks), and `*_baseline_predinterval_*`
 holds the lower (0.5%), median (50%) and upper (99.5%) baseline
 prediction interval.
+
+The \`csfmt_ensemble_v3\` with a per-draw exceedance column added to
+\`\$draws\` for \`measure\` (1 where the draw exceeds its HLM baseline
+threshold, else 0), so the exceedance probability falls out of the
+quantile collapse. Weeks without a full baseline are NA.
 
 ## Examples
 

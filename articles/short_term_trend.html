@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2024.6.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,8 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
+<li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle with csfmt_ensemble_v3</a></li>
+    <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -119,7 +120,7 @@ repository</a>.</p>
 format</a>, which provides a standardised column structure including
 data types and missingness information.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">d_hosp</span> <span class="op">&lt;-</span> <span class="fu">cstidy</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstidy/man/nor_covid19_icu_and_hospitalization_csfmt_rts_v1.html" class="external-link">nor_covid19_icu_and_hospitalization_csfmt_rts_v1</a></span></span>
+<code class="sourceCode R"><span><span class="va">d_hosp</span> <span class="op">&lt;-</span> <span class="fu">cstidy</span><span class="fu">::</span><span class="va"><a href="https://niphr.github.io/cstidy/reference/nor_covid19_icu_and_hospitalization_csfmt_rts_v1.html" class="external-link">nor_covid19_icu_and_hospitalization_csfmt_rts_v1</a></span></span>
 <span><span class="va">d_hosp</span></span>
 <span><span class="co">#&gt;      granularity_time granularity_geo country_iso3 location_code border    age</span></span>
 <span><span class="co">#&gt;                &lt;char&gt;          &lt;char&gt;       &lt;char&gt;        &lt;char&gt;  &lt;int&gt; &lt;char&gt;</span></span>
@@ -345,7 +346,7 @@ mark the trend category.</p>
 <code>short_term_trend</code> computes the trend for each one. Here the
 function is applied to weekly Covid-19 case counts at county level.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">cstidy</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstidy/man/nor_covid19_cases_by_time_location_csfmt_rts_v1.html" class="external-link">nor_covid19_cases_by_time_location_csfmt_rts_v1</a></span><span class="op">[</span></span>
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">cstidy</span><span class="fu">::</span><span class="va"><a href="https://niphr.github.io/cstidy/reference/nor_covid19_cases_by_time_location_csfmt_rts_v1.html" class="external-link">nor_covid19_cases_by_time_location_csfmt_rts_v1</a></span><span class="op">[</span></span>
 <span>  <span class="va">granularity_time</span> <span class="op">==</span> <span class="st">"isoyearweek"</span> <span class="op">&amp;</span></span>
 <span>  <span class="va">granularity_geo</span> <span class="op">==</span> <span class="st">"county"</span></span>
 <span><span class="op">]</span></span>

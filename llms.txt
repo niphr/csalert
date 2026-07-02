@@ -26,6 +26,93 @@ giving an interpretable speed-of-change measure.
 
 # Package index
 
+## Ensemble format and naming grammar
+
+The draw-parallel ensemble container, the reporting-triangle input
+format, and the self-describing column-naming grammar they share.
+
+- [`csfmt_ensemble_v3()`](https://niphr.github.io/csalert/reference/csfmt_ensemble_v3.md)
+  : Construct a csfmt_ensemble_v3
+- [`validate_ensemble()`](https://niphr.github.io/csalert/reference/validate_ensemble.md)
+  : Validate a csfmt_ensemble_v3's invariants
+- [`print(`*`<csfmt_ensemble_v3>`*`)`](https://niphr.github.io/csalert/reference/print.csfmt_ensemble_v3.md)
+  : Print a \`csfmt_ensemble_v3\`
+- [`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md)
+  : Construct a csfmt_reporting_triangle_v3
+- [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
+  : Densify a reporting triangle into per-series reference x delay count
+  matrices
+- [`set_time_series_id()`](https://niphr.github.io/csalert/reference/set_time_series_id.md)
+  : Assign content-hash time_series_id (+ readable label) by reference
+- [`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md)
+  : Construct a csfmt measure column name from components
+- [`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md)
+  : Parse a csfmt measure column name into components (inverse of
+  \[csfmt_var\])
+- [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md)
+  : Interpret a dataset's columns via the naming grammar
+- [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md) :
+  Probability -\> controlled-vocabulary quantile label
+- [`q_value()`](https://niphr.github.io/csalert/reference/q_value.md) :
+  Quantile label -\> probability (inverse of \[q_label\])
+
+## Ensemble analysis pipeline
+
+Stages that add draw columns to an ensemble, then collapse it to a
+quantile summary (optionally healed into a cstidy csfmt_rts_data_v3).
+
+- [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md)
+  : Add a rate measure to an ensemble
+- [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+  : Collapse a csfmt_ensemble_v3 to a quantile-summary
+- [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  : MEM intensity thresholds
+- [`rolling_slope_matrix()`](https://niphr.github.io/csalert/reference/rolling_slope_matrix.md)
+  : Rolling OLS slope over a weeks x draws matrix
+
+## Nowcasting engines
+
+Complete a right-truncated reporting triangle into a csfmt_ensemble_v3.
+
+- [`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
+  : Nowcast a reporting triangle into an ensemble (quasipoisson
+  reporting regression)
+- [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
+  : Build an ensemble from a reporting triangle WITHOUT nowcasting
+  (passthrough)
+
+## Nowcast diagnostics
+
+Replay a method against what was known in the past and score it:
+interval coverage, point-estimate revision, and reporting completion.
+
+- [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md)
+  : Censor a reporting triangle to what was known "as of" a past week
+- [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+  : The settled (eventually-observed) total per reference week
+- [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
+  : Replay a nowcast method across as-of weeks (backtest)
+- [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
+  : Evaluate nowcast method(s): interval coverage + point-estimate
+  revision
+- [`reporting_completion()`](https://niphr.github.io/csalert/reference/reporting_completion.md)
+  : Empirical reporting-completion summary from a reporting triangle
+- [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
+  : Reporting-completion trend: the delay curve by year and recent
+  months
+- [`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md)
+  : Compare two collapsed csfmt result sets
+
+## Input quality control
+
+Verdict-only checks on surveillance input and week-over-week revisions.
+
+- [`qc_surveillance_data()`](https://niphr.github.io/csalert/reference/qc_surveillance_data.md)
+  : Quality-control checks on surveillance input data
+- [`qc_week_over_week()`](https://niphr.github.io/csalert/reference/qc_week_over_week.md)
+  : Week-over-week QC: settled-data integrity (A) + frontier status
+  signal (B)
+
 ## Signal detection
 
 Detect anomalies and compute prediction thresholds from historical
@@ -65,5 +152,7 @@ evaluation.
 
 ### All vignettes
 
+- [Nowcasting a reporting triangle with
+  csfmt_ensemble_v3](https://niphr.github.io/csalert/articles/nowcasting.md):
 - [Short term
   trend](https://niphr.github.io/csalert/articles/short_term_trend.md):
