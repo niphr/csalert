@@ -1,6 +1,6 @@
-# nowcast backtest/score/compare harness, on a simulated triangle with held-out
-# truth. Mechanics (censor/truth/backtest) are tested without scoringutils; the
-# scoring/compare wrappers run only when scoringutils is available.
+# nowcast backtest/evaluate/compare harness, on a simulated triangle with held-out
+# truth. Coverage + revision come straight from the interval quantiles (no external
+# scoring package).
 
 # Simulate a KNOWN process: Poisson reference-week counts reported with a known
 # decreasing delay, right-truncated at the latest week. Hold out the true totals.
@@ -62,40 +62,39 @@ test_that("nowcast_backtest replays a method into a tidy long table", {
   expect_true(all(by_fc$spread == 0))
 })
 
-test_that("nowcast_score returns WIS + coverage by horizon", {
-  skip_if_not_installed("scoringutils")
+test_that("nowcast_evaluate_v1 returns coverage + revision by horizon", {
   s <- sim_backtest_triangle()
   passthrough <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)
   bt <- nowcast_backtest(s$tri, passthrough, max_delay = s$max_delay, horizons = 1:2)
-  sc <- nowcast_score(bt, nowcast_truth(s$tri, s$max_delay))
+  ev <- nowcast_evaluate_v1(bt, nowcast_truth(s$tri, s$max_delay))
 
-  expect_true("wis" %in% names(sc$scores))
-  expect_setequal(sc$scores$horizon, 1:2)
-  expect_true(all(is.finite(sc$scores$wis)))
+  expect_true(all(c("horizon", "n", "coverage_50", "coverage_90",
+                    "median_signed", "median_abs", "q05", "q95", "p_gt_25", "p_gt_50")
+                  %in% names(ev)))
+  expect_setequal(ev$horizon, 1:2)
+  expect_true(all(ev$coverage_90 >= 0 & ev$coverage_90 <= 1))
 })
 
-test_that("nowcast_validate wraps backtest+score and is deterministic given a seed", {
-  skip_if_not_installed("scoringutils")
+test_that("nowcast_validate wraps backtest+evaluate and is deterministic given a seed", {
   s <- sim_backtest_triangle()
   m <- function(x) nowcast_quasipoisson_v1(x, max_delay = s$max_delay, n_sim = 100)
   v1 <- nowcast_validate(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
   v2 <- nowcast_validate(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
-  expect_true(!is.null(v1) && "wis" %in% names(v1$scores))
-  expect_equal(v1$scores$wis, v2$scores$wis)   # same seed -> identical scorecard
+  expect_true(!is.null(v1) && "median_abs" %in% names(v1))
+  expect_equal(v1$median_abs, v2$median_abs)   # same seed -> identical evaluation
 })
 
 test_that("nowcast_compare ranks a real nowcast against the passthrough baseline", {
-  skip_if_not_installed("scoringutils")
   s <- sim_backtest_triangle()
   card <- nowcast_compare(s$tri, max_delay = s$max_delay, horizons = 1:2,
     methods = list(
       simple      = function(x) nowcast_quasipoisson_v1(x, max_delay = s$max_delay, n_sim = 200),
       passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)))
 
-  expect_true(all(c("method", "horizon", "wis") %in% names(card)))
+  expect_true(all(c("method", "horizon", "coverage_90", "median_abs") %in% names(card)))
   expect_setequal(unique(card$method), c("simple", "passthrough"))
-  # the nowcast should beat naive passthrough on WIS at the freshest horizon
+  # the nowcast should revise LESS than naive passthrough at the freshest horizon
   # (passthrough carries the still-incomplete count, so it under-predicts badly)
-  w <- dcast(card[horizon == 1], horizon ~ method, value.var = "wis")
+  w <- dcast(card[horizon == 1], horizon ~ method, value.var = "median_abs")
   expect_lt(w$simple, w$passthrough)
 })

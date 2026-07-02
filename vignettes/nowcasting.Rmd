@@ -142,23 +142,17 @@ truth <- nowcast_truth(tri, max_delay)                # each week's settled tota
 head(bt)
 ```
 
-**Coverage** — does the 90% interval actually contain the settled truth ~90% of
-the time? (Via `scoringutils`.) `horizon` is weeks-back from the as-of week; 0 is
-the current, least-observed week.
+`nowcast_evaluate_v1()` turns the replay into two scale-free diagnostics per
+horizon (weeks-back from the as-of week; 0 = the current, least-observed week):
+
+- **coverage** — does the 90% / 50% interval actually contain the settled truth
+  that often? (interval honesty; target 0.90 / 0.50)
+- **revision** — how far the published median sits from where it eventually
+  settles, as a fraction of the truth: signed (bias), absolute (typical move), a
+  5–95% band, and the tail probabilities.
 
 ```{r}
-if (requireNamespace("scoringutils", quietly = TRUE)) {
-  sc <- nowcast_score(bt, truth, by = "horizon")$scores
-  print(sc[, .(horizon, interval_coverage_90)])
-}
-```
-
-**Revision** — how far does the published median sit from where it eventually
-settles, as a fraction of the truth? Scale-free and comparable across indicators.
-The band (`q05`..`q95`) collapses toward 0 as a week matures.
-
-```{r}
-nowcast_revision(bt, truth, by = "horizon")
+nowcast_evaluate_v1(bt, truth, by = "horizon")
 ```
 
 ## How fast does the data arrive? Reporting completion

@@ -1,18 +1,30 @@
 # Version 2026.7.1
 
+## Simplification
+
+- **`nowcast_evaluate_v1`** merges the old `nowcast_score` (coverage) and
+  `nowcast_revision` into one per-horizon table (interval coverage + point-estimate
+  revision). Coverage is now computed directly from the interval quantiles, so
+  **`scoringutils` is no longer a dependency** (WIS was dropped). `nowcast_compare`
+  / `nowcast_validate` build on `nowcast_evaluate_v1`.
+- Removed the unused **`nowcast_survrtrunc_v1`** engine (and its `flexsurv`
+  dependency) and the conformal **calibration** functions
+  (`nowcast_estimate_calibration_v1` / `_apply_` / `print.nowcast_calibration`) —
+  both had been dropped from the production pipeline.
+- Renamed `mem_thresholds` -> **`mem_thresholds_v1`** (versioned-engine convention).
+
 ## Documentation
 
 - New vignette **"Nowcasting a reporting triangle with csfmt_ensemble_v3"** — a
   runnable end-to-end walk-through (synthetic triangle -> nowcast -> collapse ->
   backtest coverage/revision/completion -> naming grammar).
-- Documented the previously-bare `print.csfmt_ensemble_v3` and
-  `print.nowcast_calibration` methods; added the missing `@returns` to the
-  ensemble/nowcast S3 methods (`mem_thresholds`, `short_term_trend`,
-  `signal_detection_hlm`, `nowcast_quasipoisson_v1`, `nowcast_survrtrunc_v1`).
+- Documented the previously-bare `print.csfmt_ensemble_v3` method; added the
+  missing `@returns` to the ensemble/nowcast S3 methods (`mem_thresholds_v1`,
+  `short_term_trend`, `signal_detection_hlm`, `nowcast_quasipoisson_v1`).
 - Added runnable `@examples` to the naming-grammar functions (`csfmt_var`,
   `csfmt_parse`, `q_label`, `q_value`).
-- Fixed unescaped `%` in `nowcast_revision` / `reporting_completion` roxygen that
-  had been corrupting their generated `.Rd`, plus copy-paste errors in the
+- Fixed unescaped `%` in the nowcast / `reporting_completion` roxygen that had
+  been corrupting their generated `.Rd`, plus copy-paste errors in the
   simulation-helper docs.
 
 ## csfmt_ensemble_v3 surveillance engine

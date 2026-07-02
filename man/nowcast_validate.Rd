@@ -2,7 +2,7 @@
 % Please edit documentation in R/nowcast_backtest.R
 \name{nowcast_validate}
 \alias{nowcast_validate}
-\title{Validate one nowcast method on one triangle (backtest -> score, in one call)}
+\title{Validate one nowcast method on one triangle (backtest -> evaluate, in one call)}
 \usage{
 nowcast_validate(
   triangle,
@@ -24,15 +24,15 @@ nowcast_validate(
 
 \item{as_of_weeks, horizons, probs, seed}{Passed to [nowcast_backtest].}
 
-\item{by}{Grouping for the score summary (default "horizon").}
+\item{by}{Grouping for the evaluation summary (default "horizon").}
 }
 \value{
-`list(scores, coverage)` (as from [nowcast_score]) or NULL.
+A per-horizon evaluation table (see [nowcast_evaluate_v1]) or NULL.
 }
 \description{
-Thin wrapper: replay `method` across `as_of_weeks`, then score against settled
-truth. Seeded per cell (`seed`) so the scorecard is a deterministic function of
-the data -- recompute it every run and overwrite; the numbers don't drift with
-run cadence. Returns NULL if the replay produced nothing (e.g. a passthrough on
-a delay-0 series, or too little history).
+Thin wrapper: replay `method` across `as_of_weeks`, then evaluate against
+settled truth. Seeded per cell (`seed`) so the result is a deterministic
+function of the data -- recompute it every run and overwrite; the numbers don't
+drift with run cadence. Returns NULL if the replay produced nothing (e.g. a
+passthrough on a delay-0 series, or too little history).
 }

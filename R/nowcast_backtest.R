@@ -1,12 +1,13 @@
-# nowcast_backtest / nowcast_score / nowcast_compare: a method-agnostic harness
+# nowcast_backtest / nowcast_compare / nowcast_validate: a method-agnostic harness
 # for validating and comparing nowcast engines by REPLAY.
 #
 # The reporting triangle already records, per cell, WHEN a count was reported --
 # so we can reconstruct exactly what was known at any past week (`nowcast_censor`)
 # without re-reading truncated raw data. Replaying an engine across a series of
-# "as-of" weeks and scoring its nowcasts against the eventually-settled totals
-# (`scoringutils`: WIS + interval coverage, by horizon) is how you tell whether a
-# nowcast is any good -- and whether one engine beats another.
+# "as-of" weeks and evaluating its nowcasts against the eventually-settled totals
+# (`nowcast_evaluate_v1`: interval coverage + point-estimate revision, by horizon)
+# is how you tell whether a nowcast is any good -- and whether one engine beats
+# another.
 #
 # The method contract is deliberately minimal: a nowcast method is a function
 #   f(triangle) -> csfmt_ensemble_v3
@@ -119,41 +120,17 @@ nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
   data.table::rbindlist(out)
 }
 
-#' Score a backtest against settled truth (WIS + interval coverage, by horizon)
-#'
-#' Wraps `scoringutils`: joins the replayed quantile nowcasts to the settled
-#' totals and returns the weighted interval score and empirical interval coverage,
-#' summarised `by` (default horizon).
-#' @param backtest Output of [nowcast_backtest].
-#' @param truth Output of [nowcast_truth].
-#' @param by Grouping columns for the summary (default "horizon").
-#' @returns `list(scores, coverage)` (both data.tables).
-#' @export
-nowcast_score <- function(backtest, truth, by = "horizon") {
-  if (!requireNamespace("scoringutils", quietly = TRUE))
-    stop("nowcast_score requires the 'scoringutils' package")
-  if (!nrow(backtest)) stop("empty backtest: no nowcasts to score")
-  d <- merge(data.table::as.data.table(backtest),
-             data.table::as.data.table(truth), by = "reference")
-  if (!nrow(d)) stop("no overlap between backtest reference weeks and settled truth")
-  fc <- scoringutils::as_forecast_quantile(d,
-          forecast_unit = c("reference", "horizon"),
-          observed = "truth", predicted = "predicted", quantile_level = "quantile_level")
-  list(scores   = data.table::as.data.table(
-                    scoringutils::summarise_scores(scoringutils::score(fc), by = by)),
-       coverage = data.table::as.data.table(scoringutils::get_coverage(fc, by = by)))
-}
-
 #' Compare several nowcast methods on one triangle (a scorecard)
 #'
-#' Backtests and scores each method on the same replay, and stacks the per-horizon
-#' scores with a `method` column so engines can be ranked head-to-head (e.g. a
-#' real nowcast vs the passthrough baseline, or two nowcast engines).
+#' Backtests and evaluates each method on the same replay, and stacks the
+#' per-horizon evaluation with a `method` column so engines can be ranked
+#' head-to-head (e.g. a real nowcast vs the passthrough baseline).
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param methods Named list of methods `f(triangle) -> csfmt_ensemble_v3`.
 #' @param as_of_weeks,max_delay,horizons,probs Passed to [nowcast_backtest].
-#' @param by Grouping for the score summary (default "horizon").
-#' @returns A data.table of per-horizon scores with a `method` column.
+#' @param by Grouping for the evaluation summary (default "horizon").
+#' @returns A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])
+#'   with a `method` column.
 #' @export
 nowcast_compare <- function(triangle, methods, max_delay, as_of_weeks = NULL,
                             horizons = 1:2,
@@ -166,26 +143,25 @@ nowcast_compare <- function(triangle, methods, max_delay, as_of_weeks = NULL,
     bt <- nowcast_backtest(triangle, methods[[nm]], as_of_weeks = as_of_weeks,
                            max_delay = max_delay, horizons = horizons, probs = probs)
     if (!nrow(bt)) { warning("method '", nm, "' produced no nowcasts", call. = FALSE); next }
-    sc <- nowcast_score(bt, truth, by = by)
-    s <- sc$scores; s[, method := nm]
-    out[[nm]] <- s
+    ev <- nowcast_evaluate_v1(bt, truth, by = by); ev[, method := nm]
+    out[[nm]] <- ev
   }
   data.table::rbindlist(out, fill = TRUE)
 }
 
-#' Validate one nowcast method on one triangle (backtest -> score, in one call)
+#' Validate one nowcast method on one triangle (backtest -> evaluate, in one call)
 #'
-#' Thin wrapper: replay `method` across `as_of_weeks`, then score against settled
-#' truth. Seeded per cell (`seed`) so the scorecard is a deterministic function of
-#' the data -- recompute it every run and overwrite; the numbers don't drift with
-#' run cadence. Returns NULL if the replay produced nothing (e.g. a passthrough on
-#' a delay-0 series, or too little history).
+#' Thin wrapper: replay `method` across `as_of_weeks`, then evaluate against
+#' settled truth. Seeded per cell (`seed`) so the result is a deterministic
+#' function of the data -- recompute it every run and overwrite; the numbers don't
+#' drift with run cadence. Returns NULL if the replay produced nothing (e.g. a
+#' passthrough on a delay-0 series, or too little history).
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param method A function `f(triangle) -> csfmt_ensemble_v3` (params baked in).
 #' @param max_delay Delay horizon in weeks.
 #' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest].
-#' @param by Grouping for the score summary (default "horizon").
-#' @returns `list(scores, coverage)` (as from [nowcast_score]) or NULL.
+#' @param by Grouping for the evaluation summary (default "horizon").
+#' @returns A per-horizon evaluation table (see [nowcast_evaluate_v1]) or NULL.
 #' @export
 nowcast_validate <- function(triangle, method, max_delay, as_of_weeks = NULL,
                              horizons = 1:2,
@@ -195,5 +171,5 @@ nowcast_validate <- function(triangle, method, max_delay, as_of_weeks = NULL,
                          max_delay = max_delay, horizons = horizons,
                          probs = probs, seed = seed)
   if (!nrow(bt)) return(NULL)
-  nowcast_score(bt, nowcast_truth(triangle, max_delay), by = by)
+  nowcast_evaluate_v1(bt, nowcast_truth(triangle, max_delay), by = by)
 }

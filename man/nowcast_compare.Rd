@@ -21,13 +21,14 @@ nowcast_compare(
 
 \item{as_of_weeks, max_delay, horizons, probs}{Passed to [nowcast_backtest].}
 
-\item{by}{Grouping for the score summary (default "horizon").}
+\item{by}{Grouping for the evaluation summary (default "horizon").}
 }
 \value{
-A data.table of per-horizon scores with a `method` column.
+A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])
+  with a `method` column.
 }
 \description{
-Backtests and scores each method on the same replay, and stacks the per-horizon
-scores with a `method` column so engines can be ranked head-to-head (e.g. a
-real nowcast vs the passthrough baseline, or two nowcast engines).
+Backtests and evaluates each method on the same replay, and stacks the
+per-horizon evaluation with a `method` column so engines can be ranked
+head-to-head (e.g. a real nowcast vs the passthrough baseline).
 }
