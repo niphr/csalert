@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>csfmt_ensemble &amp; the alert-method architecture</title>
+  <style>
+
+html {
+color: #1a1a1a;
+background-color: #fdfdfd;
+}
+body {
+margin: 0 auto;
+max-width: 36em;
+padding-left: 50px;
+padding-right: 50px;
+padding-top: 50px;
+padding-bottom: 50px;
+hyphens: auto;
+overflow-wrap: break-word;
+text-rendering: optimizeLegibility;
+font-kerning: normal;
+}
+@media (max-width: 600px) {
+body {
+font-size: 0.9em;
+padding: 12px;
+}
+h1 {
+font-size: 1.8em;
+}
+}
+@media print {
+html {
+background-color: white;
+}
+body {
+background-color: transparent;
+color: black;
+font-size: 12pt;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3, h4 {
+page-break-after: avoid;
+}
+}
+p {
+margin: 1em 0;
+}
+a {
+color: #1a1a1a;
+}
+a:visited {
+color: #1a1a1a;
+}
+img {
+max-width: 100%;
+}
+svg {
+height: auto;
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+margin-top: 1.4em;
+}
+h5, h6 {
+font-size: 1em;
+font-style: italic;
+}
+h6 {
+font-weight: normal;
+}
+ol, ul {
+padding-left: 1.7em;
+margin-top: 1em;
+}
+li > ol, li > ul {
+margin-top: 0;
+}
+blockquote {
+margin: 1em 0 1em 1.7em;
+padding-left: 1em;
+border-left: 2px solid #e6e6e6;
+color: #606060;
+}
+code {
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+font-size: 85%;
+margin: 0;
+hyphens: manual;
+}
+pre {
+margin: 1em 0;
+overflow: auto;
+}
+pre code {
+padding: 0;
+overflow: visible;
+overflow-wrap: normal;
+}
+.sourceCode {
+background-color: transparent;
+overflow: visible;
+}
+hr {
+border: none;
+border-top: 1px solid #1a1a1a;
+height: 1px;
+margin: 1em 0;
+}
+table {
+margin: 1em 0;
+border-collapse: collapse;
+width: 100%;
+overflow-x: auto;
+display: block;
+font-variant-numeric: lining-nums tabular-nums;
+}
+table caption {
+margin-bottom: 0.75em;
+}
+tbody {
+margin-top: 0.5em;
+border-top: 1px solid #1a1a1a;
+border-bottom: 1px solid #1a1a1a;
+}
+th {
+border-top: 1px solid #1a1a1a;
+padding: 0.25em 0.5em 0.25em 0.5em;
+}
+td {
+padding: 0.125em 0.5em 0.25em 0.5em;
+}
+header {
+margin-bottom: 4em;
+text-align: center;
+}
+#TOC li {
+list-style: none;
+}
+#TOC ul {
+padding-left: 1.3em;
+}
+#TOC > ul {
+padding-left: 0;
+}
+#TOC a:not(:hover) {
+text-decoration: none;
+}
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+:root { --fg:#1b1f24; --muted:#57606a; --accent:#0969da; --line:#d8dee4; --bg:#ffffff; --code-bg:#f6f8fa; }
+html { -webkit-text-size-adjust:100%; }
+body {
+color:var(--fg); background:var(--bg);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+font-size:16px; line-height:1.6;
+max-width:880px; margin:0 auto; padding:48px 28px 96px;
+}
+h1,h2,h3,h4 { line-height:1.25; font-weight:600; margin-top:1.8em; margin-bottom:.6em; }
+h1 { font-size:2em; border-bottom:1px solid var(--line); padding-bottom:.3em; margin-top:0; }
+h2 { font-size:1.45em; border-bottom:1px solid var(--line); padding-bottom:.25em; }
+h3 { font-size:1.15em; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+code { background:var(--code-bg); padding:.15em .35em; border-radius:6px; font-size:.88em;
+font-family:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace; }
+pre { background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow:auto;
+border:1px solid var(--line); }
+pre code { background:none; padding:0; font-size:.85em; line-height:1.45; }
+blockquote { margin:1em 0; padding:.2em 1em; color:var(--muted);
+border-left:4px solid var(--accent); background:#f6f8fa55; }
+table { border-collapse:collapse; width:100%; margin:1.2em 0; font-size:.93em; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 12px; text-align:left; vertical-align:top; }
+th { background:var(--code-bg); font-weight:600; }
+tr:nth-child(even) td { background:#fbfcfd; }
+hr { border:none; border-top:1px solid var(--line); margin:2.4em 0; }
+#TOC { background:#f6f8fa; border:1px solid var(--line); border-radius:8px;
+padding:14px 22px; margin:1.5em 0 2.5em; font-size:.93em; }
+#TOC::before { content:"Contents"; display:block; font-weight:600; color:var(--muted);
+text-transform:uppercase; letter-spacing:.04em; font-size:.78em; margin-bottom:.5em; }
+#TOC ul { margin:.2em 0; padding-left:1.2em; }
+#TOC > ul { padding-left:0; list-style:none; }
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">csfmt_ensemble &amp; the alert-method
+architecture</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#design-csfmt_ensemble-and-the-alert-method-architecture" id="toc-design-csfmt_ensemble-and-the-alert-method-architecture">Design:
+<code>csfmt_ensemble</code> and the alert-method architecture</a>
+<ul>
+<li><a href="#motivation" id="toc-motivation">Motivation</a></li>
+<li><a href="#core-principle-two-representations-one-boundary" id="toc-core-principle-two-representations-one-boundary">Core principle:
+two representations, one boundary</a></li>
+<li><a href="#the-formats" id="toc-the-formats">The formats</a></li>
+<li><a href="#naming-grammar" id="toc-naming-grammar">Naming
+grammar</a></li>
+<li><a href="#methods-all-on-csfmt_ensemble_v3-all-draw-aware" id="toc-methods-all-on-csfmt_ensemble_v3-all-draw-aware">Methods (all on
+<code>csfmt_ensemble_v3</code>, all draw-aware)</a></li>
+<li><a href="#collapse--the-single-final-reduction" id="toc-collapse--the-single-final-reduction"><code>collapse()</code> —
+the single final reduction</a></li>
+<li><a href="#spec-categorical-alert-output-collapsing-status-draws" id="toc-spec-categorical-alert-output-collapsing-status-draws">Spec:
+categorical alert output (collapsing status draws)</a></li>
+<li><a href="#spec-rate--denominator-uncertainty" id="toc-spec-rate--denominator-uncertainty">Spec: rate / denominator
+uncertainty</a></li>
+<li><a href="#spec-missing-data-zero-vs-na" id="toc-spec-missing-data-zero-vs-na">Spec: missing data (zero vs
+NA)</a></li>
+<li><a href="#spec-number-of-draws--reproducibility" id="toc-spec-number-of-draws--reproducibility">Spec: number of draws
+&amp; reproducibility</a></li>
+<li><a href="#performance-measured-bit-identical-to-current" id="toc-performance-measured-bit-identical-to-current">Performance
+(measured, bit-identical to current)</a></li>
+<li><a href="#versioning-decision-needed" id="toc-versioning-decision-needed">Versioning (decision
+needed)</a></li>
+<li><a href="#migration-v2--v3-by-s3-dispatch" id="toc-migration-v2--v3-by-s3-dispatch">Migration: v2 ↔︎ v3 by S3
+dispatch</a></li>
+<li><a href="#oop-decision-s3-for-data-r6-for-orchestration-not-s7" id="toc-oop-decision-s3-for-data-r6-for-orchestration-not-s7">OOP
+decision: S3 for data, R6 for orchestration, not S7</a></li>
+<li><a href="#further-topics-to-cover-not-yet-specced" id="toc-further-topics-to-cover-not-yet-specced">Further topics to cover
+(not yet specced)</a></li>
+<li><a href="#open-gaps" id="toc-open-gaps">Open gaps</a></li>
+<li><a href="#phase-1-outcomes--process-resolutions-4" id="toc-phase-1-outcomes--process-resolutions-4">Phase 1 outcomes &amp;
+process resolutions (#4)</a></li>
+<li><a href="#suggested-sequencing" id="toc-suggested-sequencing">Suggested sequencing</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="design-csfmt_ensemble-and-the-alert-method-architecture">Design:
+<code>csfmt_ensemble</code> and the alert-method architecture</h1>
+<p>Status: <strong>draft for discussion</strong> (2026-06-25). Captures
+the decisions and open questions from the luftveisovervaking_trend ⇄
+csalert refactor. Nothing implemented yet.</p>
+<h2 id="motivation">Motivation</h2>
+<p><code>luftveisovervaking_trend</code>&#39;s <code>action_fn</code> does a
+lot of generic work that is not Norwegian and not luftveis-specific:
+nowcasting, short-term trend / growth rate, MEM intensity thresholds,
+output validation, and collapsing simulation draws to quantiles. Some of
+it <strong>reinvents</strong> what csalert already owns
+(<code>short_term_trend</code> is a closed-form
+<code>rolling_slope</code> in luftveis, vs csalert&#39;s quasipoisson GLM),
+and the home-grown version is where luftveis&#39;s growth-rate CI
+pathologies come from.</p>
+<p><strong>Goal:</strong> luftveis forms Norwegian data into a standard
+shape → csalert does the generic statistics → luftveis makes it pretty
+(Norwegian formatting, flextables, plots, quarto). The generic methods
+live in csalert with proper tests; the data <em>formats</em> live in
+cstidy; luftveis becomes ETL + presentation.</p>
+<h2 id="core-principle-two-representations-one-boundary">Core principle:
+two representations, one boundary</h2>
+<p>There are two axes of work, and they want different shapes:</p>
+<ul>
+<li><strong>Draw-parallel</strong> work (nowcast, trend, MEM/HLM
+classification) reduces over the <strong>draw</strong> axis (nowcast
+uncertainty). Wants wide matrices.</li>
+<li><strong>Season-parallel</strong> work (MEM/HLM <em>threshold
+estimation</em>) reduces over the <strong>season/year</strong> axis.
+Wants the point series over long history.</li>
+</ul>
+<p>These meet at a single <strong>collapse</strong> at the very end.
+Everything analytical runs <strong>before</strong> collapse, on the
+ensemble; collapse reduces all uncertainty to summary columns; after
+collapse there is only presentation.</p>
+<pre><code>csfmt_reporting_triangle_v3            (input: reference × reporting)
+        │  nowcast()                   creates the draw axis
+        ▼
+csfmt_ensemble_v3   ── trend + mem_thresholds + signal_detection_hlm
+   ($data + $draws)    (all draw-aware; add columns to $draws)
+        │  collapse()                  the ONE uncertainty → summary reduction; heal csfmt ONCE
+        ▼
+csfmt_rts_data_v3                      (everyday format: plots, tables, maps)</code></pre>
+<h2 id="the-formats">The formats</h2>
+<p>All formats are explicitly versioned (<code>_vX</code>) and target
+one <code>csfmt_rts_data</code> version (see <strong>Versioning</strong>
+below).</p>
+<h3 id="csfmt_reporting_triangle_v3-nowcast-input"><code>csfmt_reporting_triangle_v3</code>
+(nowcast input)</h3>
+<p>One <strong>aggregated</strong> row per
+<code>(series × reference × reporting)</code> cell: full csfmt identity
++ <strong>two</strong> ISO-week axes + value columns.</p>
+<pre><code>granularity_geo, country_iso3, location_code, border, age, sex, indicator_tag,
+isoyearweek_reference,    # when the case occurred
+isoyearweek_reporting,    # when it was reported   (delay = reporting − reference, derived)
+numerator, [denominator]  # two value columns on the same cell</code></pre>
+<p>Contract:</p>
+<ul>
+<li><strong>Aggregated counts</strong>, keyed by
+<code>(reference, reporting)</code>; <code>delay</code> is derived —
+carry it as a convenience column, but reference + reporting are the
+source of truth (they cannot disagree).</li>
+<li><strong>Full csfmt identity</strong> (same columns as the
+ensemble/csfmt) so <code>time_series_id</code> hashes identically across
+all three formats and conversion is trivial — the triangle is &quot;a csfmt
+with two time axes.&quot;</li>
+<li><strong>Sparse storage, dense semantics.</strong> The triangle is
+<em>semantically</em> dense (an absent
+<code>(reference, reporting)</code> cell within the observed region
+means a real <code>0</code> — reported, no cases) but may be
+<strong>stored sparse</strong> (zeros implied, like a sparse matrix).
+The format does <strong>not</strong> materialise a dense triangle — that
+is <code>nowcast()</code>&#39;s job, because (a) densifying needs
+<code>max_delay</code> (a nowcast parameter, not a format property), and
+(b) densifying all history is wasteful: old reference weeks are complete
+and only need their <em>total</em>, while only the recent still-accruing
+weeks (within <code>max_delay</code> of now) need the dense
+<code>(ref × delay)</code> structure. <code>nowcast()</code>
+materialises that recent window as its first step.</li>
+<li><strong>Record the as-of boundary.</strong> So &quot;absent cell =
+implied 0&quot; is unambiguous, carry
+<code>now = max(isoyearweek_reporting)</code> as metadata: absent cell
+with <code>reporting ≤ now</code> → implied <code>0</code>;
+<code>reporting &gt; now</code> → does not exist yet → the nowcast&#39;s
+prediction target. (Edge case, same principle as the missing-data spec:
+a <em>whole</em> reporting week absent — no rows for
+<code>rep = W</code> — is &quot;no submission&quot;, a structural NA,
+<strong>not</strong> all-zeros; densify must skip it.)</li>
+<li><strong>num + denom are just two value columns</strong> on the same
+cell. The coherence requirement (<code>num ≤ denom</code> per draw) is
+the nowcast method&#39;s job, not the format&#39;s.</li>
+<li>Two time axes → NOT an ensemble, NOT a <code>csfmt_rts_data</code>.
+Consumed by <code>nowcast()</code>, not retained.</li>
+<li>Validation on construction: <code>reporting ≥ reference</code>,
+non-negative counts, complete identity.</li>
+</ul>
+<h3 id="csfmt_ensemble_v3-working-format"><code>csfmt_ensemble_v3</code>
+(working format)</h3>
+<p>An S3 list:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">structure</span>(<span class="fu">list</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data  =</span> <span class="sc">&lt;</span>data.table<span class="sc">&gt;</span>,   <span class="co"># one row per (series × week)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">draws =</span> <span class="fu">list</span>(           <span class="co"># NULL until nowcast; keyed by MEASURE name</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;&lt;measure&gt;&quot;</span> <span class="ot">=</span> <span class="er">&lt;</span>matrix [<span class="fu">nrow</span>(data) × n_draws]<span class="sc">&gt;</span>   <span class="co"># rows 1:1 with data</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>), <span class="at">class =</span> <span class="st">&quot;csfmt_ensemble_v3&quot;</span>)</span></code></pre></div>
+<p><code>$data</code> invariants (enforced by the constructor — &quot;before
+anything weird&quot;):</p>
+<ul>
+<li>identity columns + <code>time_series_id</code>,
+<code>time_series_label</code>,
+<code>time_series_internal_id</code></li>
+<li><strong>complete</strong> time grid (no gaps)</li>
+<li><strong>sorted</strong> by
+<code>(time_series_id, time_series_internal_id)</code>, keyed</li>
+<li>precomputed time columns
+(<code>date / isoyearweek / season / seasonweek / …</code>) —
+load-bearing for MEM/HLM</li>
+<li>plain numeric point + (after collapse) quantile columns</li>
+</ul>
+<p><code>$draws</code>:</p>
+<ul>
+<li>keyed by <strong>measure name</strong> (the naming grammar); the
+measure name carries provenance/role (<code>…_nowcasted_n</code>,
+<code>…_trend_gr_pr100</code>), so the slot is generic, not
+&quot;nowcasted&quot;.</li>
+<li>each value is a <code>[nrow($data) × n_draws]</code> matrix, rows
+aligned <strong>1:1</strong> with <code>$data</code> (series stacked
+vertically).</li>
+<li>the matrix <strong>columns are the anonymous draw axis</strong> —
+draws are exchangeable and are never named; only the measure (the whole
+matrix) is named.</li>
+<li>transient: born at nowcast, accrues derived ensembles (trend,
+status), released at collapse.</li>
+</ul>
+<h3 id="identity-time_series_id-is-a-content-hash">Identity:
+<code>time_series_id</code> is a content hash</h3>
+<ul>
+<li><code>time_series_id</code> = <code>xxhash64</code> of the
+canonicalised identity columns. Content hash (not positional integer) so
+it is <strong>stable across objects and subsets</strong> — survives the
+nowcast → trend → collapse hops.</li>
+<li>compute on the <strong>unique</strong> strata combinations, then
+join back — never per row.</li>
+<li>canonicalise before hashing: fixed identity-column set and order,
+consistent string coercion (factor→character, explicit NA token, trim),
+unit-separator.</li>
+<li>carry a readable <code>time_series_label</code> (the composite
+string) alongside the opaque hash, for debugging.</li>
+</ul>
+<h3 id="rows-vs-columns-rule">Rows vs columns rule</h3>
+<blockquote>
+<p>A <strong>different time series</strong> (different entity / stratum
+/ indicator) is a <strong>row</strong>, identified in
+<code>time_series_id</code>. A <strong>different measurement of the same
+series</strong> (its denominator, its nowcast, its trend, its status) is
+a <strong>column</strong>, named by the grammar.</p>
+</blockquote>
+<p>Test: &quot;different time series, or the same series measured another
+way?&quot;</p>
+<ul>
+<li>influenza vs RSV vs flu-subtypes vs age-bands vs locations →
+<strong>rows</strong></li>
+<li>numerator vs denominator; observed vs nowcasted vs trend of the
+numerator → <strong>columns</strong></li>
+</ul>
+<p>This makes rates trivial (<code>num/denom</code> on the same row;
+per-draw <code>$draws[[&quot;num&quot;]] / $draws[[&quot;denom&quot;]]</code>, 1:1),
+preserves the 1:1 draw alignment, matches csalert&#39;s existing
+<code>value=</code>/<code>split-by-time_series_id</code> contract (no
+blast radius), and is what luftveis already half-does. Anti-patterns
+ruled out: indicators-as-columns (sparse/ragged) and
+numerator/denominator-as-rows (breaks rate math).</p>
+<h3 id="the-seam-for-free">The seam, for free</h3>
+<p>Because <code>$data</code> is sorted by
+<code>(time_series_id, time_series_internal_id)</code> and the draw
+matrices are row-aligned, a rolling kernel can run down the
+<strong>whole</strong> stacked column and then invalidate windows that
+cross a series boundary by masking rows where
+<code>time_series_internal_id &lt; width</code>. No <code>by=</code>, no
+per-series split. The two ids do double duty: alignment
+<strong>and</strong> seam masking.</p>
+<h2 id="naming-grammar">Naming grammar</h2>
+<p>Self-documenting names are valuable; the <em>ad-hoc</em>
+<code>paste0</code>/<code>str_extract</code> that build them are not.
+Formalise the convention into a constructor + parser so names are
+computed, not hand-rolled:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">csfmt_var</span>(<span class="at">measure =</span> <span class="st">&quot;consults_r80&quot;</span>, <span class="at">denom =</span> <span class="st">&quot;all&quot;</span>, <span class="at">per =</span> <span class="dv">100</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>          <span class="at">role =</span> <span class="st">&quot;forecasted&quot;</span>, <span class="at">q =</span> <span class="fl">0.025</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; &quot;consults_r80_vs_all_forecasted_predinterval_q02x5_pr100&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">csfmt_parse</span>(<span class="st">&quot;…_q02x5_pr100&quot;</span>)   <span class="co"># -&gt; structured list</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">q_label</span>(<span class="fl">0.025</span>) <span class="sc">==</span> <span class="st">&quot;q02x5&quot;</span>; <span class="fu">q_value</span>(<span class="st">&quot;q02x5&quot;</span>) <span class="sc">==</span> <span class="fl">0.025</span>   <span class="co"># controlled vocab, reversible</span></span></code></pre></div>
+<p>Hierarchy: <strong>measure identity</strong> (named) +
+<strong>statistic role</strong> (controlled vocab:
+observed/nowcasted/forecasted/trend/threshold/status) +
+<strong>distribution coordinate</strong>
+(<code>point | q02x5 … q97x5</code>, controlled vocab). The <strong>draw
+axis is not in the name</strong> — it is the matrix column index.</p>
+<h2 id="methods-all-on-csfmt_ensemble_v3-all-draw-aware">Methods (all on
+<code>csfmt_ensemble_v3</code>, all draw-aware)</h2>
+<ul>
+<li><code>nowcast(triangle) → ensemble</code>. Consumes
+<code>csfmt_reporting_triangle_v3</code>, produces the ensemble with
+<code>$draws</code> populated (<code>nowcast_simple</code> =
+truncated-survival + negbin; passthrough variant for no-nowcast).</li>
+<li><code>short_term_trend(ensemble, measure, width)</code>. Batched
+closed-form OLS: one fixed slope kernel applied down all draw-columns at
+once (the &quot;shared design matrix&quot;). Adds <code>…_trend_gr_pr100</code>,
+<code>…_trend_beta1</code>, … matrices to <code>$draws</code>. A
+<code>method=&quot;glm&quot;</code> path can be added later for single-series
+report-quality work.</li>
+<li><code>mem_thresholds(ensemble, measure)</code> and
+<code>signal_detection_hlm(ensemble, measure)</code>. Two parts:
+<strong>(1) estimate</strong> thresholds from the point history
+(<code>$data</code>, draw-independent — historical weeks are final);
+<strong>(2) classify</strong> every draw of the recent weeks against
+those thresholds → a <code>…_status</code> matrix in
+<code>$draws</code>. Part (2) needs the draws, so these run
+<strong>before</strong> collapse.</li>
+</ul>
+<h3 id="why-memhlm-are-before-collapse">Why MEM/HLM are before
+collapse</h3>
+<p>The output you want is not &quot;is the median above the epidemic
+threshold&quot; but &quot;<strong>what fraction of nowcast draws put us in
+<code>high</code> this week</strong>&quot;. That is a per-draw classification
+— only possible while the draws still exist. Collapse first and you
+discard exactly the uncertainty the alert is meant to express. Threshold
+<em>estimation</em> is season-parallel and draw-free;
+<em>classification</em> is draw-parallel; both halves run on the
+ensemble, before collapse.</p>
+<h2 id="collapse--the-single-final-reduction"><code>collapse()</code> —
+the single final reduction</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>collapse <span class="ot">&lt;-</span> <span class="cf">function</span>(ens, <span class="at">probs =</span> <span class="fu">c</span>(.<span class="dv">025</span>,.<span class="dv">05</span>,.<span class="dv">1</span>,.<span class="dv">25</span>,.<span class="dv">5</span>,.<span class="dv">75</span>,.<span class="dv">9</span>,.<span class="dv">95</span>,.<span class="dv">975</span>)) {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (m <span class="cf">in</span> <span class="fu">names</span>(ens<span class="sc">$</span>draws)) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    q <span class="ot">&lt;-</span> matrixStats<span class="sc">::</span><span class="fu">rowQuantiles</span>(ens<span class="sc">$</span>draws[[m]], <span class="at">probs =</span> probs)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">colnames</span>(q) <span class="ot">&lt;-</span> <span class="fu">vapply</span>(probs, <span class="cf">function</span>(p) <span class="fu">csfmt_var</span>(<span class="at">measure =</span> m, <span class="at">q =</span> p), <span class="st">&quot;&quot;</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    ens<span class="sc">$</span>data[, (<span class="fu">colnames</span>(q)) <span class="sc">:=</span> <span class="fu">as.data.table</span>(q)]</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  ens<span class="sc">$</span>draws <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  cstidy<span class="sc">::</span><span class="fu">set_csfmt_rts_data_v3</span>(ens<span class="sc">$</span>data)   <span class="co"># heal exactly once, here</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><code>rowQuantiles</code> over each draw-matrix → named columns
+(nowcast quantiles, growth- rate quantiles, and alert-level
+probabilities — <code>rowMeans(status == &quot;high&quot;)</code> etc.) → drop
+<code>$draws</code> → heal the csfmt <strong>once</strong>. It is
+one-way and lossy: all draw-level work must happen first.</p>
+<p><code>csfmt_rts_data</code> is the <strong>resting/lingua-franca
+format</strong> everyone speaks; the ensemble is a short-lived
+computational detour that <code>collapse()</code> melts back into it.
+This is what lets the self-healing csfmt be the comfortable boundary
+without paying its cost in the hot loop (heal once, never inside a
+1000-wide operation).</p>
+<h2 id="spec-categorical-alert-output-collapsing-status-draws">Spec:
+categorical alert output (collapsing status draws)</h2>
+<p>MEM/HLM classification produces, per measure, a <code>…_status</code>
+matrix <code>[week × draw]</code> of an <strong>ordered</strong> factor
+(MEM:
+<code>preepidemic &lt; low &lt; medium &lt; high &lt; veryhigh</code>;
+HLM: <code>training &lt; forecast &lt; null &lt; high</code>).
+Continuous draws collapse to quantiles; categorical draws need their own
+reduction. Because the levels are <strong>ordinal</strong>, there are
+two complementary summaries, and we store both:</p>
+<ol type="1">
+<li><strong>Probability mass per level</strong> —
+<code>…_status_prob_&lt;level&gt;</code> (one column per ordered level),
+<code>= rowMeans(status == level)</code>. Sums to 1 per week. The full
+distribution; drives stacked probability-band plots and any &quot;P(≥ level)&quot;
+query (a cumulative sum of these).</li>
+<li><strong>Ordinal quantiles</strong> —
+<code>…_status_q02x5 / _q50x0 / _q97x5</code>, reusing the
+<code>q</code> grammar. The p-quantile of an ordinal is the
+<strong>smallest level whose cumulative probability ≥ p</strong> (no
+interpolation between categories). <code>q50x0</code> is the headline
+level; <code>q02x5</code>–<code>q97x5</code> is a credible interval:
+&quot;MEDIUM (low–high)&quot;.</li>
+</ol>
+<p>Rules:</p>
+<ul>
+<li>ordinal status → store <strong>both</strong> prob-per-level and
+ordinal quantiles.</li>
+<li>nominal (unordered) status → prob-per-level <strong>only</strong>
+(quantiles undefined).</li>
+<li>&quot;are we in epidemic / above threshold X&quot; = sum of
+<code>…_status_prob_*</code> at/above X; derivable from the columns,
+optionally materialise the key one
+(<code>…_status_prob_atleast_high</code>).</li>
+<li>grammar: add a <code>level</code> coordinate (controlled vocab = the
+status levels) for the prob columns; the <code>q</code> coordinate is
+reused for the ordinal CI.
+<code>csfmt_var(measure, role=&quot;status&quot;, level=&quot;high&quot;)</code> →
+<code>…_status_prob_high</code>;
+<code>csfmt_var(measure, role=&quot;status&quot;, q=0.5)</code> →
+<code>…_status_q50x0</code>.</li>
+</ul>
+<p><strong>The single headline status</strong> (the one word the report
+prints) = <strong><code>q50x0</code>, the ordinal median</strong>, which
+for monotone thresholds is <em>identical to classifying the median
+rate</em> (&quot;our best estimate is 38% positive → MEDIUM band&quot;). This
+matches MEM/FluNet convention, is the centre of the
+<code>q02.5–q97.5</code> range, and is <strong>stable</strong> — it
+moves only when the central estimate actually crosses a threshold.
+<strong>Rejected:</strong> the <strong>mode</strong> (most common level)
+— it flips on a 49/51 split right at a boundary, the worst place to be
+jumpy, and ignores the ordering; and the <strong>mean of
+level-codes</strong> — it assumes the levels are equally spaced, which
+they are not. Ties resolved by the classification convention
+(<code>v &lt; high → medium</code>,
+<code>v &gt;= high → high</code>).</p>
+<p>Collapse mechanics: map levels → integer codes once,
+<code>rowMeans(status==L)</code> per level for the prob columns,
+<code>rowCumsums</code> over ordered levels → first level with cumprob ≥
+p for each ordinal quantile. All vectorised row reductions, same shape
+as the continuous collapse.</p>
+<h2 id="spec-rate--denominator-uncertainty">Spec: rate / denominator
+uncertainty</h2>
+<p>Rates (<code>% positive = numerator / denominator</code>) must be
+computed <strong>per draw</strong> to propagate uncertainty, then
+collapsed like any continuous measure.</p>
+<p><strong>Ensemble invariant (elevated, general):</strong> draws are
+<strong>index-aligned across measures</strong> — column <code>k</code>
+of every measure&#39;s matrix is the <em>same Monte-Carlo realization</em>
+of that series. So <code>$draws[[&quot;num&quot;]][, k]</code> and
+<code>$draws[[&quot;denom&quot;]][, k]</code> are one coherent world, and any
+cross-measure op is column-wise.</p>
+<p>Computing the rate (it becomes its own measure,
+<code>…_vs_…_pr100</code>):</p>
+<ul>
+<li><strong>denominator known exactly</strong> (population,
+fully-reported total): broadcast —
+<code>rate_draws = num_draws / denom_point</code>.</li>
+<li><strong>denominator also nowcasted</strong>: element-wise —
+<code>rate_draws = num_draws / denom_draws</code> (both
+<code>[week × draw]</code>, same draw index = coherent).</li>
+</ul>
+<p><strong>Coherence is the nowcast&#39;s responsibility, not the
+rate&#39;s.</strong> The numerator is a <em>subset</em> of the denominator
+(positives ⊂ tests), so they are correlated and must satisfy
+<code>num ≤ denom</code> in every draw. Nowcasting them independently
+can yield <code>rate &gt; 1</code> and wrong uncertainty. The nowcast
+must produce coherent pairs — e.g. nowcast the denominator and the
+positivity rate and derive <code>num = rate × denom</code>, or nowcast
+<code>denom</code> then <code>num | denom</code>. The rate method
+assumes coherence, divides, and <strong>asserts
+<code>num ≤ denom</code></strong> (clamp + warn on violation, never
+silently <code>&gt;1</code>).</p>
+<ul>
+<li><strong>denom = 0 — the data stores the truth (<code>0</code>); each
+method substitutes locally as its own math requires.</strong> Not one
+global policy:
+<ul>
+<li><strong>rate</strong> (<code>num/denom</code>): <code>0/0</code> →
+<strong>NA</strong> (don&#39;t fabricate a 0% that reads as a real drop);
+the NA flows through trend/MEM/HLM via graceful degradation.</li>
+<li><strong>GLM trend</strong> (<code>offset(log(denom))</code>):
+<code>denom = 0</code> → substitute 1 or drop the week,
+<strong>internally, local to the fit</strong> (log(0) breaks); never
+written back.</li>
+<li>Principle: honest data in, method-local edge handling. The format
+never carries a fudged denominator.</li>
+</ul></li>
+</ul>
+<p><strong>Payoff — <code>trend_fraction</code> disappears.</strong>
+Once the rate is a first-class measure with its own draw matrix, &quot;trend
+of a rate&quot; is just <code>short_term_trend</code> on the
+<code>…_pr100</code> measure — the same batched kernel, no
+<code>trend_fraction</code> TRUE/FALSE branching. The current three-way
+<code>if</code> in luftveis&#39;s <code>action_fn</code> collapses to &quot;pick
+the measure to trend.&quot;</p>
+<h2 id="spec-missing-data-zero-vs-na">Spec: missing data (zero vs
+NA)</h2>
+<p>Complete-grid expansion forces the question: is an absent week a true
+<strong>0</strong> (surveillance ran, no cases) or <strong>NA</strong>
+(no data)? The raw data often can&#39;t say, so the rule is <strong>let the
+denominator decide</strong> — it is the &quot;surveillance was active&quot;
+signal:</p>
+<ul>
+<li>rate indicators: <strong>denom present + num absent →
+<code>num = 0</code></strong> (testing happened, no positives);
+<strong>denom absent → NA</strong> (no testing → unknown).</li>
+<li>count-only indicators (no denom): <strong>within the series&#39;
+observed span → 0, outside → NA</strong>, using
+<code>cstidy::identify_data_structure</code> to find the active
+span.</li>
+<li>per-source override where the data genuinely distinguishes the
+two.</li>
+</ul>
+<p>NA propagation, stated once: rolling-trend window containing NA → NA;
+MEM/HLM baseline → drop NA weeks (<code>na.omit</code>); collapse →
+<code>rowQuantiles(na.rm)</code>; rate → any NA input → NA.</p>
+<p><strong>Low counts: report, don&#39;t suppress — because v3 finally gives
+an honest interval.</strong> At low counts the growth-rate point
+estimate can be wild (the old +7000%), but with draws the
+<code>q02.5–q97.5</code> interval blows up naturally and self-flags &quot;we
+don&#39;t know.&quot; So report the estimate <strong>with its draw-based
+interval, never the bare point</strong>, and keep the
+<code>validate_trend_output</code> warning for the absurd tail.</p>
+<p>Principle: <strong>don&#39;t hide, don&#39;t fabricate — the denominator
+disambiguates zero-vs-missing, the draw-based interval exposes low-count
+noise.</strong></p>
+<h2 id="spec-number-of-draws--reproducibility">Spec: number of draws
+&amp; reproducibility</h2>
+<p><strong>Size the draw count by the most demanding output you publish
+— the tail quantiles — not the cheapest (the median headline).</strong>
+Measured Monte-Carlo wobble (same uncertainty, 2000 re-seeds, NegBin
+example):</p>
+<table>
+<thead>
+<tr>
+<th>quantile</th>
+<th>wobble @ 100 draws</th>
+<th>wobble @ 1000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>q02.5 (lower CI)</td>
+<td>±14% of value</td>
+<td>±5%</td>
+</tr>
+<tr>
+<td>q50 (headline)</td>
+<td>±5%</td>
+<td>±1.8%</td>
+</tr>
+<tr>
+<td>q97.5 (upper CI)</td>
+<td>±7%</td>
+<td>±2.5%</td>
+</tr>
+</tbody>
+</table>
+<p>At n=100 the published 95% interval jitters week-to-week from noise
+alone (~2–3 draws define each tail). <strong>Default
+<code>n_draws = 1000</code></strong> — ~25 draws per tail, tails settle
+to ~2.5% (the ~3× improvement is just √10). The batched architecture
+already makes 1000 cheap (trend ~110 ms + collapse ~40 ms / indicator),
+so there is no speed reason to cut. Only drop toward ~100–200 if you
+stop publishing 95% intervals and report median + a coarse level — a
+<em>reporting</em> decision, not a default.</p>
+<p><strong>Reproducible ≠ accurate.</strong> A fixed seed makes a run
+reproducible, but n=100 is a reproducibly <em>noisier estimate</em> of
+the true posterior interval. Carry <code>n_draws</code> and the RNG seed
+as ensemble metadata; seed for reproducibility, size
+<code>n_draws</code> for accuracy of the tails.</p>
+<h2 id="performance-measured-bit-identical-to-current">Performance
+(measured, bit-identical to current)</h2>
+<p>Per indicator, 300 weeks × 1000 draws, on this machine:</p>
+<table>
+<thead>
+<tr>
+<th>op</th>
+<th>long + <code>by=nowcast_id</code></th>
+<th>wide naive (cbind)</th>
+<th>wide matrix-native</th>
+<th>diff</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>trend</td>
+<td>~140 ms</td>
+<td>~230 ms</td>
+<td><strong>~110 ms</strong></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td>collapse (9 q)</td>
+<td>~140 ms</td>
+<td>—</td>
+<td><strong>~40 ms</strong> (<code>rowQuantiles</code>)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td>memory</td>
+<td>3.6 MB</td>
+<td>—</td>
+<td><strong>1.2 MB</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Notes: the trend win is modest (~1.3×) and <strong>only</strong> if
+matrix-native (cumsum-diff, not <code>cbind</code>/lists — the naive
+wide version is <em>slower</em>). The real wins are **collapse (~3.5×),
+memory (~3×), seam-safety, and composability**. The no-nowcast
+passthrough drops from 1000 identical columns to 1 — a much larger
+memory win on those indicators.</p>
+<h2 id="versioning-decision-needed">Versioning (decision needed)</h2>
+<p>The csverse is <strong>split by install, not by source</strong>:</p>
+<ul>
+<li><strong>cstidy source (github/niphr) is 2025.10.27 and has both
+<code>csfmt_rts_v1.R</code> and <code>csfmt_rts_v2.R</code>.</strong> v2
+is real and current.</li>
+<li>the <strong>installed</strong> cstidy on this machine is the stale
+<strong>2023.5.24</strong> (v1 only).</li>
+<li>norsyss.cs9 (live) uses <strong>v2</strong>; csalert uses
+<strong>v1</strong>.</li>
+</ul>
+<p><strong>Decision:</strong> build the <strong>v3 cohort</strong>. All
+new formats share <code>_v3</code> to signal they are one generation,
+designed to interoperate: <code>csfmt_reporting_triangle_v3</code>,
+<code>csfmt_ensemble_v3</code>, and a <strong>clean
+<code>csfmt_rts_data_v3</code></strong> (no <code>[</code> self-healing
+— explicit <code>heal()</code>, content-hash
+<code>time_series_id</code>, <code>time_series_internal_id</code>, the
+naming grammar baked in). <code>collapse()</code> targets
+<code>csfmt_rts_data_v3</code>.</p>
+<p>This commits to building <code>csfmt_rts_data_v3</code>, not
+collapsing to the existing v2. Mitigation is
+<strong>coexistence</strong>: v3 ships clean and v2 stays alive for
+legacy consumers (csstyle, csmaps, norsyss.cs9) until they migrate —
+different classes, incremental migration, no big-bang. Upgrade this
+machine&#39;s cstidy to 2025.10.27 as the base to build v3 on.
+(<code>_v3</code> on never-before-existing formats like the
+triangle/ensemble is cohort-versioning, not iteration-versioning —
+chosen for consistency across the generation.)</p>
+<h3 id="what-the-self-healing-actually-is-and-why-the-ensemble-must-avoid-it">What
+the &quot;self-healing&quot; actually is (and why the ensemble must avoid it)</h3>
+<p>In <code>csfmt_rts_data_v2</code> the <strong><code>[</code> operator
+is overridden</strong> (<code>[.csfmt_rts_data_v2</code>). On every
+subset/assignment it strips the class, re-evaluates, and re-applies the
+class; and for any time/geo assignment it runs <strong>&quot;smart
+assignment&quot;</strong> — <code>deparse</code> the call → regex-detect the
+modified time var → <code>glue</code> R source →
+<strong><code>eval(parse(text=…))</code></strong> to impute the derived
+columns. So a single <code>d[, isoyearweek := x]</code> triggers deparse
++ regex + codegen + <code>eval(parse())</code>.</p>
+<p>This is the cost you do <strong>not</strong> want in a 1000-wide hot
+loop, and it&#39;s why the architecture keeps the draw-parallel work on
+<strong>bare matrices</strong> (<code>$draws</code>) and only
+constructs/heals the csfmt <strong>once</strong>, in
+<code>collapse()</code>. When operating on <code>$data</code> during
+compute, use <code>cstidy::remove_class_csfmt_rts_data()</code> to drop
+to a plain data.table and re-class only at the boundary — never let the
+<code>[</code> override fire inside the loop.</p>
+<h3 id="time_series_id-we-deliberately-diverge-from-cstidy"><code>time_series_id</code>:
+we deliberately diverge from cstidy</h3>
+<p><code>unique_time_series.csfmt_rts_data_v2</code> assigns
+<code>time_series_id := 1:.N</code> — a <strong>positional
+integer</strong>, unstable across objects/subsets. Our ensemble uses a
+<strong>content hash</strong> instead (stable across the
+nowcast→trend→collapse hops). Decide whether to upstream the hash into
+cstidy&#39;s <code>unique_time_series</code> or keep it ensemble-local.
+(cstidy already groups by the right identity columns —
+<code>granularity_*</code>, <code>location_code</code>,
+<code>border</code>, <code>age</code>, <code>sex</code>,
+<code>*_id</code>, <code>*_tag</code> — so the change is just integer →
+hash.)</p>
+<h2 id="migration-v2--v3-by-s3-dispatch">Migration: v2 ↔︎ v3 by S3
+dispatch</h2>
+<p>Version = class, so v2 and v3 coexist with <strong>zero conditional
+branching</strong>: <code>method.csfmt_rts_data_v2</code> and
+<code>method.csfmt_rts_data_v3</code> are two methods on the same
+generic; <code>method(x)</code> dispatches on <code>x</code>&#39;s class.
+Old code passing v2 objects keeps hitting the old path; new code passes
+v3 and hits the new path. Even <code>[.csfmt_rts_data_v2</code> (the
+magic heal) vs a plain <code>[</code> on v3 coexists, because
+<code>[</code> is S3 too. Migration is file-by-file /
+consumer-by-consumer, no big-bang.</p>
+<p>What makes it <em>safe</em> (not just mechanically possible):</p>
+<ol type="1">
+<li><strong>Shared generic.</strong> Both methods register on the same
+<code>UseMethod</code> generic (csalert already has it). New-only
+methods (nowcast, ensemble, mem-on-ensemble) have no v2 counterpart —
+fine; v2 just lacks that capability.</li>
+<li><strong><code>as_csfmt_rts_data_v3(x)</code> converter is required
+infra</strong> — without it the two worlds are isolated islands.
+Migrating a consumer = convert to v3 at its boundary, then use v3
+methods.</li>
+<li><strong>v2 is frozen / maintenance-only.</strong> Coexistence is
+migration <em>runway</em>, not permanent parallel development — all new
+work on v3, never dual-maintain two <code>short_term_trend</code>s (they
+would drift).</li>
+<li><strong>The numbers differ on v3 intentionally</strong> (batched
+trend, proper CIs). So the v2→v3 flip is exactly where the
+<strong>equivalence gate</strong> earns its keep: it classifies each
+difference as intended improvement vs accidental regression. Dispatch
+makes the swap smooth; it does not remove the need to verify numbers at
+the flip.</li>
+</ol>
+<h2 id="oop-decision-s3-for-data-r6-for-orchestration-not-s7">OOP
+decision: S3 for data, R6 for orchestration, not S7</h2>
+<blockquote>
+<p><strong>R6</strong> for stateful behavior and orchestration (cs9
+tasks, DB handles, plan execution — already R6).
+<strong>S3-on-data.table</strong> for data and its transformations
+(cstidy formats, <code>csfmt_ensemble</code>, csalert methods).
+<strong>S7 not adopted.</strong></p>
+</blockquote>
+<p>Reasoning:</p>
+<ul>
+<li><strong>csfmt is a data.table.</strong> R6/S7 hide it behind
+methods/properties and break interop — an R6/S7 object is not a
+<code>data.frame</code>, so it won&#39;t pass to ggplot, csmaps, flextable,
+dplyr, cstidy without unwrapping.</li>
+<li><strong>S7&#39;s safety doesn&#39;t fire where it matters.</strong> S7
+validates on <code>@&lt;-</code> and construction; the dominant mutation
+here is <code>dt[, col := val]</code>, which modifies in place and never
+calls <code>@&lt;-</code>. Formalism cost, no payoff on the hot path.
+(And the v2 pain is the <code>[</code> override, not S3 — fix that,
+don&#39;t switch OOP systems.)</li>
+<li><strong>The ensemble is a value transformed by a functional
+pipeline</strong>
+(<code>ens |&gt; nowcast() |&gt; short_term_trend(...) |&gt; collapse()</code>),
+matching csalert&#39;s S3 generics and letting one generic dispatch on both
+a plain csfmt and an ensemble. R6&#39;s in-place-mutation &quot;speed win&quot; is
+illusory: methods <em>add</em> keys to <code>$draws</code> (shallow
+list-spine copy, not matrix copies), and the hot loop runs on bare
+matrices, not the object. Reference semantics are a footgun for a data
+object (accidental aliasing).</li>
+<li><strong>R6 belongs on the outside</strong> (the cs9 task drives the
+S3 methods on S3 data). Don&#39;t cross the streams.</li>
+</ul>
+<p>So: <code>csfmt_ensemble</code> = <strong>S3 list +
+<code>validate_ensemble()</code></strong>. Format = S3. R6 stays the cs9
+orchestration layer.</p>
+<h2 id="further-topics-to-cover-not-yet-specced">Further topics to cover
+(not yet specced)</h2>
+<p>Process/discipline items still to nail (the data-shape specs are now
+resolved above):</p>
+<ul>
+<li><strong>Per-series failure isolation.</strong> One series that won&#39;t
+fit (MEM no-converge, GLM diverge, too little history) must yield NA
+columns and a warning, never kill the batch. Make graceful degradation a
+cross-cutting contract (it&#39;s already how <code>add_mem_thresholds</code>
+behaves).</li>
+<li><strong>Testing philosophy.</strong> Synthetic-ground-truth (we know
+the answer) + property tests + golden fixtures, ported from the luftveis
+suite (<code>make_growth_series</code>, <code>make_mem_seasons</code>,
+<code>simulate_truncated</code>) as the seed for csalert.</li>
+<li><strong>Memory at scale.</strong> Don&#39;t hold every indicator&#39;s
+<code>$draws</code> at once — collapse per series and keep only the
+collapsed csfmt. State the lifecycle bound.</li>
+<li><strong>Package ownership.</strong> A table of who owns what:
+ensemble class + grammar + formats (cstidy),
+nowcast/trend/mem/hlm/validators (csalert), ETL + Norwegian formatting +
+plots (luftveis). Avoids boundary drift.</li>
+<li><strong>Performance target.</strong> &quot;Fast&quot; needs a number — e.g.
+full p1 over ~50 indicators × ages in &lt; N minutes — or it&#39;s
+unfalsifiable.</li>
+<li><strong>What stays Norwegian (anti-leak boundary).</strong> Decimal
+comma, location hierarchies, holiday/<code>quality_control</code> timing
+must NOT leak into csalert. The generic methods stay
+country-agnostic.</li>
+<li><strong>Parallelism.</strong> Per-series work is embarrassingly
+parallel; note how (if at all) it composes with cs9&#39;s
+<code>callr</code>/parallel task execution.</li>
+</ul>
+<h2 id="open-gaps">Open gaps</h2>
+<p><em>(Resolved and moved into specs above: reporting-triangle
+contract, NA/zero policy, categorical alert output, rate/denominator
+uncertainty, draws &amp; reproducibility, migration mechanism.)</em></p>
+<ol type="1">
+<li><strong>csalert has no test harness</strong> — precondition (Phase
+0). Everything we move lands in an unverified package until testthat
+exists. Port the luftveis nowcast/trend/MEM tests as the landing
+zone.</li>
+<li><strong>Build <code>csfmt_rts_data_v3</code></strong> — the v3
+cohort commits to a clean cstidy format (no <code>[</code> self-healing,
+hash id, <code>internal_id</code>, grammar). Upgrade cstidy to
+2025.10.27 as the base.</li>
+<li><strong>Self-healing cost unmeasured</strong> — confirm &quot;heal once&quot;
+matters by quantifying the per-heal cost.</li>
+<li><strong>Equivalence-gate details</strong> — what counts as &quot;same
+enough&quot; when a consumer flips v2 → v3 (intended improvement vs
+regression).</li>
+<li><strong>Granularity</strong> — weekly-only for now; daily/mixed out
+of scope, state it.</li>
+<li><strong>Stakeholder buy-in</strong> — the v3 cohort touches
+cstidy/csalert/norsyss.cs9; needs the maintainers&#39; sign-off before code
+moves.</li>
+<li><strong>Canonical quantile probability set</strong> — fixed vs
+configurable (minor).</li>
+</ol>
+<h2 id="phase-1-outcomes--process-resolutions-4">Phase 1 outcomes &amp;
+process resolutions (#4)</h2>
+<p>The engine is built (see the csalert
+<code>phase1-ensemble-engine</code> branch). Resolutions to the process
+items:</p>
+<p><strong>Performance target — met with huge margin.</strong> Measured
+<code>action_fn_csalert</code> (triangle → nowcast → trend → collapse →
+heal, 1000 draws): <strong>~55 ms per indicator</strong>; <strong>~3
+s</strong> for ~50 indicators × ages <strong>serial</strong>. So a sane
+target is &quot;p1 computation &lt; 30 s&quot; and it clears it ~10×. The real
+weekly-report cost is the <strong>network data load + quarto
+render</strong>, not the statistics — so no compute optimization or
+parallelism is needed. (The batched/wide design is what makes 1000 draws
+this cheap.)</p>
+<p><strong>Parallelism — not needed.</strong> Series are embarrassingly
+parallel and the engine already vectorizes over the draw axis, but at ~3
+s serial there is nothing to parallelize. If the indicator set grew 10×,
+luftveis could parallelize the per-indicator
+<code>action_fn_csalert</code> calls via
+<code>plnr</code>/<code>callr</code> (the cs9 task layer already does
+this) — each call is independent.</p>
+<p><strong>Blast radius — additive only.</strong> The csalert work
+<strong>adds</strong> new files and new S3 methods on existing generics
+(<code>short_term_trend.csfmt_ensemble_v3</code>,
+<code>mem_thresholds</code>, <code>nowcast</code>, …); it changes
+<strong>no existing function signature</strong>. The pre-existing
+methods (<code>short_term_trend.csfmt_rts_data_v1</code>,
+<code>signal_detection_hlm.csfmt_rts_data_v1</code>,
+<code>prediction_interval</code>, <code>row_*</code>) and their seed
+tests are untouched and still pass. So existing csalert consumers are
+unaffected; v2 is likewise untouched in cstidy.</p>
+<p><strong>Package ownership.</strong></p>
+<table>
+<thead>
+<tr>
+<th>package</th>
+<th>owns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>cstidy</strong></td>
+<td>the formats: <code>csfmt_rts_data_v3</code> (clean weekly),
+<code>csfmt_reporting_triangle_v3</code><em>,
+<code>csfmt_ensemble_v3</code></em>, the naming grammar* (*currently in
+csalert; promote to cstidy when stable)</td>
+</tr>
+<tr>
+<td><strong>csalert</strong></td>
+<td>the methods: <code>nowcast</code>, batched
+<code>short_term_trend</code>, <code>mem_thresholds</code>,
+<code>signal_detection_hlm</code>, <code>add_rate</code>,
+<code>collapse</code>, validators</td>
+</tr>
+<tr>
+<td><strong>luftveis</strong></td>
+<td><code>get_data</code>, the luftveis→triangle mapping
+(<code>action_fn_csalert</code>), Norwegian formatting/prt, flextables,
+plots, quarto; the equivalence gate</td>
+</tr>
+<tr>
+<td><strong>cs9</strong></td>
+<td>orchestration (tasks, DB, plan execution) — R6, unchanged</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Buy-in — materials ready, the act is human.</strong> The
+design doc (this file + the HTML), the working branches, and the green
+test suites are the artefacts to circulate to Beatriz/Chi/Trude.
+Securing agreement on the v3 cohort is the one step that can&#39;t be
+automated.</p>
+<h2 id="suggested-sequencing">Suggested sequencing</h2>
+<ol start="0" type="1">
+<li>Stand up <strong>testthat in csalert</strong> (precondition) +
+settle the csfmt version.</li>
+<li>Formats in <strong>cstidy</strong>:
+<code>csfmt_reporting_triangle_v3</code>,
+<code>csfmt_ensemble_v3</code>, naming grammar
+(<code>csfmt_var</code>/<code>csfmt_parse</code>,
+<code>q_label</code>/<code>q_value</code>), the constructor
+invariants.</li>
+<li><code>nowcast()</code> into csalert + port nowcast tests.</li>
+<li>Batched <code>short_term_trend</code> (delete luftveis
+<code>rolling_slope</code>); decide the draws contract; port trend
+tests.</li>
+<li><code>mem_thresholds</code> + draw-aware classification into
+csalert; port MEM tests.</li>
+<li>Move validators in.</li>
+<li>Shrink luftveis to:
+<code>get_data → to_reporting_triangle → csalert::* → collapse → format/plot</code>.</li>
+</ol>
+</body>
+</html>
