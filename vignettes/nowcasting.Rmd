@@ -148,8 +148,8 @@ nowcast_evaluate_v1(tri, method, max_delay = max_delay,
 ```
 
 Pass a *named list* of methods instead of one, and they are replayed on the same
-paired draws (shared `seed`) with a `method` column — feed that to
-`nowcast_recommend_v1()` to pick the model that revises least.
+paired draws (shared `seed`) and stacked with a `method` column, so you can race
+several engines head-to-head.
 
 ## How fast does the data arrive? Reporting completion
 
@@ -179,5 +179,5 @@ csfmt_parse("numerator_nowcasted_q50x0")              # -> back to its component
   each just adds draw columns before the collapse.
 - `ens_collapse(heal = TRUE)` returns a `cstidy::csfmt_rts_data_v3` ready for the
   standard plotting/table helpers.
-- Race candidate engines head-to-head by passing several to `nowcast_evaluate_v1()`
-  and pick one with `nowcast_recommend_v1()`.
+- Race candidate engines head-to-head by passing several methods to
+  `nowcast_evaluate_v1()` and comparing their coverage / revision.

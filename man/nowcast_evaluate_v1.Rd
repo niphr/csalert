@@ -43,8 +43,7 @@ coverage (are the intervals honest?) + point-estimate revision (how much will
 the number still move?), stacked into one per-horizon table with a `method`
 column. Pass a single method or a named list; a shared `seed` pairs them (common
 random numbers) so a head-to-head is apples-to-apples. Coverage is read straight
-off the interval quantiles, so this needs no `scoringutils`. Feed the result to
-[nowcast_recommend_v1] to pick a winner.
+off the interval quantiles, so this needs no `scoringutils`.
 }
 \examples{
 # a small reporting triangle: 30 weeks, each reported over delays 0-2
@@ -58,8 +57,7 @@ tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age"
 # one method:
 nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3),
                     max_delay = 3, horizons = 0:2, seed = 1)
-# several, paired, then pick a winner:
-ev <- nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
+# several methods, paired (common random numbers), stacked with a `method` column:
+nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
-nowcast_recommend_v1(ev, configured = "passthrough")$recommended
 }

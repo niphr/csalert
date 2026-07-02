@@ -1,7 +1,6 @@
 # nowcast_evaluate_v1: replay nowcast method(s) over a triangle and score each on
 # interval coverage + point-estimate revision, in ONE per-horizon table. Pass one
-# method or a named list; a shared seed pairs them (common random numbers). Feed
-# the result to nowcast_recommend_v1 to pick a winner.
+# method or a named list; a shared seed pairs them (common random numbers).
 #
 # For each forecast (a reference week at a given horizon), joined to its settled
 # truth, we read off two scale-free things:
@@ -61,8 +60,7 @@
 #' the number still move?), stacked into one per-horizon table with a `method`
 #' column. Pass a single method or a named list; a shared `seed` pairs them (common
 #' random numbers) so a head-to-head is apples-to-apples. Coverage is read straight
-#' off the interval quantiles, so this needs no `scoringutils`. Feed the result to
-#' [nowcast_recommend_v1] to pick a winner.
+#' off the interval quantiles, so this needs no `scoringutils`.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param methods A method `f(triangle) -> csfmt_ensemble_v3`, or a NAMED list of
 #'   them (each with its parameters baked in, e.g. via a closure).
@@ -87,10 +85,9 @@
 #' # one method:
 #' nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3),
 #'                     max_delay = 3, horizons = 0:2, seed = 1)
-#' # several, paired, then pick a winner:
-#' ev <- nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
+#' # several methods, paired (common random numbers), stacked with a `method` column:
+#' nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
 #'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
-#' nowcast_recommend_v1(ev, configured = "passthrough")$recommended
 #' @export
 nowcast_evaluate_v1 <- function(triangle, methods, max_delay, as_of_weeks = NULL,
                                 horizons = 1:2,
@@ -109,44 +106,4 @@ nowcast_evaluate_v1 <- function(triangle, methods, max_delay, as_of_weeks = NULL
     out[[nm]] <- ev
   }
   data.table::rbindlist(out, fill = TRUE)
-}
-
-#' Recommend a nowcast model from a head-to-head evaluation
-#'
-#' Ranks the methods in a [nowcast_evaluate_v1] table by their mean score across
-#' horizons (default the absolute revision -- the point estimate that settles
-#' fastest) and audits a configured choice: it "meets" the recommendation when its
-#' mean score is within `margin` of the best. Lets a pipeline keep a fixed
-#' configured model while flagging when a candidate clearly beats it.
-#' @param evaluation A [nowcast_evaluate_v1] output (per-horizon evaluations with a
-#'   `method` column).
-#' @param configured The method label currently in production.
-#' @param metric Column to rank on, smaller = better. Default `"median_abs"`.
-#' @param margin Relative tolerance: `configured` meets the recommendation when
-#'   its mean metric <= best * (1 + margin). Default 0.05.
-#' @returns A list: `configured`, `configured_score`, `recommended`,
-#'   `recommended_score`, `meets` (logical), and `by_method` (a data.table of the
-#'   per-method mean metric, ascending).
-#' @examples
-#' cmp <- data.table::data.table(
-#'   horizon    = rep(0:1, 2),
-#'   median_abs = c(0.30, 0.05, 0.10, 0.02),      # "fast" revises less than "slow"
-#'   method     = rep(c("slow", "fast"), each = 2))
-#' nowcast_recommend_v1(cmp, configured = "slow")$recommended   # "fast"
-#' @export
-nowcast_recommend_v1 <- function(evaluation, configured, metric = "median_abs",
-                                 margin = 0.05) {
-  d <- data.table::as.data.table(evaluation)
-  stopifnot("method" %in% names(d), metric %in% names(d))
-  by_method <- d[, .(score = mean(as.numeric(get(metric)), na.rm = TRUE)), by = "method"]
-  data.table::setorder(by_method, score)
-  recommended <- by_method$method[1]; best <- by_method$score[1]
-  conf <- by_method[method == configured]$score
-  conf <- if (length(conf)) conf[1] else NA_real_
-  list(configured        = configured,
-       configured_score  = round(conf, 4),
-       recommended       = recommended,
-       recommended_score = round(best, 4),
-       meets             = isTRUE(conf <= best * (1 + margin)),
-       by_method         = by_method)
 }

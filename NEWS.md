@@ -13,9 +13,6 @@
   `nowcast_compare` and `nowcast_validate`; coverage is read straight off the
   interval quantiles, so **`scoringutils` is no longer a dependency** (WIS was
   dropped).
-- **`nowcast_recommend_v1`** ranks a `nowcast_evaluate_v1` table by mean revision
-  and audits a configured model against the best (the candidate-recommendation
-  logic that had lived in the luftveis pipeline).
 - Removed the unused **`nowcast_survrtrunc_v1`** engine (and its `flexsurv`
   dependency) and the conformal **calibration** functions
   (`nowcast_estimate_calibration_v1` / `_apply_` / `print.nowcast_calibration`) —
@@ -32,7 +29,7 @@
   `short_term_trend`, `signal_detection_hlm`, `nowcast_quasipoisson_v1`).
 - Added runnable `@examples` to the naming-grammar functions (`csfmt_var`,
   `csfmt_parse`, `q_label`, `q_value`) and to the nowcast analysis functions
-  (`nowcast_evaluate_v1`, `nowcast_recommend_v1`, `reporting_completion_trend_v1`).
+  (`nowcast_evaluate_v1`, `reporting_completion_trend_v1`).
 - Fixed unescaped `%` in the nowcast / `reporting_completion` roxygen that had
   been corrupting their generated `.Rd`, plus copy-paste errors in the
   simulation-helper docs.

@@ -88,5 +88,4 @@ test_that("nowcast_evaluate_v1 races several methods (paired) for the recommenda
   # (passthrough carries the still-incomplete count, so it under-predicts badly)
   w <- dcast(ev[horizon == 1], horizon ~ method, value.var = "median_abs")
   expect_lt(w$simple, w$passthrough)
-  expect_equal(nowcast_recommend_v1(ev, configured = "passthrough")$recommended, "simple")
 })
