@@ -70,12 +70,12 @@ nowcast_evaluate_v1 <- function(backtest, truth, by = "horizon",
 
 #' Recommend a nowcast model from a head-to-head comparison
 #'
-#' Ranks the methods in a [nowcast_compare] table by their mean score across
+#' Ranks the methods in a [nowcast_compare_v1] table by their mean score across
 #' horizons (default the absolute revision -- the point estimate that settles
 #' fastest) and audits a configured choice: it "meets" the recommendation when its
 #' mean score is within `margin` of the best. Lets a pipeline keep a fixed
 #' configured model while flagging when a candidate clearly beats it.
-#' @param comparison A [nowcast_compare] output (per-horizon evaluations with a
+#' @param comparison A [nowcast_compare_v1] output (per-horizon evaluations with a
 #'   `method` column).
 #' @param configured The method label currently in production.
 #' @param metric Column to rank on, smaller = better. Default `"median_abs"`.

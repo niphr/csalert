@@ -2,14 +2,14 @@
 
 ## Simplification
 
-- **`nowcast_recommend_v1`** ranks a [nowcast_compare] table by mean revision and
+- **`nowcast_recommend_v1`** ranks a [nowcast_compare_v1] table by mean revision and
   audits a configured model against the best (the candidate-recommendation logic
-  that had lived in the luftveis pipeline). `nowcast_compare` gains a `seed` so the
+  that had lived in the luftveis pipeline). `nowcast_compare_v1` gains a `seed` so the
   comparison is paired (common random numbers across methods).
 - **`nowcast_evaluate_v1`** merges the old `nowcast_score` (coverage) and
   `nowcast_revision` into one per-horizon table (interval coverage + point-estimate
   revision). Coverage is now computed directly from the interval quantiles, so
-  **`scoringutils` is no longer a dependency** (WIS was dropped). `nowcast_compare`
+  **`scoringutils` is no longer a dependency** (WIS was dropped). `nowcast_compare_v1`
   / `nowcast_validate` build on `nowcast_evaluate_v1`.
 - Removed the unused **`nowcast_survrtrunc_v1`** engine (and its `flexsurv`
   dependency) and the conformal **calibration** functions
@@ -108,7 +108,7 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   reporting triangle), `nowcast_truth` (settled totals), `nowcast_backtest`
   (replay any `f(triangle) -> ensemble` across as-of weeks into tidy quantile
   nowcasts), `nowcast_score` (WIS + interval coverage by horizon via
-  `scoringutils`), and `nowcast_compare` (rank engines head-to-head, e.g. a real
+  `scoringutils`), and `nowcast_compare_v1` (rank engines head-to-head, e.g. a real
   nowcast vs the passthrough baseline). `scoringutils` added to Suggests.
 - `nowcast_revision`: the point-estimate (median) revision of a backtest, by
   horizon -- how far the number published at a given maturity sits from the

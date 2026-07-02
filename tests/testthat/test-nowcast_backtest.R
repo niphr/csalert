@@ -84,9 +84,9 @@ test_that("nowcast_validate wraps backtest+evaluate and is deterministic given a
   expect_equal(v1$median_abs, v2$median_abs)   # same seed -> identical evaluation
 })
 
-test_that("nowcast_compare ranks a real nowcast against the passthrough baseline", {
+test_that("nowcast_compare_v1 ranks a real nowcast against the passthrough baseline", {
   s <- sim_backtest_triangle()
-  card <- nowcast_compare(s$tri, max_delay = s$max_delay, horizons = 1:2,
+  card <- nowcast_compare_v1(s$tri, max_delay = s$max_delay, horizons = 1:2,
     methods = list(
       simple      = function(x) nowcast_quasipoisson_v1(x, max_delay = s$max_delay, n_sim = 200),
       passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)))

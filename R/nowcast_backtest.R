@@ -1,4 +1,4 @@
-# nowcast_backtest / nowcast_compare / nowcast_validate: a method-agnostic harness
+# nowcast_backtest / nowcast_compare_v1 / nowcast_validate: a method-agnostic harness
 # for validating and comparing nowcast engines by REPLAY.
 #
 # The reporting triangle already records, per cell, WHEN a count was reported --
@@ -13,7 +13,7 @@
 #   f(triangle) -> csfmt_ensemble_v3
 # with all of ITS parameters baked in (e.g. via a closure). That keeps engines
 # with different signatures (n_sim, priors, ...) composable through one interface:
-#   nowcast_compare(tri, methods = list(
+#   nowcast_compare_v1(tri, methods = list(
 #     simple      = function(x) nowcast_quasipoisson_v1(x, max_delay = 5, n_sim = 1000),
 #     passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 5)))
 
@@ -135,7 +135,7 @@ nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
 #' @returns A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])
 #'   with a `method` column.
 #' @export
-nowcast_compare <- function(triangle, methods, max_delay, as_of_weeks = NULL,
+nowcast_compare_v1 <- function(triangle, methods, max_delay, as_of_weeks = NULL,
                             horizons = 1:2,
                             probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
                             by = "horizon", seed = NULL) {
