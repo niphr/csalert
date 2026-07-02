@@ -5,15 +5,17 @@
 - **`reporting_completion_trend_v1`** returns the completion curve by calendar year
   (all) + by month (last N, per series) with a `scope` column -- the year/month
   trend that the luftveis pipeline used to assemble by hand.
-- **`nowcast_recommend_v1`** ranks a [nowcast_compare_v1] table by mean revision and
-  audits a configured model against the best (the candidate-recommendation logic
-  that had lived in the luftveis pipeline). `nowcast_compare_v1` gains a `seed` so the
-  comparison is paired (common random numbers across methods).
-- **`nowcast_evaluate_v1`** merges the old `nowcast_score` (coverage) and
-  `nowcast_revision` into one per-horizon table (interval coverage + point-estimate
-  revision). Coverage is now computed directly from the interval quantiles, so
-  **`scoringutils` is no longer a dependency** (WIS was dropped). `nowcast_compare_v1`
-  / `nowcast_validate` build on `nowcast_evaluate_v1`.
+- **`nowcast_evaluate_v1`** is now the single entry point for scoring nowcasts:
+  give it a triangle and one method (or a NAMED list), and it replays each --
+  paired by a shared `seed` -- and returns one per-horizon table of interval
+  coverage + point-estimate revision, with a `method` column. It subsumes the
+  former `nowcast_score` (coverage, via scoringutils), `nowcast_revision`,
+  `nowcast_compare` and `nowcast_validate`; coverage is read straight off the
+  interval quantiles, so **`scoringutils` is no longer a dependency** (WIS was
+  dropped).
+- **`nowcast_recommend_v1`** ranks a `nowcast_evaluate_v1` table by mean revision
+  and audits a configured model against the best (the candidate-recommendation
+  logic that had lived in the luftveis pipeline).
 - Removed the unused **`nowcast_survrtrunc_v1`** engine (and its `flexsurv`
   dependency) and the conformal **calibration** functions
   (`nowcast_estimate_calibration_v1` / `_apply_` / `print.nowcast_calibration`) —
@@ -30,8 +32,7 @@
   `short_term_trend`, `signal_detection_hlm`, `nowcast_quasipoisson_v1`).
 - Added runnable `@examples` to the naming-grammar functions (`csfmt_var`,
   `csfmt_parse`, `q_label`, `q_value`) and to the nowcast analysis functions
-  (`nowcast_evaluate_v1`, `nowcast_compare_v1`, `nowcast_recommend_v1`,
-  `reporting_completion_trend_v1`).
+  (`nowcast_evaluate_v1`, `nowcast_recommend_v1`, `reporting_completion_trend_v1`).
 - Fixed unescaped `%` in the nowcast / `reporting_completion` roxygen that had
   been corrupting their generated `.Rd`, plus copy-paste errors in the
   simulation-helper docs.
@@ -108,19 +109,12 @@ A new draw-parallel ensemble format and the full analysis pipeline built on it
   backtest into calibration data: engine -> backtest -> estimate -> apply ->
   honest intervals. Distribution-free (split conformal); estimate on past
   backtests, apply to the current nowcast.
-- Nowcast validation/comparison harness (method-agnostic, replay-based):
-  `nowcast_censor` (reconstruct what was known as-of a past week from the
-  reporting triangle), `nowcast_truth` (settled totals), `nowcast_backtest`
-  (replay any `f(triangle) -> ensemble` across as-of weeks into tidy quantile
-  nowcasts), `nowcast_score` (WIS + interval coverage by horizon via
-  `scoringutils`), and `nowcast_compare_v1` (rank engines head-to-head, e.g. a real
-  nowcast vs the passthrough baseline). `scoringutils` added to Suggests.
-- `nowcast_revision`: the point-estimate (median) revision of a backtest, by
-  horizon -- how far the number published at a given maturity sits from the
-  eventually-settled truth, as a fraction of that truth. Scale-free and
-  comparable across indicators (unlike WIS): reports the signed bias, the typical
-  absolute revision, a 5-95% band (the revision "funnel"), and the tail
-  probabilities (how often today's number still moves by >25% / >50%).
+- Nowcast validation harness (method-agnostic, replay-based): `nowcast_censor`
+  (reconstruct what was known as-of a past week from the reporting triangle),
+  `nowcast_truth` (settled totals), `nowcast_backtest` (replay any
+  `f(triangle) -> ensemble` across as-of weeks into tidy quantile nowcasts), and
+  `nowcast_evaluate_v1` (score one or several methods on interval coverage +
+  point-estimate revision by horizon -- see the Simplification section above).
 - `reporting_completion`: the empirical reporting-delay summary of a triangle --
   from the settled weeks, the mean delay, the weeks-observed to reach
   25/50/75/90/95% of a reference week's cases, and the fraction actually in by

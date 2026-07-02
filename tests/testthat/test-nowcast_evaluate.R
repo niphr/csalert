@@ -1,7 +1,8 @@
-# nowcast_evaluate_v1: recover known coverage + revision from a synthetic backtest
-# (quantile nowcasts with a controlled median bias and interval width).
+# .evaluate_backtest (the scorer behind nowcast_evaluate_v1): recover known
+# coverage + revision from a synthetic backtest (quantile nowcasts with a
+# controlled median bias and interval width).
 
-test_that("nowcast_evaluate_v1 summarises coverage + revision by horizon", {
+test_that(".evaluate_backtest summarises coverage + revision by horizon", {
   set.seed(1)
   refs <- sprintf("2025-%02d", 1:40); nref <- 40L
   truth <- data.table::data.table(reference = refs, truth = 100)
@@ -17,7 +18,7 @@ test_that("nowcast_evaluate_v1 summarises coverage + revision by horizon", {
   med1 <- 100 + stats::runif(nref, -1, 1)     # h1: ~unbiased, tight
   bt <- data.table::rbindlist(list(mk(0L, med0, 25), mk(1L, med1, 4)))
 
-  ev <- nowcast_evaluate_v1(bt, truth, by = "horizon")
+  ev <- .evaluate_backtest(bt, truth, by = "horizon")
   expect_true(all(c("n", "coverage_50", "coverage_90", "median_signed", "median_abs",
                     "q05", "q95", "p_gt_25", "p_gt_50") %in% names(ev)))
   e0 <- ev[horizon == 0]; e1 <- ev[horizon == 1]
@@ -32,12 +33,12 @@ test_that("nowcast_evaluate_v1 summarises coverage + revision by horizon", {
   expect_true(all(ev$coverage_50 >= 0 & ev$coverage_50 <= 1))
 })
 
-test_that("nowcast_evaluate_v1 errors on an empty backtest", {
+test_that(".evaluate_backtest errors on an empty backtest", {
   truth <- data.table::data.table(reference = character(0), truth = numeric(0))
-  expect_error(nowcast_evaluate_v1(data.table::data.table(), truth), "empty backtest")
+  expect_error(.evaluate_backtest(data.table::data.table(), truth), "empty backtest")
 })
 
-test_that("nowcast_recommend_v1 ranks a comparison and audits the configured model", {
+test_that("nowcast_recommend_v1 ranks an evaluation and audits the configured model", {
   # a compare-shaped table: method 'good' revises less than 'bad' at both horizons
   cmp <- data.table::data.table(
     horizon = rep(0:1, 2),

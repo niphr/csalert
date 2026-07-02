@@ -62,39 +62,31 @@ test_that("nowcast_backtest replays a method into a tidy long table", {
   expect_true(all(by_fc$spread == 0))
 })
 
-test_that("nowcast_evaluate_v1 returns coverage + revision by horizon", {
-  s <- sim_backtest_triangle()
-  passthrough <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)
-  bt <- nowcast_backtest(s$tri, passthrough, max_delay = s$max_delay, horizons = 1:2)
-  ev <- nowcast_evaluate_v1(bt, nowcast_truth(s$tri, s$max_delay))
-
-  expect_true(all(c("horizon", "n", "coverage_50", "coverage_90",
-                    "median_signed", "median_abs", "q05", "q95", "p_gt_25", "p_gt_50")
-                  %in% names(ev)))
-  expect_setequal(ev$horizon, 1:2)
-  expect_true(all(ev$coverage_90 >= 0 & ev$coverage_90 <= 1))
-})
-
-test_that("nowcast_validate wraps backtest+evaluate and is deterministic given a seed", {
+test_that("nowcast_evaluate_v1 backtests + scores a single method, deterministic by seed", {
   s <- sim_backtest_triangle()
   m <- function(x) nowcast_quasipoisson_v1(x, max_delay = s$max_delay, n_sim = 100)
-  v1 <- nowcast_validate(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
-  v2 <- nowcast_validate(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
-  expect_true(!is.null(v1) && "median_abs" %in% names(v1))
-  expect_equal(v1$median_abs, v2$median_abs)   # same seed -> identical evaluation
+  ev1 <- nowcast_evaluate_v1(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
+  ev2 <- nowcast_evaluate_v1(s$tri, m, max_delay = s$max_delay, horizons = 1:2, seed = 42)
+
+  expect_true(all(c("method", "horizon", "n", "coverage_50", "coverage_90",
+                    "median_signed", "median_abs", "q05", "q95", "p_gt_25", "p_gt_50")
+                  %in% names(ev1)))
+  expect_setequal(ev1$horizon, 1:2)
+  expect_true(all(ev1$coverage_90 >= 0 & ev1$coverage_90 <= 1))
+  expect_equal(ev1$median_abs, ev2$median_abs)   # same seed -> identical evaluation
 })
 
-test_that("nowcast_compare_v1 ranks a real nowcast against the passthrough baseline", {
+test_that("nowcast_evaluate_v1 races several methods (paired) for the recommendation", {
   s <- sim_backtest_triangle()
-  card <- nowcast_compare_v1(s$tri, max_delay = s$max_delay, horizons = 1:2,
+  ev <- nowcast_evaluate_v1(s$tri, max_delay = s$max_delay, horizons = 1:2, seed = 1,
     methods = list(
       simple      = function(x) nowcast_quasipoisson_v1(x, max_delay = s$max_delay, n_sim = 200),
       passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = s$max_delay)))
 
-  expect_true(all(c("method", "horizon", "coverage_90", "median_abs") %in% names(card)))
-  expect_setequal(unique(card$method), c("simple", "passthrough"))
+  expect_setequal(unique(ev$method), c("simple", "passthrough"))
   # the nowcast should revise LESS than naive passthrough at the freshest horizon
   # (passthrough carries the still-incomplete count, so it under-predicts badly)
-  w <- dcast(card[horizon == 1], horizon ~ method, value.var = "median_abs")
+  w <- dcast(ev[horizon == 1], horizon ~ method, value.var = "median_abs")
   expect_lt(w$simple, w$passthrough)
+  expect_equal(nowcast_recommend_v1(ev, configured = "passthrough")$recommended, "simple")
 })

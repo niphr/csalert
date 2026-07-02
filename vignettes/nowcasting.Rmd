@@ -128,22 +128,11 @@ lines(xs, show$numerator_nowcasted_q50x0, lwd = 2, col = "steelblue4")
 ## Is the nowcast any good? A replay backtest
 
 The reporting triangle records *when* every count arrived, so we can reconstruct
-exactly what was known at any past week and replay the method against it —
-`nowcast_backtest()`. A "method" is any function `f(triangle) -> ensemble` with its
-parameters baked in.
-
-```{r}
-method <- function(x) nowcast_quasipoisson_v1(x, max_delay = max_delay, n_sim = 500)
-
-as_of_weeks <- utils::tail(weeks[i0:as_of_i], 30)     # replay the last 30 weeks
-bt    <- nowcast_backtest(tri, method, as_of_weeks = as_of_weeks,
-                          max_delay = max_delay, horizons = 0:3, seed = 1)
-truth <- nowcast_truth(tri, max_delay)                # each week's settled total
-head(bt)
-```
-
-`nowcast_evaluate_v1()` turns the replay into two scale-free diagnostics per
-horizon (weeks-back from the as-of week; 0 = the current, least-observed week):
+exactly what was known at any past week and replay the method against it. A
+"method" is any function `f(triangle) -> ensemble` with its parameters baked in;
+`nowcast_evaluate_v1()` replays it and scores the result into two scale-free
+diagnostics per horizon (weeks-back from the as-of week; 0 = the current,
+least-observed week):
 
 - **coverage** — does the 90% / 50% interval actually contain the settled truth
   that often? (interval honesty; target 0.90 / 0.50)
@@ -152,8 +141,15 @@ horizon (weeks-back from the as-of week; 0 = the current, least-observed week):
   5–95% band, and the tail probabilities.
 
 ```{r}
-nowcast_evaluate_v1(bt, truth, by = "horizon")
+method <- function(x) nowcast_quasipoisson_v1(x, max_delay = max_delay, n_sim = 500)
+as_of_weeks <- utils::tail(weeks[i0:as_of_i], 30)     # replay the last 30 weeks
+nowcast_evaluate_v1(tri, method, max_delay = max_delay,
+                    as_of_weeks = as_of_weeks, horizons = 0:3, seed = 1)
 ```
+
+Pass a *named list* of methods instead of one, and they are replayed on the same
+paired draws (shared `seed`) with a `method` column — feed that to
+`nowcast_recommend_v1()` to pick the model that revises least.
 
 ## How fast does the data arrive? Reporting completion
 
@@ -183,5 +179,5 @@ csfmt_parse("numerator_nowcasted_q50x0")              # -> back to its component
   each just adds draw columns before the collapse.
 - `ens_collapse(heal = TRUE)` returns a `cstidy::csfmt_rts_data_v3` ready for the
   standard plotting/table helpers.
-- Compare candidate engines head-to-head with `nowcast_compare_v1()`, and pick
-  one with `nowcast_recommend_v1()`.
+- Race candidate engines head-to-head by passing several to `nowcast_evaluate_v1()`
+  and pick one with `nowcast_recommend_v1()`.

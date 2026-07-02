@@ -1,21 +1,17 @@
-# nowcast_backtest / nowcast_compare_v1 / nowcast_validate: a method-agnostic harness
-# for validating and comparing nowcast engines by REPLAY.
+# nowcast_censor / nowcast_truth / nowcast_backtest: the REPLAY mechanics behind
+# the nowcast diagnostics.
 #
 # The reporting triangle already records, per cell, WHEN a count was reported --
 # so we can reconstruct exactly what was known at any past week (`nowcast_censor`)
 # without re-reading truncated raw data. Replaying an engine across a series of
-# "as-of" weeks and evaluating its nowcasts against the eventually-settled totals
-# (`nowcast_evaluate_v1`: interval coverage + point-estimate revision, by horizon)
-# is how you tell whether a nowcast is any good -- and whether one engine beats
-# another.
+# "as-of" weeks (`nowcast_backtest`) and comparing to the eventually-settled totals
+# (`nowcast_truth`) is how you tell whether a nowcast is any good. The scoring on
+# top of a replay lives in nowcast_evaluate.R (`nowcast_evaluate_v1`).
 #
 # The method contract is deliberately minimal: a nowcast method is a function
 #   f(triangle) -> csfmt_ensemble_v3
 # with all of ITS parameters baked in (e.g. via a closure). That keeps engines
-# with different signatures (n_sim, priors, ...) composable through one interface:
-#   nowcast_compare_v1(tri, methods = list(
-#     simple      = function(x) nowcast_quasipoisson_v1(x, max_delay = 5, n_sim = 1000),
-#     passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 5)))
+# with different signatures (n_sim, priors, ...) composable through one interface.
 
 #' Censor a reporting triangle to what was known "as of" a past week
 #'
@@ -118,72 +114,4 @@ nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
     }
   }
   data.table::rbindlist(out)
-}
-
-#' Compare several nowcast methods on one triangle (a scorecard)
-#'
-#' Backtests and evaluates each method on the same replay, and stacks the
-#' per-horizon evaluation with a `method` column so engines can be ranked
-#' head-to-head (e.g. a real nowcast vs the passthrough baseline).
-#' @param triangle A `csfmt_reporting_triangle_v3` (single series).
-#' @param methods Named list of methods `f(triangle) -> csfmt_ensemble_v3`.
-#' @param as_of_weeks,max_delay,horizons,probs Passed to [nowcast_backtest].
-#' @param by Grouping for the evaluation summary (default "horizon").
-#' @param seed Optional integer base seed shared by ALL methods, so the
-#'   comparison is paired (common random numbers -- each method sees the same
-#'   per-week draws). Passed to [nowcast_backtest].
-#' @returns A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])
-#'   with a `method` column.
-#' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
-#' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:29, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:29, each = 3) + rep(0:2, 30)],
-#'   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
-#' tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
-#'
-#' nowcast_compare_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
-#'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
-#' @export
-nowcast_compare_v1 <- function(triangle, methods, max_delay, as_of_weeks = NULL,
-                            horizons = 1:2,
-                            probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-                            by = "horizon", seed = NULL) {
-  stopifnot(is.list(methods), length(methods) > 0, !is.null(names(methods)))
-  truth <- nowcast_truth(triangle, max_delay)
-  out <- list()
-  for (nm in names(methods)) {
-    bt <- nowcast_backtest(triangle, methods[[nm]], as_of_weeks = as_of_weeks,
-                           max_delay = max_delay, horizons = horizons, probs = probs,
-                           seed = seed)
-    if (!nrow(bt)) { warning("method '", nm, "' produced no nowcasts", call. = FALSE); next }
-    ev <- nowcast_evaluate_v1(bt, truth, by = by); ev[, method := nm]
-    out[[nm]] <- ev
-  }
-  data.table::rbindlist(out, fill = TRUE)
-}
-
-#' Validate one nowcast method on one triangle (backtest -> evaluate, in one call)
-#'
-#' Thin wrapper: replay `method` across `as_of_weeks`, then evaluate against
-#' settled truth. Seeded per cell (`seed`) so the result is a deterministic
-#' function of the data -- recompute it every run and overwrite; the numbers don't
-#' drift with run cadence. Returns NULL if the replay produced nothing (e.g. a
-#' passthrough on a delay-0 series, or too little history).
-#' @param triangle A `csfmt_reporting_triangle_v3` (single series).
-#' @param method A function `f(triangle) -> csfmt_ensemble_v3` (params baked in).
-#' @param max_delay Delay horizon in weeks.
-#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest].
-#' @param by Grouping for the evaluation summary (default "horizon").
-#' @returns A per-horizon evaluation table (see [nowcast_evaluate_v1]) or NULL.
-#' @export
-nowcast_validate <- function(triangle, method, max_delay, as_of_weeks = NULL,
-                             horizons = 1:2,
-                             probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-                             by = "horizon", seed = NULL) {
-  bt <- nowcast_backtest(triangle, method, as_of_weeks = as_of_weeks,
-                         max_delay = max_delay, horizons = horizons,
-                         probs = probs, seed = seed)
-  if (!nrow(bt)) return(NULL)
-  nowcast_evaluate_v1(bt, nowcast_truth(triangle, max_delay), by = by)
 }

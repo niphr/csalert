@@ -2,31 +2,49 @@
 % Please edit documentation in R/nowcast_evaluate.R
 \name{nowcast_evaluate_v1}
 \alias{nowcast_evaluate_v1}
-\title{Evaluate a nowcast backtest: interval coverage + point-estimate revision}
+\title{Evaluate nowcast method(s): interval coverage + point-estimate revision}
 \usage{
-nowcast_evaluate_v1(backtest, truth, by = "horizon", thresholds = c(0.25, 0.5))
+nowcast_evaluate_v1(
+  triangle,
+  methods,
+  max_delay,
+  as_of_weeks = NULL,
+  horizons = 1:2,
+  probs = c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975),
+  by = "horizon",
+  thresholds = c(0.25, 0.5),
+  seed = NULL
+)
 }
 \arguments{
-\item{backtest}{Output of [nowcast_backtest] (long quantile nowcasts; must
-include the 0.05/0.25/0.5/0.75/0.95 quantile levels).}
+\item{triangle}{A `csfmt_reporting_triangle_v3` (single series).}
 
-\item{truth}{Output of [nowcast_truth] (settled totals per reference week).}
+\item{methods}{A method `f(triangle) -> csfmt_ensemble_v3`, or a NAMED list of
+them (each with its parameters baked in, e.g. via a closure).}
 
-\item{by}{Grouping columns for the summary (default "horizon").}
+\item{max_delay}{Delay horizon in weeks.}
+
+\item{as_of_weeks, horizons, probs, seed}{Passed to [nowcast_backtest]. `seed` is
+shared across methods, so the comparison is paired.}
+
+\item{by}{Grouping for the evaluation summary (default "horizon").}
 
 \item{thresholds}{Absolute-revision cut-offs to report the exceedance
 probability for (default 25\% and 50\%).}
 }
 \value{
-One row per group: `n`, interval coverage (`coverage_50`,
-  `coverage_90`), and the point-estimate revision (`median_signed` = bias,
-  `median_abs`, `q05`/`q95` = the 5-95\% revision band, and `p_gt_<t>` for each
-  threshold).
+A data.table, one row per group x method: `n`, interval coverage
+  (`coverage_50`, `coverage_90`), the point-estimate revision (`median_signed`
+  bias, `median_abs`, `q05`/`q95` band, `p_gt_<t>` tails) and `method`.
 }
 \description{
-Merges coverage (are the intervals honest?) and revision (how much will the
-number still move?) into one per-group table. Coverage is computed straight
-from the interval quantiles, so this needs no `scoringutils`.
+Replays each method over the triangle (backtest) and scores it on interval
+coverage (are the intervals honest?) + point-estimate revision (how much will
+the number still move?), stacked into one per-horizon table with a `method`
+column. Pass a single method or a named list; a shared `seed` pairs them (common
+random numbers) so a head-to-head is apples-to-apples. Coverage is read straight
+off the interval quantiles, so this needs no `scoringutils`. Feed the result to
+[nowcast_recommend_v1] to pick a winner.
 }
 \examples{
 # a small reporting triangle: 30 weeks, each reported over delays 0-2
@@ -37,7 +55,11 @@ d <- data.table::data.table(
   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
 tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
 
-method <- function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)
-bt <- nowcast_backtest(tri, method, max_delay = 3, horizons = 0:2, seed = 1)
-nowcast_evaluate_v1(bt, nowcast_truth(tri, 3))
+# one method:
+nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3),
+                    max_delay = 3, horizons = 0:2, seed = 1)
+# several, paired, then pick a winner:
+ev <- nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
+  passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
+nowcast_recommend_v1(ev, configured = "passthrough")$recommended
 }

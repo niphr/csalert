@@ -2,17 +2,17 @@
 % Please edit documentation in R/nowcast_evaluate.R
 \name{nowcast_recommend_v1}
 \alias{nowcast_recommend_v1}
-\title{Recommend a nowcast model from a head-to-head comparison}
+\title{Recommend a nowcast model from a head-to-head evaluation}
 \usage{
 nowcast_recommend_v1(
-  comparison,
+  evaluation,
   configured,
   metric = "median_abs",
   margin = 0.05
 )
 }
 \arguments{
-\item{comparison}{A [nowcast_compare_v1] output (per-horizon evaluations with a
+\item{evaluation}{A [nowcast_evaluate_v1] output (per-horizon evaluations with a
 `method` column).}
 
 \item{configured}{The method label currently in production.}
@@ -28,7 +28,7 @@ A list: `configured`, `configured_score`, `recommended`,
   per-method mean metric, ascending).
 }
 \description{
-Ranks the methods in a [nowcast_compare_v1] table by their mean score across
+Ranks the methods in a [nowcast_evaluate_v1] table by their mean score across
 horizons (default the absolute revision -- the point estimate that settles
 fastest) and audits a configured choice: it "meets" the recommendation when its
 mean score is within `margin` of the best. Lets a pipeline keep a fixed
