@@ -37,4 +37,5 @@ Suggests: testthat,
     plnr
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
+Remotes: niphr/cstidy
 Config/Needs/website: niphr/cstemplate
