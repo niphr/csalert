@@ -11,7 +11,8 @@ nowcast_compare(
   as_of_weeks = NULL,
   horizons = 1:2,
   probs = c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975),
-  by = "horizon"
+  by = "horizon",
+  seed = NULL
 )
 }
 \arguments{
@@ -22,6 +23,10 @@ nowcast_compare(
 \item{as_of_weeks, max_delay, horizons, probs}{Passed to [nowcast_backtest].}
 
 \item{by}{Grouping for the evaluation summary (default "horizon").}
+
+\item{seed}{Optional integer base seed shared by ALL methods, so the
+comparison is paired (common random numbers -- each method sees the same
+per-week draws). Passed to [nowcast_backtest].}
 }
 \value{
 A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])

@@ -2,6 +2,10 @@
 
 ## Simplification
 
+- **`nowcast_recommend_v1`** ranks a [nowcast_compare] table by mean revision and
+  audits a configured model against the best (the candidate-recommendation logic
+  that had lived in the luftveis pipeline). `nowcast_compare` gains a `seed` so the
+  comparison is paired (common random numbers across methods).
 - **`nowcast_evaluate_v1`** merges the old `nowcast_score` (coverage) and
   `nowcast_revision` into one per-horizon table (interval coverage + point-estimate
   revision). Coverage is now computed directly from the interval quantiles, so

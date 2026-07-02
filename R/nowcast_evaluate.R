@@ -67,3 +67,37 @@ nowcast_evaluate_v1 <- function(backtest, truth, by = "horizon",
                       paste0("p_gt_", thresholds * 100)))
   }, by = by]
 }
+
+#' Recommend a nowcast model from a head-to-head comparison
+#'
+#' Ranks the methods in a [nowcast_compare] table by their mean score across
+#' horizons (default the absolute revision -- the point estimate that settles
+#' fastest) and audits a configured choice: it "meets" the recommendation when its
+#' mean score is within `margin` of the best. Lets a pipeline keep a fixed
+#' configured model while flagging when a candidate clearly beats it.
+#' @param comparison A [nowcast_compare] output (per-horizon evaluations with a
+#'   `method` column).
+#' @param configured The method label currently in production.
+#' @param metric Column to rank on, smaller = better. Default `"median_abs"`.
+#' @param margin Relative tolerance: `configured` meets the recommendation when
+#'   its mean metric <= best * (1 + margin). Default 0.05.
+#' @returns A list: `configured`, `configured_score`, `recommended`,
+#'   `recommended_score`, `meets` (logical), and `by_method` (a data.table of the
+#'   per-method mean metric, ascending).
+#' @export
+nowcast_recommend_v1 <- function(comparison, configured, metric = "median_abs",
+                                 margin = 0.05) {
+  d <- data.table::as.data.table(comparison)
+  stopifnot("method" %in% names(d), metric %in% names(d))
+  by_method <- d[, .(score = mean(as.numeric(get(metric)), na.rm = TRUE)), by = "method"]
+  data.table::setorder(by_method, score)
+  recommended <- by_method$method[1]; best <- by_method$score[1]
+  conf <- by_method[method == configured]$score
+  conf <- if (length(conf)) conf[1] else NA_real_
+  list(configured        = configured,
+       configured_score  = round(conf, 4),
+       recommended       = recommended,
+       recommended_score = round(best, 4),
+       meets             = isTRUE(conf <= best * (1 + margin)),
+       by_method         = by_method)
+}

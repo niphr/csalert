@@ -129,19 +129,23 @@ nowcast_backtest <- function(triangle, method, as_of_weeks = NULL, max_delay,
 #' @param methods Named list of methods `f(triangle) -> csfmt_ensemble_v3`.
 #' @param as_of_weeks,max_delay,horizons,probs Passed to [nowcast_backtest].
 #' @param by Grouping for the evaluation summary (default "horizon").
+#' @param seed Optional integer base seed shared by ALL methods, so the
+#'   comparison is paired (common random numbers -- each method sees the same
+#'   per-week draws). Passed to [nowcast_backtest].
 #' @returns A data.table of per-horizon evaluations (see [nowcast_evaluate_v1])
 #'   with a `method` column.
 #' @export
 nowcast_compare <- function(triangle, methods, max_delay, as_of_weeks = NULL,
                             horizons = 1:2,
                             probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-                            by = "horizon") {
+                            by = "horizon", seed = NULL) {
   stopifnot(is.list(methods), length(methods) > 0, !is.null(names(methods)))
   truth <- nowcast_truth(triangle, max_delay)
   out <- list()
   for (nm in names(methods)) {
     bt <- nowcast_backtest(triangle, methods[[nm]], as_of_weeks = as_of_weeks,
-                           max_delay = max_delay, horizons = horizons, probs = probs)
+                           max_delay = max_delay, horizons = horizons, probs = probs,
+                           seed = seed)
     if (!nrow(bt)) { warning("method '", nm, "' produced no nowcasts", call. = FALSE); next }
     ev <- nowcast_evaluate_v1(bt, truth, by = by); ev[, method := nm]
     out[[nm]] <- ev

@@ -36,3 +36,20 @@ test_that("nowcast_evaluate_v1 errors on an empty backtest", {
   truth <- data.table::data.table(reference = character(0), truth = numeric(0))
   expect_error(nowcast_evaluate_v1(data.table::data.table(), truth), "empty backtest")
 })
+
+test_that("nowcast_recommend_v1 ranks a comparison and audits the configured model", {
+  # a compare-shaped table: method 'good' revises less than 'bad' at both horizons
+  cmp <- data.table::data.table(
+    horizon = rep(0:1, 2),
+    median_abs = c(0.10, 0.02, 0.30, 0.05),
+    method = rep(c("good", "bad"), each = 2))
+
+  rec <- nowcast_recommend_v1(cmp, configured = "bad", margin = 0.05)
+  expect_equal(rec$recommended, "good")                 # lower mean median_abs
+  expect_equal(rec$recommended_score, 0.06)             # mean(0.10, 0.02)
+  expect_equal(rec$configured_score, 0.175)             # mean(0.30, 0.05)
+  expect_false(rec$meets)                               # 'bad' is well above best
+
+  # configured IS the best -> meets
+  expect_true(nowcast_recommend_v1(cmp, configured = "good")$meets)
+})
