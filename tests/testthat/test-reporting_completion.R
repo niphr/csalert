@@ -42,4 +42,12 @@ test_that("reporting_completion recovers the known delay curve + quartiles", {
   by_month <- reporting_completion(tri, max_delay = max_delay, period = "month")
   expect_gt(nrow(by_month), nrow(by_year))
   expect_true(all(grepl("^[0-9]{4}-[0-9]{2}$", by_month$period)))
+
+  # trend convenience: year rows + last-N month rows, tagged by scope
+  tr <- reporting_completion_trend_v1(tri, max_delay = max_delay, n_months = 3L)
+  expect_true("scope" %in% names(tr))
+  expect_setequal(unique(tr$scope), c("year", "month"))
+  expect_equal(sum(tr$scope == "year"), nrow(by_year))     # all years kept
+  expect_lte(sum(tr$scope == "month"), 3L)                 # months capped at n_months
+  expect_true(all(grepl("^[0-9]{4}-[0-9]{2}$", tr[scope == "month"]$period)))
 })

@@ -87,3 +87,29 @@ reporting_completion <- function(triangle, max_delay, delay_window = NULL,
   }
   data.table::rbindlist(out, fill = TRUE)
 }
+
+#' Reporting-completion trend: the delay curve by year and recent months
+#'
+#' Convenience over [reporting_completion]: the completion curve sliced by calendar
+#' `year` (all years) and by `month` (the most recent `n_months`, per series),
+#' stacked with a `scope` column. One table that shows whether reporting is
+#' speeding up or slowing down over time.
+#' @param triangle A `csfmt_reporting_triangle_v3`.
+#' @param max_delay Delay horizon in weeks.
+#' @param n_months Keep this many most-recent months per series. Default 12.
+#' @returns A data.table: the [reporting_completion] columns plus a `scope` column
+#'   ("year"/"month"), the year rows followed by the last-`n_months` month rows.
+#'   Empty when no series has enough settled data.
+#' @export
+reporting_completion_trend_v1 <- function(triangle, max_delay, n_months = 12L) {
+  by_year  <- reporting_completion(triangle, max_delay, period = "year")
+  by_month <- reporting_completion(triangle, max_delay, period = "month")
+  if (nrow(by_year)) by_year[, scope := "year"]
+  if (nrow(by_month)) {
+    id_cols <- attr(triangle, "id_cols")
+    data.table::setorder(by_month, period)
+    by_month <- by_month[, utils::tail(.SD, n_months), by = id_cols]   # last N months per series
+    by_month[, scope := "month"]
+  }
+  data.table::rbindlist(list(by_year, by_month), fill = TRUE)
+}

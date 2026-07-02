@@ -2,6 +2,9 @@
 
 ## Simplification
 
+- **`reporting_completion_trend_v1`** returns the completion curve by calendar year
+  (all) + by month (last N, per series) with a `scope` column -- the year/month
+  trend that the luftveis pipeline used to assemble by hand.
 - **`nowcast_recommend_v1`** ranks a [nowcast_compare_v1] table by mean revision and
   audits a configured model against the best (the candidate-recommendation logic
   that had lived in the luftveis pipeline). `nowcast_compare_v1` gains a `seed` so the
