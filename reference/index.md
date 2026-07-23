@@ -77,6 +77,19 @@ interval coverage, point-estimate revision, and reporting completion.
 - [`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md)
   : Compare two collapsed csfmt result sets
 
+## Nowcast calibration
+
+Measure how far an engine’s intervals are from nominal coverage, as a
+per-horizon scaling factor. A diagnostic to check an engine with; not
+applied to published numbers unless you choose to.
+
+- [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
+  : Estimate a nowcast calibration from a backtest
+- [`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md)
+  : Apply a nowcast calibration to quantile predictions
+- [`print(`*`<nowcast_calibration>`*`)`](https://niphr.github.io/csalert/reference/print.nowcast_calibration.md)
+  : Print a \`nowcast_calibration\`
+
 ## Input quality control
 
 Verdict-only checks on surveillance input and week-over-week revisions.

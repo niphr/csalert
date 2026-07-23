@@ -19,6 +19,24 @@
   freedom are `trend_isoyearweeks - 2`: at the default window of 3 that
   is a Cauchy, so widen the window first.
 
+### Nowcast calibration, restored as a diagnostic
+
+- **[`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
+  /
+  [`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md)
+  are back**, after being removed earlier in this release cycle. They
+  are available to *check an engine with*, not applied to published
+  numbers: the estimator reports a per-horizon `factor`, so “your 90%
+  interval would need to be 1.4x wider to actually cover 90%” is
+  readable straight off the backtest. That is a far more actionable red
+  flag than a bare coverage fraction, and it keeps the published number
+  the model’s own.
+- Their tests now run against `nowcast_quasipoisson_v1`. The old
+  assertions (`factor > 1` everywhere, raw coverage below 0.82) encoded
+  the removed `nowcast_survrtrunc_v1`’s behaviour; the current engine
+  covers about 0.87 on the same drifting-delay synthetic, close enough
+  to nominal that no widening is warranted.
+
 ### Bug fixes
 
 - `prediction_interval.glm` is now registered with `S3method()`. It

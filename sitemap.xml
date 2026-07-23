@@ -18,8 +18,10 @@
 <url><loc>https://niphr.github.io/csalert/reference/ens_collapse.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/index.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/mem_thresholds_v1.html</loc></url>
+<url><loc>https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/nowcast_backtest.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/nowcast_censor.html</loc></url>
+<url><loc>https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.html</loc></url>
@@ -27,6 +29,7 @@
 <url><loc>https://niphr.github.io/csalert/reference/prediction_interval.glm.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/prediction_interval.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/print.csfmt_ensemble_v3.html</loc></url>
+<url><loc>https://niphr.github.io/csalert/reference/print.nowcast_calibration.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/q_label.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/q_value.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/qc_surveillance_data.html</loc></url>
