@@ -53,6 +53,16 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.7.1" id="version-202671">Version 2026.7.1<a class="anchor" aria-label="anchor" href="#version-202671"></a></h2>
 <div class="section level3">
+<h3 id="trend-uncertainty-2026-7-1">Trend uncertainty<a class="anchor" aria-label="anchor" href="#trend-uncertainty-2026-7-1"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> can now propagate the slope’s own sampling error.</strong> The growth rate is <code>100 * beta1 / Y</code>, and until now only the uncertainty of the level <code>Y</code> reached it – the OLS standard error of <code>beta1</code> was computed and discarded. So every trend interval reflected nowcast uncertainty alone, and a passthrough (single-draw) series got a zero-width interval and a <code>P(increasing)</code> of exactly 0 or 1, i.e. a bare sign test on a three-point slope presented as certainty. <code>propagate_slope_error = TRUE</code> adds <code>se * t_(width-2)</code> per draw, widening the trend’s own draw axis to <code>n_sim</code> when the incoming ensemble is degenerate. Defaults to <code>FALSE</code>, so published numbers are unchanged until it is switched on deliberately. Note the degrees of freedom are <code>trend_isoyearweeks - 2</code>: at the default window of 3 that is a Cauchy, so widen the window first.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-2026-7-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-2026-7-1"></a></h3>
+<ul><li>
+<code>prediction_interval.glm</code> is now registered with <code>S3method()</code>. It resolved when the package was installed but not under <code><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">devtools::load_all()</a></code>, so the method’s own test failed in a dev tree while passing in <code>R CMD check</code>.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="simplification-2026-7-1">Simplification<a class="anchor" aria-label="anchor" href="#simplification-2026-7-1"></a></h3>
 <ul><li>
 <strong><code>reporting_completion_trend_v1</code></strong> returns the completion curve by calendar year (all) + by month (last N, per series) with a <code>scope</code> column – the year/month trend that the luftveis pipeline used to assemble by hand.</li>

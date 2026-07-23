@@ -30,7 +30,14 @@ short_term_trend(
 )
 
 # S3 method for class 'csfmt_ensemble_v3'
-short_term_trend(x, measure, trend_isoyearweeks = 3, ...)
+short_term_trend(
+  x,
+  measure,
+  trend_isoyearweeks = 3,
+  propagate_slope_error = FALSE,
+  n_sim = 1000L,
+  ...
+)
 ```
 
 ## Arguments
@@ -101,6 +108,23 @@ short_term_trend(x, measure, trend_isoyearweeks = 3, ...)
 - measure:
 
   Character: the \`\$draws\` measure to compute the trend on.
+
+- propagate_slope_error:
+
+  Logical. If \`TRUE\`, add the OLS slope's own sampling error to each
+  draw (\`beta1 + se \* t\_(width-2)\`) before forming the growth rate,
+  so the trend interval reflects the uncertainty of the slope estimate
+  and not only the uncertainty of the level. Defaults to \`FALSE\`,
+  which keeps the published numbers unchanged. Note the degrees of
+  freedom are \`trend_isoyearweeks - 2\`: at the default width of 3 that
+  is 1, a Cauchy, so widen the window before enabling this.
+
+- n_sim:
+
+  Integer. Draw-axis width used for the slope-error perturbation when
+  the incoming ensemble is degenerate (a single passthrough draw, which
+  has no draw axis to carry the uncertainty). Ignored when the ensemble
+  already has draws, and when \`propagate_slope_error\` is \`FALSE\`.
 
 ## Value
 

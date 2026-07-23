@@ -2,6 +2,31 @@
 
 ## Version 2026.7.1
 
+### Trend uncertainty
+
+- **[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  can now propagate the slope’s own sampling error.** The growth rate is
+  `100 * beta1 / Y`, and until now only the uncertainty of the level `Y`
+  reached it – the OLS standard error of `beta1` was computed and
+  discarded. So every trend interval reflected nowcast uncertainty
+  alone, and a passthrough (single-draw) series got a zero-width
+  interval and a `P(increasing)` of exactly 0 or 1, i.e. a bare sign
+  test on a three-point slope presented as certainty.
+  `propagate_slope_error = TRUE` adds `se * t_(width-2)` per draw,
+  widening the trend’s own draw axis to `n_sim` when the incoming
+  ensemble is degenerate. Defaults to `FALSE`, so published numbers are
+  unchanged until it is switched on deliberately. Note the degrees of
+  freedom are `trend_isoyearweeks - 2`: at the default window of 3 that
+  is a Cauchy, so widen the window first.
+
+### Bug fixes
+
+- `prediction_interval.glm` is now registered with `S3method()`. It
+  resolved when the package was installed but not under
+  [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html),
+  so the method’s own test failed in a dev tree while passing in
+  `R CMD check`.
+
 ### Simplification
 
 - **`reporting_completion_trend_v1`** returns the completion curve by
