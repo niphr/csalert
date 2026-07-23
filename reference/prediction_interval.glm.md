@@ -41,3 +41,11 @@ prediction_interval(
 - ...:
 
   dots
+
+## Value
+
+A \`data.table\` with one row per row of \`newdata\` and the columns
+\`lower\`, \`point\` and \`upper\`, giving the two-sided prediction
+interval and the point estimate on the response scale. All three columns
+are \`NA_real\_\` if the underlying \`stats::predict\` call raises a
+warning or an error.
