@@ -64,6 +64,16 @@ reference:
       - reporting_completion_trend_v1
       - compare_results
 
+  - title: "Nowcast calibration"
+    desc: >
+      Measure how far an engine's intervals are from nominal coverage, as a
+      per-horizon scaling factor. A diagnostic to check an engine with; not
+      applied to published numbers unless you choose to.
+    contents:
+      - nowcast_estimate_calibration_v1
+      - nowcast_apply_calibration_v1
+      - print.nowcast_calibration
+
   - title: "Input quality control"
     desc: "Verdict-only checks on surveillance input and week-over-week revisions."
     contents:
