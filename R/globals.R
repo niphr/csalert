@@ -12,5 +12,8 @@ utils::globalVariables(c(
   "original", "period", "point", "prv",
   "quantile_level", "role", "scope", "seasonweek",
   "time_series_id", "time_series_internal_id", "time_series_label",
-  "weeks", "years"
+  "weeks", "years",
+  # nowcast_calibration.R
+  ".med", "covered", "coverage_raw", "factor", "halfwidth", "hi", "horizon",
+  "lo", "predicted", "r", "reference", "truth"
 ))
