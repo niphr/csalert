@@ -63,3 +63,56 @@ test_that("missing measure errors", {
                         draws = list(cases = matrix(1:9, 3)))
   expect_error(short_term_trend(ens, measure = "nope"), "not in")
 })
+
+test_that("a single-draw ensemble has no trend spread and a 0/1 P(increasing)", {
+  # This is the passthrough case: nowcast_passthrough_to_ensemble_v1 emits one
+  # draw, so the trend carries no uncertainty at all and P(increasing) collapses
+  # to a bare sign test on a 3-point slope.
+  wk <- cstime::dates_by_isoyearweek[isoyear == 2020]$isoyearweek
+  d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
+                              isoyearweek = wk)
+  n <- nrow(d)
+  set.seed(4)
+  M <- matrix(stats::rpois(n, 40), ncol = 1)      # ONE draw, as passthrough gives
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
+                           draws = list(cases = M))
+
+  out <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
+  gr <- out$draws[["cases_trend_gr"]]
+  expect_equal(ncol(gr), 1)                       # one draw in, one draw out
+  inc <- out$data$cases_trend_increasing_pr[3:n]
+  expect_true(all(inc %in% c(0, 1)))              # never an intermediate probability
+})
+
+test_that("propagate_slope_error gives a single-draw ensemble real trend uncertainty", {
+  wk <- cstime::dates_by_isoyearweek[isoyear == 2020]$isoyearweek
+  d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
+                              isoyearweek = wk)
+  n <- nrow(d)
+  set.seed(4)
+  M <- matrix(stats::rpois(n, 40), ncol = 1)
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
+                           draws = list(cases = M))
+
+  set.seed(11)
+  out <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 5,
+                          propagate_slope_error = TRUE)
+  inc <- out$data$cases_trend_increasing_pr[5:n]
+  # With the slope's own error propagated, P(increasing) is no longer a bare
+  # sign test -- at least some weeks land strictly inside (0, 1).
+  expect_true(any(inc > 0 & inc < 1))
+})
+
+test_that("propagate_slope_error requires enough degrees of freedom", {
+  wk <- cstime::dates_by_isoyearweek[isoyear == 2020]$isoyearweek
+  d <- data.table::data.table(indicator = "flu", location = "nation", age = "total",
+                              isoyearweek = wk)
+  M <- matrix(stats::rpois(nrow(d), 40), ncol = 1)
+  ens <- csfmt_ensemble_v3(d, id_cols = c("indicator", "location", "age"),
+                           draws = list(cases = M))
+  expect_error(
+    short_term_trend(ens, measure = "cases", trend_isoyearweeks = 2,
+                     propagate_slope_error = TRUE),
+    "trend_isoyearweeks >= 3"
+  )
+})

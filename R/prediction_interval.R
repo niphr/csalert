@@ -24,6 +24,7 @@ prediction_interval <- function(object, newdata, alpha = 0.05, z = NULL, ...){
 #'   the point estimate on the response scale. All three columns are `NA_real_`
 #'   if the underlying `stats::predict` call raises a warning or an error.
 #' @method prediction_interval glm
+#' @export
 prediction_interval.glm <- function(object, newdata, alpha = 0.05, z = NULL, skewness_transform = "none", ...){
   stopifnot(object$family$family %in% c("poisson", "quasipoisson"))
   stopifnot(skewness_transform %in% c("none", "1/2", "2/3"))

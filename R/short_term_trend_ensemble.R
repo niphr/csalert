@@ -50,11 +50,24 @@ rolling_slope_matrix <- function(Y, width) {
 #' @rdname short_term_trend
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
+#' @param propagate_slope_error Logical. If `TRUE`, add the OLS slope's own
+#'   sampling error to each draw (`beta1 + se * t_(width-2)`) before forming the
+#'   growth rate, so the trend interval reflects the uncertainty of the slope
+#'   estimate and not only the uncertainty of the level. Defaults to `FALSE`,
+#'   which keeps the published numbers unchanged. Note the degrees of freedom
+#'   are `trend_isoyearweeks - 2`: at the default width of 3 that is 1, a Cauchy,
+#'   so widen the window before enabling this.
+#' @param n_sim Integer. Draw-axis width used for the slope-error perturbation
+#'   when the incoming ensemble is degenerate (a single passthrough draw, which
+#'   has no draw axis to carry the uncertainty). Ignored when the ensemble
+#'   already has draws, and when `propagate_slope_error` is `FALSE`.
 #' @returns The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
 #'   to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
 #'   ready for the quantile collapse.
 #' @export
-short_term_trend.csfmt_ensemble_v3 <- function(x, measure, trend_isoyearweeks = 3, ...) {
+short_term_trend.csfmt_ensemble_v3 <- function(x, measure, trend_isoyearweeks = 3,
+                                               propagate_slope_error = FALSE,
+                                               n_sim = 1000L, ...) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!measure %in% names(x$draws))
     stop(sprintf("measure '%s' not in $draws (have: %s)", measure,
@@ -69,16 +82,43 @@ short_term_trend.csfmt_ensemble_v3 <- function(x, measure, trend_isoyearweeks = 
   rs$beta0[invalid, ] <- NA_real_
   rs$se[invalid, ]    <- NA_real_
 
+  beta1 <- rs$beta1
+  if (propagate_slope_error) {
+    df <- width - 2
+    if (df < 1)
+      stop("propagate_slope_error needs trend_isoyearweeks >= 3")
+    se <- rs$se
+    # A passthrough ensemble has a single draw, so there is no draw axis to carry
+    # the slope's uncertainty: perturbing one column once still leaves one column,
+    # and P(increasing) stays a bare sign test. Widen the trend's own draw axis --
+    # the count is observed, but its TREND is estimated. $draws matrices are
+    # allowed to differ in width; ens_collapse quantiles each one independently.
+    if (ncol(beta1) == 1L && n_sim > 1L) {
+      rep1  <- rep(1L, n_sim)
+      beta1 <- beta1[, rep1, drop = FALSE]
+      se    <- se[, rep1, drop = FALSE]
+      Y     <- Y[, rep1, drop = FALSE]
+    }
+    # The OLS slope's sampling distribution is beta1_hat + se * t_(width-2).
+    # WARNING: at the default width of 3 that is t_1, i.e. Cauchy -- no finite
+    # variance, so the growth-rate quantiles get very heavy tails. Widen the
+    # window before turning this on.
+    beta1 <- beta1 + se * matrix(stats::rt(length(beta1), df = df),
+                                 nrow(beta1), ncol(beta1))
+  }
+
   # growth rate per draw: gr_pr100 = 100 * slope / level
-  gr <- 100 * rs$beta1 / Y
+  gr <- 100 * beta1 / Y
   gr[!is.finite(gr)] <- NA_real_
 
-  x$draws[[csfmt_var(measure, role = "trend", suffix = "_beta1")]] <- rs$beta1
+  x$draws[[csfmt_var(measure, role = "trend", suffix = "_beta1")]] <- beta1
   x$draws[[csfmt_var(measure, role = "trend", suffix = "_gr")]]    <- gr
 
   # P(increasing) = fraction of draws with a positive slope (a point column, not
-  # a draw matrix, since it is already a reduction over the draw axis)
-  inc <- rowMeans(rs$beta1 > 0, na.rm = TRUE)
+  # a draw matrix, since it is already a reduction over the draw axis).
+  # NB with a single-draw (passthrough) ensemble and propagate_slope_error =
+  # FALSE this is exactly 0 or 1 -- a bare positive slope reads as certainty.
+  inc <- rowMeans(beta1 > 0, na.rm = TRUE)
   inc[is.nan(inc)] <- NA_real_
   x$data[[csfmt_var(measure, role = "trend", suffix = "_increasing_pr")]] <- inc
 

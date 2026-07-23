@@ -26,7 +26,14 @@ short_term_trend(x, ...)
   ...
 )
 
-\method{short_term_trend}{csfmt_ensemble_v3}(x, measure, trend_isoyearweeks = 3, ...)
+\method{short_term_trend}{csfmt_ensemble_v3}(
+  x,
+  measure,
+  trend_isoyearweeks = 3,
+  propagate_slope_error = FALSE,
+  n_sim = 1000L,
+  ...
+)
 }
 \arguments{
 \item{x}{Data object}
@@ -58,6 +65,19 @@ short_term_trend(x, ...)
 \item{alpha}{Significance level for change in trend.}
 
 \item{measure}{Character: the `$draws` measure to compute the trend on.}
+
+\item{propagate_slope_error}{Logical. If `TRUE`, add the OLS slope's own
+sampling error to each draw (`beta1 + se * t_(width-2)`) before forming the
+growth rate, so the trend interval reflects the uncertainty of the slope
+estimate and not only the uncertainty of the level. Defaults to `FALSE`,
+which keeps the published numbers unchanged. Note the degrees of freedom
+are `trend_isoyearweeks - 2`: at the default width of 3 that is 1, a Cauchy,
+so widen the window before enabling this.}
+
+\item{n_sim}{Integer. Draw-axis width used for the slope-error perturbation
+when the incoming ensemble is degenerate (a single passthrough draw, which
+has no draw axis to carry the uncertainty). Ignored when the ensemble
+already has draws, and when `propagate_slope_error` is `FALSE`.}
 }
 \value{
 The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
