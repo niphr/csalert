@@ -17,6 +17,11 @@ prediction_interval(object, newdata, alpha = 0.05, z = NULL, ...)
 
 \item{...}{dots}
 }
+\value{
+A `data.table` with one row per row of `newdata` and the columns
+  `lower`, `point` and `upper`, giving the two-sided prediction interval and
+  the point estimate on the response scale.
+}
 \description{
 Prediction thresholds
 }

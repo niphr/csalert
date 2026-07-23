@@ -7,7 +7,7 @@ Authors@R: c(
   person(c("Richard","Aubrey"), "White", email = "hello@rwhite.no", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6747-1726"))
   )
 Description: Helps create alerts and determine trends by using various methods to analyze public health surveillance data. The primary analysis method is based upon a published analytics strategy by Benedetti (2019) <doi:10.5588/pha.19.0002>.
-Depends: R (>= 3.3.0)
+Depends: R (>= 4.1.0)
 License: MIT + file LICENSE
 URL: https://niphr.github.io/csalert/, https://github.com/niphr/csalert
 BugReports: https://github.com/niphr/csalert/issues
@@ -17,24 +17,20 @@ Imports: data.table,
     magrittr,
     ggplot2,
     glm2,
-    cstidy,
+    cstidy (>= 2026.7.1),
     cstime,
     digest,
     lubridate,
     matrixStats,
     stringr,
-    surveillance
+    surveillance,
+    utils
 Suggests: testthat,
     knitr,
     rmarkdown,
-    rstudioapi,
     glue,
-    covidnor,
-    csdata,
     csmaps,
-    ggrepel,
-    mem,
-    plnr
+    mem
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
 Remotes: niphr/cstidy

@@ -4,6 +4,9 @@
 #' @param alpha Two-sided alpha (e.g 0.05)
 #' @param z Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05)
 #' @param ... dots
+#' @return A `data.table` with one row per row of `newdata` and the columns
+#'   `lower`, `point` and `upper`, giving the two-sided prediction interval and
+#'   the point estimate on the response scale.
 prediction_interval <- function(object, newdata, alpha = 0.05, z = NULL, ...){
   UseMethod("prediction_interval", object)
 }
@@ -16,6 +19,10 @@ prediction_interval <- function(object, newdata, alpha = 0.05, z = NULL, ...){
 #' @param z Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05)
 #' @param skewness_transform "none", "1/2", "2/3"
 #' @param ... dots
+#' @return A `data.table` with one row per row of `newdata` and the columns
+#'   `lower`, `point` and `upper`, giving the two-sided prediction interval and
+#'   the point estimate on the response scale. All three columns are `NA_real_`
+#'   if the underlying `stats::predict` call raises a warning or an error.
 #' @method prediction_interval glm
 prediction_interval.glm <- function(object, newdata, alpha = 0.05, z = NULL, skewness_transform = "none", ...){
   stopifnot(object$family$family %in% c("poisson", "quasipoisson"))

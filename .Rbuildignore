@@ -10,3 +10,5 @@ dev
 @eaDir
 .DS_Store
 ^CRAN-SUBMISSION$
+^\.github$
+^index\.md$
