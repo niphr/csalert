@@ -196,13 +196,13 @@ column, so you can race several engines head-to-head.
 
 ## How fast does the data arrive? Reporting completion
 
-[`reporting_completion()`](https://niphr.github.io/csalert/reference/reporting_completion.md)
+[`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
 reads the delay ECDF off the settled weeks: `pct_wN` is the pooled % of
 a reference week’s cases reported once it has been observed for `N`
 weeks. `period = "month"` / `"year"` slices it in time to expose drift.
 
 ``` r
-reporting_completion(tri, max_delay = max_delay)
+reporting_completion_v1(tri, max_delay = max_delay)
 #>    indicator location    age    sex period n_settled mean_delay complete_by_md
 #>       <char>   <char> <char> <char> <char>     <int>      <num>          <num>
 #> 1:   example   nation  total  total    all        66       0.94              1

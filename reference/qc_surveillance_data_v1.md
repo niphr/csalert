@@ -5,7 +5,7 @@ Quality-control checks on surveillance input data
 ## Usage
 
 ``` r
-qc_surveillance_data(
+qc_surveillance_data_v1(
   d,
   reference_col = "isoyearweek_reference",
   expect_latest = NULL,

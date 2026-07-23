@@ -1,9 +1,10 @@
 # Reporting-completion trend: the delay curve by year and recent months
 
-Convenience over \[reporting_completion\]: the completion curve sliced
-by calendar \`year\` (all years) and by \`month\` (the most recent
-\`n_months\`, per series), stacked with a \`scope\` column. One table
-that shows whether reporting is speeding up or slowing down over time.
+Convenience over \[reporting_completion_v1\]: the completion curve
+sliced by calendar \`year\` (all years) and by \`month\` (the most
+recent \`n_months\`, per series), stacked with a \`scope\` column. One
+table that shows whether reporting is speeding up or slowing down over
+time.
 
 ## Usage
 
@@ -27,7 +28,7 @@ reporting_completion_trend_v1(triangle, max_delay, n_months = 12L)
 
 ## Value
 
-A data.table: the \[reporting_completion\] columns plus a \`scope\`
+A data.table: the \[reporting_completion_v1\] columns plus a \`scope\`
 column ("year"/"month"), the year rows followed by the last-\`n_months\`
 month rows. Empty when no series has enough settled data.
 

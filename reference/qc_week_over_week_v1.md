@@ -6,7 +6,7 @@ Week-over-week QC: settled-data integrity (A) + frontier status signal
 ## Usage
 
 ``` r
-qc_week_over_week(current, previous, max_delay, tol = 1e-06)
+qc_week_over_week_v1(current, previous, max_delay, tol = 1e-06)
 ```
 
 ## Arguments

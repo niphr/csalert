@@ -275,13 +275,13 @@ head-to-head.</p>
 <div class="section level2">
 <h2 id="how-fast-does-the-data-arrive-reporting-completion">How fast does the data arrive? Reporting completion<a class="anchor" aria-label="anchor" href="#how-fast-does-the-data-arrive-reporting-completion"></a>
 </h2>
-<p><code><a href="../reference/reporting_completion.html">reporting_completion()</a></code> reads the delay ECDF off the
+<p><code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> reads the delay ECDF off the
 settled weeks: <code>pct_wN</code> is the pooled % of a reference week’s
 cases reported once it has been observed for <code>N</code> weeks.
 <code>period = "month"</code> / <code>"year"</code> slices it in time to
 expose drift.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/reporting_completion.html">reporting_completion</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    indicator location    age    sex period n_settled mean_delay complete_by_md</span></span>
 <span><span class="co">#&gt;       &lt;char&gt;   &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt;     &lt;int&gt;      &lt;num&gt;          &lt;num&gt;</span></span>
 <span><span class="co">#&gt; 1:   example   nation  total  total    all        66       0.94              1</span></span>

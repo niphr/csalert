@@ -5,7 +5,7 @@ Empirical reporting-completion summary from a reporting triangle
 ## Usage
 
 ``` r
-reporting_completion(
+reporting_completion_v1(
   triangle,
   max_delay,
   delay_window = NULL,

@@ -32,10 +32,10 @@
 <url><loc>https://niphr.github.io/csalert/reference/print.nowcast_calibration.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/q_label.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/q_value.html</loc></url>
-<url><loc>https://niphr.github.io/csalert/reference/qc_surveillance_data.html</loc></url>
-<url><loc>https://niphr.github.io/csalert/reference/qc_week_over_week.html</loc></url>
-<url><loc>https://niphr.github.io/csalert/reference/reporting_completion.html</loc></url>
+<url><loc>https://niphr.github.io/csalert/reference/qc_surveillance_data_v1.html</loc></url>
+<url><loc>https://niphr.github.io/csalert/reference/qc_week_over_week_v1.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.html</loc></url>
+<url><loc>https://niphr.github.io/csalert/reference/reporting_completion_v1.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/reporting_triangle_matrix.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/rolling_slope_matrix.html</loc></url>
 <url><loc>https://niphr.github.io/csalert/reference/set_time_series_id.html</loc></url>

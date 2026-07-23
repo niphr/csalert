@@ -69,7 +69,7 @@ interval coverage, point-estimate revision, and reporting completion.
 - [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
   : Evaluate nowcast method(s): interval coverage + point-estimate
   revision
-- [`reporting_completion()`](https://niphr.github.io/csalert/reference/reporting_completion.md)
+- [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
   : Empirical reporting-completion summary from a reporting triangle
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
   : Reporting-completion trend: the delay curve by year and recent
@@ -94,9 +94,9 @@ applied to published numbers unless you choose to.
 
 Verdict-only checks on surveillance input and week-over-week revisions.
 
-- [`qc_surveillance_data()`](https://niphr.github.io/csalert/reference/qc_surveillance_data.md)
+- [`qc_surveillance_data_v1()`](https://niphr.github.io/csalert/reference/qc_surveillance_data_v1.md)
   : Quality-control checks on surveillance input data
-- [`qc_week_over_week()`](https://niphr.github.io/csalert/reference/qc_week_over_week.md)
+- [`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
   : Week-over-week QC: settled-data integrity (A) + frontier status
   signal (B)
 
