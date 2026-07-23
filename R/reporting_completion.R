@@ -1,4 +1,4 @@
-# reporting_completion: the empirical reporting-delay summary of a triangle --
+# reporting_completion_v1: the empirical reporting-delay summary of a triangle --
 # "how long until a reference week's cases are (nearly) all in".
 #
 # From the SETTLED weeks (old enough to know their final total -- else the
@@ -30,7 +30,7 @@
 #'   `max_delay`), and `pct_w1`..`pct_w<max_delay>` (the pooled \% of cases reported
 #'   after that many weeks observed -- the delay ECDF, no interpolation).
 #' @export
-reporting_completion <- function(triangle, max_delay, delay_window = NULL,
+reporting_completion_v1 <- function(triangle, max_delay, delay_window = NULL,
                                  period = c("all", "year", "month")) {
   period <- match.arg(period)
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
@@ -90,14 +90,14 @@ reporting_completion <- function(triangle, max_delay, delay_window = NULL,
 
 #' Reporting-completion trend: the delay curve by year and recent months
 #'
-#' Convenience over [reporting_completion]: the completion curve sliced by calendar
+#' Convenience over [reporting_completion_v1]: the completion curve sliced by calendar
 #' `year` (all years) and by `month` (the most recent `n_months`, per series),
 #' stacked with a `scope` column. One table that shows whether reporting is
 #' speeding up or slowing down over time.
 #' @param triangle A `csfmt_reporting_triangle_v3`.
 #' @param max_delay Delay horizon in weeks.
 #' @param n_months Keep this many most-recent months per series. Default 12.
-#' @returns A data.table: the [reporting_completion] columns plus a `scope` column
+#' @returns A data.table: the [reporting_completion_v1] columns plus a `scope` column
 #'   ("year"/"month"), the year rows followed by the last-`n_months` month rows.
 #'   Empty when no series has enough settled data.
 #' @examples
@@ -110,8 +110,8 @@ reporting_completion <- function(triangle, max_delay, delay_window = NULL,
 #' reporting_completion_trend_v1(tri, max_delay = 3, n_months = 6)
 #' @export
 reporting_completion_trend_v1 <- function(triangle, max_delay, n_months = 12L) {
-  by_year  <- reporting_completion(triangle, max_delay, period = "year")
-  by_month <- reporting_completion(triangle, max_delay, period = "month")
+  by_year  <- reporting_completion_v1(triangle, max_delay, period = "year")
+  by_month <- reporting_completion_v1(triangle, max_delay, period = "month")
   if (nrow(by_year)) by_year[, scope := "year"]
   if (nrow(by_month)) {
     id_cols <- attr(triangle, "id_cols")

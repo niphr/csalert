@@ -60,7 +60,7 @@ reference:
       - nowcast_truth
       - nowcast_backtest
       - nowcast_evaluate_v1
-      - reporting_completion
+      - reporting_completion_v1
       - reporting_completion_trend_v1
       - compare_results
 
@@ -77,8 +77,8 @@ reference:
   - title: "Input quality control"
     desc: "Verdict-only checks on surveillance input and week-over-week revisions."
     contents:
-      - qc_surveillance_data
-      - qc_week_over_week
+      - qc_surveillance_data_v1
+      - qc_week_over_week_v1
 
   - title: "Signal detection"
     desc: "Detect anomalies and compute prediction thresholds from historical surveillance data."

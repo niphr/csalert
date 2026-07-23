@@ -1,6 +1,6 @@
-# reporting_completion: recover a known reporting-delay curve from a triangle.
+# reporting_completion_v1: recover a known reporting-delay curve from a triangle.
 
-test_that("reporting_completion recovers the known delay curve + quartiles", {
+test_that("reporting_completion_v1 recovers the known delay curve + quartiles", {
   set.seed(4)
   weeks <- cstime::dates_by_isoyearweek$isoyearweek; i0 <- which(weeks == "2020-01")
   max_delay <- 4; n_weeks <- 60
@@ -18,7 +18,7 @@ test_that("reporting_completion recovers the known delay curve + quartiles", {
   tri[, `:=`(indicator = "test", location = "nation", age = "total", sex = "total")]
   tri <- csfmt_reporting_triangle_v3(tri[], id_cols = c("indicator", "location", "age", "sex"))
 
-  rc <- reporting_completion(tri, max_delay = max_delay)
+  rc <- reporting_completion_v1(tri, max_delay = max_delay)
   expect_equal(nrow(rc), 1L)
   expect_true(all(c("period", "mean_delay", "complete_by_md",
                     "pct_w1", "pct_w2", "pct_w3", "pct_w4") %in% names(rc)))
@@ -34,12 +34,12 @@ test_that("reporting_completion recovers the known delay curve + quartiles", {
 
   # period stratification: the ~60-week span covers >1 calendar year and several
   # months -> multiple rows, each a valid summary, labelled by period.
-  by_year <- reporting_completion(tri, max_delay = max_delay, period = "year")
+  by_year <- reporting_completion_v1(tri, max_delay = max_delay, period = "year")
   expect_gt(nrow(by_year), 1L)
   expect_true(all(grepl("^[0-9]{4}$", by_year$period)))
   expect_true(all(by_year$mean_delay > 0 & by_year$mean_delay < max_delay))
 
-  by_month <- reporting_completion(tri, max_delay = max_delay, period = "month")
+  by_month <- reporting_completion_v1(tri, max_delay = max_delay, period = "month")
   expect_gt(nrow(by_month), nrow(by_year))
   expect_true(all(grepl("^[0-9]{4}-[0-9]{2}$", by_month$period)))
 

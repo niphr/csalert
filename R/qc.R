@@ -1,4 +1,4 @@
-# qc_surveillance_data: generic input quality-control checks.
+# qc_surveillance_data_v1: generic input quality-control checks.
 #
 # Returns a verdict (ok + reasons); it does NOT control flow or decide policy.
 # The CALLER supplies the policy (what `expect_latest` is, whether to run QC at
@@ -14,7 +14,7 @@
 #' @param min_rows Minimum rows required (default 1).
 #' @returns A list: `ok` (logical) and `reasons` (character vector; empty if ok).
 #' @export
-qc_surveillance_data <- function(d, reference_col = "isoyearweek_reference",
+qc_surveillance_data_v1 <- function(d, reference_col = "isoyearweek_reference",
                                  expect_latest = NULL, min_rows = 1L) {
   reasons <- character(0)
 

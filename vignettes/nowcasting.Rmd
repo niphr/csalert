@@ -153,12 +153,12 @@ several engines head-to-head.
 
 ## How fast does the data arrive? Reporting completion
 
-`reporting_completion()` reads the delay ECDF off the settled weeks: `pct_wN` is
+`reporting_completion_v1()` reads the delay ECDF off the settled weeks: `pct_wN` is
 the pooled % of a reference week's cases reported once it has been observed for `N`
 weeks. `period = "month"` / `"year"` slices it in time to expose drift.
 
 ```{r}
-reporting_completion(tri, max_delay = max_delay)
+reporting_completion_v1(tri, max_delay = max_delay)
 ```
 
 ## The naming grammar

@@ -1,4 +1,4 @@
-# compare_results / qc_week_over_week.
+# compare_results / qc_week_over_week_v1.
 
 mk_run <- function(weeks, vals, status) {
   data.table::data.table(
@@ -15,7 +15,7 @@ test_that("A is empty when settled weeks agree; B captures frontier transitions"
   prev <- mk_run(w[1:5], vals = c(10, 11, 12, 13, 14), status = c(1, 1, 2, 2, 3))
   curr <- mk_run(w[1:6], vals = c(10, 11, 12, 13, 15, 16), status = c(1, 1, 2, 2, 2, 3))
 
-  qc <- qc_week_over_week(curr, prev, max_delay = 2)
+  qc <- qc_week_over_week_v1(curr, prev, max_delay = 2)
 
   # settled weeks (w1..w3) identical -> integrity tripwire empty
   expect_equal(nrow(qc$integrity), 0)
@@ -35,7 +35,7 @@ test_that("A flags an unexpected revision to a settled week", {
   prev <- mk_run(w[1:5], vals = c(10, 11, 12, 13, 14), status = c(1, 1, 2, 2, 3))
   curr <- mk_run(w[1:6], vals = c(10, 99, 12, 13, 15, 16), status = c(1, 1, 2, 2, 2, 3))  # w2 revised
 
-  qc <- qc_week_over_week(curr, prev, max_delay = 2)
+  qc <- qc_week_over_week_v1(curr, prev, max_delay = 2)
   expect_equal(nrow(qc$integrity), 1)
   expect_equal(qc$integrity$isoyearweek, w[2])
   expect_equal(qc$integrity$prv, 11); expect_equal(qc$integrity$cur, 99)

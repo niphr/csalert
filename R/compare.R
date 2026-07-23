@@ -1,4 +1,4 @@
-# compare_results / qc_week_over_week: compare two collapsed csfmt result sets.
+# compare_results / qc_week_over_week_v1: compare two collapsed csfmt result sets.
 #
 # The shared core (compare_results) joins two runs on the content-hash
 # time_series_id + isoyearweek (the hash is stable across runs, so the same
@@ -6,7 +6,7 @@
 # (series, week, value column) with `cur`/`prv`. It auto-detects the value
 # columns and their roles via csfmt_interpret, so nothing is hardcoded.
 #
-# qc_week_over_week splits that diff at the nowcast horizon:
+# qc_week_over_week_v1 splits that diff at the nowcast horizon:
 #   A) integrity: settled weeks (>= max_delay behind last run's frontier) should
 #      be identical -- any continuous-median change is flagged. Ideally empty.
 #   B) signal: frontier weeks (the still-revising window + the new week) -- the
@@ -52,7 +52,7 @@ compare_results <- function(current, previous) {
 #' @param tol Tolerance for "unchanged" in the integrity check.
 #' @returns `list(integrity = <A>, signal = <B>)`.
 #' @export
-qc_week_over_week <- function(current, previous, max_delay, tol = 1e-6) {
+qc_week_over_week_v1 <- function(current, previous, max_delay, tol = 1e-6) {
   long <- compare_results(current, previous)
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   latest_prev <- max(data.table::as.data.table(previous)$isoyearweek)
