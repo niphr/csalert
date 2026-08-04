@@ -9,7 +9,7 @@ matching [nowcast_quasipoisson_v1()] / [short_term_trend()]."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,49 @@ clean weekly csfmt) instead of returning a plain data.table.</p></dd>
     <p>A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
   `&lt;measure&gt;_qNNxN` columns for every measure in `$draws`; no draws.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code>, which collapses a
+  nowcast ensemble with this function and plots the resulting band.</p>
+<p>Other ensemble operations:
+<code><a href="ens_add_rate.html">ens_add_rate()</a></code></p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  location_code <span class="op">=</span> <span class="st">"nation"</span>,</span></span>
+<span class="r-in"><span>  age <span class="op">=</span> <span class="st">"total"</span>,</span></span>
+<span class="r-in"><span>  isoyearweek <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="st">"2023-02"</span>, <span class="st">"2023-03"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="csfmt_ensemble_v3.html">csfmt_ensemble_v3</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">d</span>,</span></span>
+<span class="r-in"><span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"location_code"</span>, <span class="st">"age"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  draws <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>numerator_nowcasted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">3</span> <span class="op">*</span> <span class="fl">100</span>, <span class="fl">20</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one column per requested probability, named by the grammar</span></span></span>
+<span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu">ens_collapse</span><span class="op">(</span><span class="va">ens</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">r</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">isoyearweek</span>,</span></span>
+<span class="r-in"><span>  lo <span class="op">=</span> <span class="va">numerator_nowcasted_q05x0</span>,</span></span>
+<span class="r-in"><span>  med <span class="op">=</span> <span class="va">numerator_nowcasted_q50x0</span>,</span></span>
+<span class="r-in"><span>  hi <span class="op">=</span> <span class="va">numerator_nowcasted_q95x0</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    isoyearweek    lo   med    hi</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         &lt;char&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     2023-01    13    19 27.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2023-02    13    19 28.05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     2023-03    12    19 27.00</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the quantile columns are all that collapse adds; the draws are gone, and</span></span></span>
+<span class="r-in"><span><span class="co"># this reduction is one-way</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">ens</span><span class="op">$</span><span class="va">data</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "numerator_nowcasted_q05x0" "numerator_nowcasted_q50x0"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3] "numerator_nowcasted_q95x0"</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

@@ -82,6 +82,14 @@ The \`csfmt_ensemble_v3\` with a per-draw exceedance column added to
 threshold, else 0), so the exceedance probability falls out of the
 quantile collapse. Weeks without a full baseline are NA.
 
+## See also
+
+Neither package vignette runs this function.
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+names it in its closing "Where next" list as one of the stages that can
+run on an ensemble, but does not demonstrate it; the example below is
+its only worked demonstration.
+
 ## Examples
 
 ``` r

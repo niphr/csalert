@@ -65,6 +65,15 @@ Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
 An improved algorithm for outbreak detection in multiple surveillance
 systems. Statistics in Medicine. 2013.
 
+## See also
+
+Neither package vignette covers the data simulators. Use them to
+generate a series whose truth you already know, then run
+[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+or
+[`signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+on it.
+
 ## Examples
 
 ``` r

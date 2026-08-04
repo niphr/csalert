@@ -17,7 +17,7 @@ off the interval quantiles, so this needs no `scoringutils`."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -121,6 +121,16 @@ probability for (default 25% and 50%).</p></dd>
     <p>A data.table, one row per group x method: `n`, interval coverage
   (`coverage_50`, `coverage_90`), the point-estimate revision (`median_signed`
   bias, `median_abs`, `q05`/`q95` band, `p_gt_&lt;t&gt;` tails) and `method`.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code>, which runs this
+  function on its synthetic triangle and reads the coverage and revision
+  columns off the result.</p>
+<p>Other nowcast diagnostics:
+<code><a href="nowcast_backtest.html">nowcast_backtest()</a></code>,
+<code><a href="nowcast_censor.html">nowcast_censor()</a></code>,
+<code><a href="nowcast_truth.html">nowcast_truth()</a></code></p></div>
     </div>
 
     <div class="section level2">

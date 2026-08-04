@@ -11,7 +11,7 @@ the same shape; leading `width-1` rows of each column are NA."><meta property="o
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,7 +82,41 @@ the same shape; leading `width-1` rows of each column are NA.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>List of matrices: `beta0`, `beta1`, `se`.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p>Neither package vignette covers this function. It is the numeric
+  kernel behind the ensemble method of <code><a href="short_term_trend.html">short_term_trend</a></code>, which
+  is the function you normally want; use this one when you have a bare
+  weeks x draws matrix and no ensemble.</p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># 10 weeks x 4 draws, all rising at a true slope of 2 per week</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fl">4</span><span class="op">)</span> <span class="op">*</span> <span class="fl">2</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">40</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">rs</span> <span class="op">&lt;-</span> <span class="fu">rolling_slope_matrix</span><span class="op">(</span><span class="va">Y</span>, width <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the first three rows have no complete window, so they are NA</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">rs</span><span class="op">$</span><span class="va">beta1</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      [,1] [,2] [,3] [,4]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]   NA   NA   NA   NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]   NA   NA   NA   NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]   NA   NA   NA   NA</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># later rows recover the slope, one estimate per draw</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">rs</span><span class="op">$</span><span class="va">beta1</span><span class="op">[</span><span class="fl">8</span><span class="op">:</span><span class="fl">10</span>, <span class="op">]</span>, <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      [,1] [,2] [,3] [,4]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 2.25 1.95 1.36 2.40</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 2.44 2.36 1.74 2.49</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 1.75 2.17 2.27 2.46</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># `se` is the OLS standard error of that slope</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">rs</span><span class="op">$</span><span class="va">se</span><span class="op">[</span><span class="fl">10</span>, <span class="op">]</span>, <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.18 0.20 0.39 0.20</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

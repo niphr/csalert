@@ -24,3 +24,44 @@ nowcast_censor(triangle, as_of)
 ## Value
 
 A \`csfmt_reporting_triangle_v3\` censored to \`as_of\`.
+
+## See also
+
+Neither package vignette covers this function.
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+describes replay in prose and then calls
+[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+which censors for you.
+
+Other nowcast diagnostics:
+[`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
+[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+
+## Examples
+
+``` r
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+# rewind to what was known nine weeks earlier
+past <- nowcast_censor(tri, as_of = w[i + 30])
+c(now = attr(tri, "as_of"), then = attr(past, "as_of"))
+#>       now      then 
+#> "2023-40" "2023-31" 
+c(rows_now = nrow(tri), rows_then = nrow(past))
+#>  rows_now rows_then 
+#>       117        90 
+```

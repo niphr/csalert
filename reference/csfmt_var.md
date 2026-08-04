@@ -52,6 +52,19 @@ csfmt_var(
 
 Character scalar column name.
 
+## See also
+
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+whose closing section builds a column name with this function and takes
+it apart again with
+[`csfmt_parse`](https://niphr.github.io/csalert/reference/csfmt_parse.md).
+
+Other naming grammar functions:
+[`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),
+[`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md),
+[`q_label()`](https://niphr.github.io/csalert/reference/q_label.md),
+[`q_value()`](https://niphr.github.io/csalert/reference/q_value.md)
+
 ## Examples
 
 ``` r

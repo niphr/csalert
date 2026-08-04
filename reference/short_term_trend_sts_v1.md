@@ -35,6 +35,15 @@ short_term_trend_sts_v1(sts, control = list(w = 5, alpha = 0.05))
 
 sts object with the alarms slot set to 0/1 if not-increasing/increasing.
 
+## See also
+
+Neither package vignette covers this function. It is the
+[`surveillance::sts`](https://rdrr.io/pkg/surveillance/man/sts-class.html)
+form of the same trend method that
+[`vignette("short_term_trend", package = "csalert")`](https://niphr.github.io/csalert/articles/short_term_trend.md)
+demonstrates through
+[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
+
 ## Examples
 
 ``` r

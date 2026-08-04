@@ -138,6 +138,15 @@ The \`csfmt_ensemble_v3\` with per-draw short-term-trend columns added
 to \`\$draws\` for \`measure\` (the rolling slope/level and a
 P(increasing)), ready for the quantile collapse.
 
+## See also
+
+[`vignette("short_term_trend", package = "csalert")`](https://niphr.github.io/csalert/articles/short_term_trend.md),
+which runs this function on one location and then on every Norwegian
+county.
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+names the ensemble method in its closing "Where next" list but does not
+demonstrate it.
+
 ## Examples
 
 ``` r

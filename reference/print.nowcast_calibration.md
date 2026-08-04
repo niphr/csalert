@@ -24,3 +24,13 @@ print(x, ...)
 ## Value
 
 \`x\`, invisibly.
+
+## See also
+
+Neither package vignette covers calibration; see the example on
+[`nowcast_estimate_calibration_v1`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md),
+which prints its result with this method.
+
+Other nowcast calibration functions:
+[`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md),
+[`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)

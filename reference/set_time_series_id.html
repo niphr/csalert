@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,7 +80,42 @@
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>`d`, modified by reference (invisibly).</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p>Neither package vignette covers this function. It is called for you by
+  <code><a href="csfmt_ensemble_v3.html">csfmt_ensemble_v3</a></code> and <code><a href="csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></code>;
+  call it directly only when you are keying a data.table those constructors
+  never see.</p>
+<p>Other ensemble format functions:
+<code><a href="csfmt_ensemble_v3.html">csfmt_ensemble_v3()</a></code>,
+<code><a href="print.csfmt_ensemble_v3.html">print.csfmt_ensemble_v3()</a></code>,
+<code><a href="validate_ensemble.html">validate_ensemble()</a></code></p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  location_code <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nation"</span>, <span class="st">"nation"</span>, <span class="st">"county03"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  age <span class="op">=</span> <span class="st">"total"</span>,</span></span>
+<span class="r-in"><span>  isoyearweek <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="st">"2023-02"</span>, <span class="st">"2023-01"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">12</span>, <span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">set_time_series_id</span><span class="op">(</span><span class="va">d</span>, id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"location_code"</span>, <span class="st">"age"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the two nation rows share one content hash; the county row gets its own</span></span></span>
+<span class="r-in"><span><span class="va">d</span><span class="op">[</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    location_code    age isoyearweek numerator   time_series_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt; &lt;char&gt;      &lt;char&gt;     &lt;num&gt;           &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        nation  total     2023-01        10 0ec581372be7c933</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:        nation  total     2023-02        12 0ec581372be7c933</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:      county03  total     2023-01         4 0d06fc1a57d1a2a5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    time_series_label</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:   nation\037total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:   nation\037total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: county03\037total</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

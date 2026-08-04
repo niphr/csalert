@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,103 @@
     <p>A long data.table: identity + isoyearweek + column + role/q/level +
   `cur`/`prv`.</p>
     </div>
+    <div class="section level2">
+    <h2 id="identity-columns-must-use-the-csfmt-schema-names">Identity columns MUST use the csfmt schema names<a class="anchor" aria-label="anchor" href="#identity-columns-must-use-the-csfmt-schema-names"></a></h2>
 
+
+<p>The value columns are found with <code><a href="csfmt_interpret.html">csfmt_interpret</a></code>, which treats
+anything outside the csfmt structural schema as a value column. Key the two
+runs on schema names such as `location_code` and `indicator_tag`.</p>
+<p>A non-schema identity column is a silent trap. `location` and `indicator` are
+NOT in the schema (`location_code` and `indicator_tag` are), so they are read
+as value columns; their character values are then stacked with the numeric
+measures and `cur`/`prv` come back as character for every row. This function
+still returns a table, so the damage is easy to miss. But
+<code><a href="qc_week_over_week_v1.html">qc_week_over_week_v1</a></code> then evaluates `abs(cur - prv)` on that
+character column and FAILS with
+`Error in cur - prv : non-numeric argument to binary operator`.</p>
+<p>Note that `vignette("nowcasting", package = "csalert")` builds its triangle
+with `id_cols = c("indicator", "location", "age", "sex")`. Those names work
+for the nowcast pipeline itself, but a run-over-run comparison of the result
+needs `indicator_tag` and `location_code`.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p>Neither package vignette covers run-over-run comparison.
+  <code><a href="qc_week_over_week_v1.html">qc_week_over_week_v1</a></code> is the usual entry point; it splits this
+  diff at the nowcast horizon.</p></div>
+    </div>
+
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span></span>
+<span class="r-in"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="va">w</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  isoyearweek_reference <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  isoyearweek_reporting <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">40</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">15</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  indicator_tag <span class="op">=</span> <span class="st">"x"</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>, age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">&lt;=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">39</span><span class="op">]</span><span class="op">]</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># The engine is stochastic, so reset the seed inside `run()`. Without that,</span></span></span>
+<span class="r-in"><span><span class="co"># the two runs would also differ by their Monte-Carlo draws and the diff would</span></span></span>
+<span class="r-in"><span><span class="co"># confound sampling noise with the actual data revision.</span></span></span>
+<span class="r-in"><span><span class="va">run</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="fu"><a href="nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span><span class="va">x</span>, id_cols <span class="op">=</span> <span class="va">id</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    max_delay <span class="op">=</span> <span class="fl">3</span>, n_sim <span class="op">=</span> <span class="fl">200</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># last week's run saw one reference week before it was corrected upward</span></span></span>
+<span class="r-in"><span><span class="va">cur</span> <span class="op">&lt;-</span> <span class="fu">run</span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d_prv</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/copy.html" class="external-link">copy</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d_prv</span><span class="op">[</span><span class="va">isoyearweek_reference</span> <span class="op">==</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">10</span><span class="op">]</span>, <span class="va">numerator</span> <span class="op">:=</span> <span class="va">numerator</span> <span class="op">-</span> <span class="fl">5</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Index: &lt;isoyearweek_reference&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      isoyearweek_reference isoyearweek_reporting numerator indicator_tag</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     &lt;char&gt;                &lt;char&gt;     &lt;int&gt;        &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:               2023-01               2023-01        26             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:               2023-01               2023-02        20             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:               2023-01               2023-03         8             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:               2023-02               2023-02        38             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:               2023-02               2023-03        16             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 113:               2023-38               2023-39        21             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 114:               2023-38               2023-40         3             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 115:               2023-39               2023-39        24             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 116:               2023-39               2023-40        20             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 117:               2023-40               2023-40        20             x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      location_code    age    sex</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;char&gt; &lt;char&gt; &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   3:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   4:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   5:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  ---                            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 113:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 114:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 115:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 116:        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 117:        nation  total  total</span>
+<span class="r-in"><span><span class="va">prv</span> <span class="op">&lt;-</span> <span class="fu">run</span><span class="op">(</span><span class="va">d_prv</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one row per (series, week, value column). With the seed held fixed, the only</span></span></span>
+<span class="r-in"><span><span class="co"># week that moves is the corrected one.</span></span></span>
+<span class="r-in"><span><span class="fu">compare_results</span><span class="op">(</span><span class="va">cur</span>, <span class="va">prv</span><span class="op">)</span><span class="op">[</span><span class="va">q</span> <span class="op">==</span> <span class="fl">0.5</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">cur</span> <span class="op">-</span> <span class="va">prv</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      time_series_id isoyearweek indicator_tag location_code    age    sex</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              &lt;char&gt;      &lt;char&gt;        &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: d8da72e3fbb5fd29     2023-11             x        nation  total  total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                       column   cur   prv      role     q  level</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                       &lt;char&gt; &lt;num&gt; &lt;num&gt;    &lt;char&gt; &lt;num&gt; &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: numerator_nowcasted_q50x0    46    31 nowcasted   0.5   &lt;NA&gt;</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

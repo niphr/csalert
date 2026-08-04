@@ -32,6 +32,17 @@ A data.table: the \[reporting_completion_v1\] columns plus a \`scope\`
 column ("year"/"month"), the year rows followed by the last-\`n_months\`
 month rows. Empty when no series has enough settled data.
 
+## See also
+
+Neither package vignette covers this function;
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+runs
+[`reporting_completion_v1`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md),
+which this one wraps.
+
+Other reporting completion functions:
+[`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+
 ## Examples
 
 ``` r

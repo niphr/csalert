@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,11 +93,70 @@ whether completion time is trending up or down.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>One row per series (and per period when stratified): identity columns
-  + `period` + `n_settled`, `mean_delay`, `complete_by_md` (fraction in by
-  `max_delay`), and `pct_w1`..`pct_w&lt;max_delay&gt;` (the pooled % of cases reported
-  after that many weeks observed – the delay ECDF, no interpolation).</p>
+  + `period` + `n_settled`, `mean_delay`, `complete_by_md`, and
+  `pct_w1`..`pct_w&lt;max_delay&gt;` (the pooled % of cases reported after that many
+  weeks observed – the delay ECDF, no interpolation). Every one of these is
+  computed AFTER delays `&gt;= max_delay` have been discarded, so they describe
+  the cases that arrive within the horizon, not all eventual cases.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="complete-by-md-is-always-">complete_by_md is always 1<a class="anchor" aria-label="anchor" href="#complete-by-md-is-always-"></a></h2>
+
+
+<p>`complete_by_md` is the last cumulative fraction of a total that was itself
+summed over the truncated delay axis, so it equals 1 for every series and every
+period, and `pct_w&lt;max_delay&gt;` equals 100. It does NOT measure whether
+reporting continues past `max_delay`. To look for a tail, re-run with a larger
+`max_delay` and compare `mean_delay` and the `pct_wN` curve.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code>, which runs this
+  function on its synthetic triangle.</p>
+<p>Other reporting completion functions:
+<code><a href="reporting_completion_trend_v1.html">reporting_completion_trend_v1()</a></code></p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span></span>
+<span class="r-in"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="va">w</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  isoyearweek_reference <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  isoyearweek_reporting <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">40</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">15</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  indicator_tag <span class="op">=</span> <span class="st">"x"</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>, age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">&lt;=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">39</span><span class="op">]</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="va">tri</span> <span class="op">&lt;-</span> <span class="fu"><a href="csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">d</span>,</span></span>
+<span class="r-in"><span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one pooled curve: pct_w1 is the share in after one week observed</span></span></span>
+<span class="r-in"><span><span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    indicator_tag location_code    age    sex period n_settled mean_delay</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt;     &lt;int&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x        nation  total  total    all        38       0.51</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_w1 pct_w2 pct_w3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1   58.8   89.9    100</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># sliced by month, to expose drift in how fast reporting arrives</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span>, period <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    indicator_tag location_code    age    sex  period n_settled mean_delay</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt;  &lt;char&gt;     &lt;int&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x        nation  total  total 2023-01         4       0.50</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:             x        nation  total  total 2023-02         4       0.50</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:             x        nation  total  total 2023-03         5       0.53</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_w1 pct_w2 pct_w3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1   59.3   91.0    100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:              1   60.2   90.0    100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:              1   58.5   88.4    100</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

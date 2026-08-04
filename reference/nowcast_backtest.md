@@ -64,3 +64,61 @@ nowcast_backtest(
 
 A long data.table: \`reference\`, \`as_of\`, \`horizon\`,
 \`quantile_level\`, \`predicted\`.
+
+## See also
+
+Neither package vignette covers this function.
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+reaches the same replay through
+[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+which wraps it and scores the result. Use this function directly when
+you want the raw replayed quantiles.
+
+Other nowcast diagnostics:
+[`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),
+[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+
+## Examples
+
+``` r
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+# a method is f(triangle) -> ensemble, with its own parameters baked in
+method <- function(x) nowcast_quasipoisson_v1(x, max_delay = 3, n_sim = 200)
+
+# Replay 19 as-of weeks. This window is a runtime choice, not a fitting
+# boundary: the engine needs only three settled training rows, and with fewer
+# it returns the observed totals rather than failing. Leaving `as_of_weeks`
+# NULL replays every week after the burn-in, which is slower.
+bt <- nowcast_backtest(
+  tri, method,
+  max_delay = 3,
+  as_of_weeks = w[i + 20:38],
+  horizons = 0:1,
+  probs = c(0.05, 0.5, 0.95),
+  seed = 1
+)
+head(bt, 6)
+#>    reference   as_of horizon quantile_level predicted
+#>       <char>  <char>   <int>          <num>     <num>
+#> 1:   2023-20 2023-21       1           0.05      38.0
+#> 2:   2023-21 2023-21       0           0.05      38.0
+#> 3:   2023-20 2023-21       1           0.50      44.0
+#> 4:   2023-21 2023-21       0           0.50      47.5
+#> 5:   2023-20 2023-21       1           0.95      54.1
+#> 6:   2023-21 2023-21       0           0.95      61.0
+```

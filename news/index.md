@@ -1,5 +1,137 @@
 # Changelog
 
+## Version 2026.8.4
+
+### Documentation
+
+- **Every exported function now has a runnable example.** 21 of the 34
+  exports had none; they already had a title, a description, `@param`
+  and `@returns`, but nothing a reader could run. The new examples all
+  execute under `R CMD check`; none is wrapped in `\dontrun{}` or
+  `\donttest{}`, because nothing in the package needs a live database, a
+  credential or a mounted share to demonstrate. The nowcast pipeline
+  examples share one 40-week synthetic reporting triangle,
+  right-truncated so the newest weeks are genuinely incomplete.
+- **Every exported function now carries an `@seealso` that says which
+  vignette covers it, including when the honest answer is “neither”.**
+  Only eight exports are actually run inside a vignette code chunk.
+  [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md),
+  [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  and
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  are named in the closing “Where next” list of the nowcasting vignette
+  but not demonstrated there, and the `@seealso` now says so rather than
+  implying coverage.
+- **Eight `@family` groups added as topical navigation**, so the
+  reference pages cross-link: ensemble format functions, reporting
+  triangle functions, naming grammar functions, nowcast engines, nowcast
+  diagnostics, nowcast calibration functions, ensemble operations, and
+  reporting completion functions. These group functions by the concept
+  they belong to, not by a shared call signature. Only `nowcast engines`
+  is a set of interchangeable implementations; the other seven are
+  pipeline stages or helpers around one concept, and each member’s
+  `@seealso` states its own specific role. The two `qc_*` functions were
+  deliberately *not* made a family:
+  [`qc_surveillance_data_v1()`](https://niphr.github.io/csalert/reference/qc_surveillance_data_v1.md)
+  screens one input feed and returns a verdict,
+  [`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
+  diffs two finished runs and returns two tables. They are cross-linked
+  with `@seealso` instead.
+- **[`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md)
+  gained an “Identity columns” section.** It finds its value columns
+  with
+  [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),
+  so an identity column outside the csfmt structural schema (`location`
+  rather than `location_code`) is read as a value column and `cur`/`prv`
+  come back as character instead of numeric.
+  [`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
+  then fails outright with
+  `Error in cur - prv : non-numeric argument to binary operator`. The
+  nowcasting vignette teaches exactly those non-schema names, so this is
+  easy to hit.
+- **README grown from 23 words to a landing page**: what the package is,
+  the two routes through it, installation, one quick start, a
+  which-function-do-I-want table, and links to the pkgdown site. It
+  copies no passage from either vignette (longest shared run of
+  consecutive words: three), though it necessarily summarises the same
+  pipeline the nowcasting vignette explains in full.
+
+### Corrected statistical documentation
+
+No behaviour changed. Each of these help pages described a model, or a
+guarantee, that the code does not implement. An adversarial review found
+them.
+
+- **[`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
+  is not fitted without an intercept.** The documentation said “no
+  intercept” in two places, but the formula is built as
+  `y ~ d1 + d2 + ...`, which carries R’s default intercept — an inline
+  comment in the source already said `# + intercept`. The documented
+  model now matches the fitted one.
+- **“Honestly dispersed” removed from the same engine.** Simulating from
+  a fitted model and truncating at the observed count does not establish
+  calibrated coverage. The documentation now says calibration is an
+  empirical question about a given series and points at
+  [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+  which exists to measure it.
+- **The calibration functions no longer claim split conformal or nominal
+  coverage.** The estimator takes the ordinary type-7 quantile of
+  `|truth - median| / halfwidth`, not the conformal order statistic, and
+  that symmetric residual is only faithful for intervals roughly
+  symmetric about the median. There is no finite-sample guarantee.
+  `coverage_raw` is now documented as what the engine did on the
+  replayed weeks, not as a property of the engine.
+- **`complete_by_md` is documented as identically 1.** It was described
+  as detecting reporting that continues past the horizon. It cannot:
+  [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
+  discards delays at or beyond `max_delay` before the total is formed,
+  so the final cumulative fraction of that truncated total is always 1
+  and `pct_w<max_delay>` is always 100. To look for a tail, re-run with
+  a larger `max_delay`. **This is a source defect left unfixed and now
+  documented.**
+- **[`q_value()`](https://niphr.github.io/csalert/reference/q_value.md)
+  is no longer described as the inverse of
+  [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md).**
+  The label format holds two integer-percent digits, so `q_label(1)`
+  gives `"q100x0"`, which
+  [`q_value()`](https://niphr.github.io/csalert/reference/q_value.md)
+  returns `NA` for. The round trip holds on `[0, 1)`.
+- **[`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md)
+  is no longer described as the inverse of
+  [`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md).**
+  It strips a role from the right against a fixed vocabulary, so on the
+  package’s own rate name
+  `numerator_nowcasted_vs_denominator_nowcasted_pr100` it eats the
+  denominator’s `_nowcasted` as the role and returns
+  `denom = "denominator"`. A new section documents the limit with that
+  exact name.
+- **[`validate_ensemble()`](https://niphr.github.io/csalert/reference/validate_ensemble.md)
+  is retitled “Check a csfmt_ensemble_v3’s structural shape”.** It
+  checks class, two column names, and that each draw matrix has one row
+  per row of `$data` — the row COUNT only. Permuting the rows of `$data`
+  or of a draw matrix passes, as do a missing key, a broken
+  `time_series_internal_id` and a deleted `time_series_label`. The page
+  previously implied it was a safety net for hand-edited objects; it now
+  says to rebuild with
+  [`csfmt_ensemble_v3()`](https://niphr.github.io/csalert/reference/csfmt_ensemble_v3.md)
+  instead, and its example demonstrates a permutation passing.
+- **[`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
+  cannot see HLM transitions.**
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  writes role `"hlmstatus"` while the check selects role `"status"`, so
+  only
+  [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  output reaches `qc$signal`. The example said otherwise and now records
+  the gap.
+
+### Packaging
+
+- `^pkgdown$` and `^Rplots\.pdf$` added to `.Rbuildignore`.
+  [`pkgdown::build_site()`](https://pkgdown.r-lib.org/reference/build_site.html)
+  leaves a `pkgdown/favicon/` directory behind, and an example that
+  draws a plot leaves an `Rplots.pdf`; both otherwise ship in the
+  tarball and raise a non-standard-top-level-file NOTE.
+
 ## Version 2026.7.1
 
 ### Trend uncertainty

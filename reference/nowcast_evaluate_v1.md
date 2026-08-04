@@ -60,6 +60,17 @@ A data.table, one row per group x method: \`n\`, interval coverage
 (\`median_signed\` bias, \`median_abs\`, \`q05\`/\`q95\` band,
 \`p_gt\_\<t\>\` tails) and \`method\`.
 
+## See also
+
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+which runs this function on its synthetic triangle and reads the
+coverage and revision columns off the result.
+
+Other nowcast diagnostics:
+[`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
+[`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+
 ## Examples
 
 ``` r

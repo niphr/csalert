@@ -34,7 +34,7 @@ format, and the self-describing column-naming grammar they share.
 - [`csfmt_ensemble_v3()`](https://niphr.github.io/csalert/reference/csfmt_ensemble_v3.md)
   : Construct a csfmt_ensemble_v3
 - [`validate_ensemble()`](https://niphr.github.io/csalert/reference/validate_ensemble.md)
-  : Validate a csfmt_ensemble_v3's invariants
+  : Check a csfmt_ensemble_v3's structural shape
 - [`print(`*`<csfmt_ensemble_v3>`*`)`](https://niphr.github.io/csalert/reference/print.csfmt_ensemble_v3.md)
   : Print a \`csfmt_ensemble_v3\`
 - [`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md)
@@ -47,14 +47,13 @@ format, and the self-describing column-naming grammar they share.
 - [`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md)
   : Construct a csfmt measure column name from components
 - [`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md)
-  : Parse a csfmt measure column name into components (inverse of
-  \[csfmt_var\])
+  : Parse a csfmt measure column name into components
 - [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md)
   : Interpret a dataset's columns via the naming grammar
 - [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md) :
   Probability -\> controlled-vocabulary quantile label
 - [`q_value()`](https://niphr.github.io/csalert/reference/q_value.md) :
-  Quantile label -\> probability (inverse of \[q_label\])
+  Quantile label -\> probability
 
 ## Ensemble analysis pipeline
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,48 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.4" id="version-202684">Version 2026.8.4<a class="anchor" aria-label="anchor" href="#version-202684"></a></h2>
+<div class="section level3">
+<h3 id="documentation-2026-8-4">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-4"></a></h3>
+<ul><li>
+<strong>Every exported function now has a runnable example.</strong> 21 of the 34 exports had none; they already had a title, a description, <code>@param</code> and <code>@returns</code>, but nothing a reader could run. The new examples all execute under <code>R CMD check</code>; none is wrapped in <code>\dontrun{}</code> or <code>\donttest{}</code>, because nothing in the package needs a live database, a credential or a mounted share to demonstrate. The nowcast pipeline examples share one 40-week synthetic reporting triangle, right-truncated so the newest weeks are genuinely incomplete.</li>
+<li>
+<strong>Every exported function now carries an <code>@seealso</code> that says which vignette covers it, including when the honest answer is “neither”.</strong> Only eight exports are actually run inside a vignette code chunk. <code><a href="../reference/ens_add_rate.html">ens_add_rate()</a></code>, <code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> are named in the closing “Where next” list of the nowcasting vignette but not demonstrated there, and the <code>@seealso</code> now says so rather than implying coverage.</li>
+<li>
+<strong>Eight <code>@family</code> groups added as topical navigation</strong>, so the reference pages cross-link: ensemble format functions, reporting triangle functions, naming grammar functions, nowcast engines, nowcast diagnostics, nowcast calibration functions, ensemble operations, and reporting completion functions. These group functions by the concept they belong to, not by a shared call signature. Only <code>nowcast engines</code> is a set of interchangeable implementations; the other seven are pipeline stages or helpers around one concept, and each member’s <code>@seealso</code> states its own specific role. The two <code>qc_*</code> functions were deliberately <em>not</em> made a family: <code><a href="../reference/qc_surveillance_data_v1.html">qc_surveillance_data_v1()</a></code> screens one input feed and returns a verdict, <code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> diffs two finished runs and returns two tables. They are cross-linked with <code>@seealso</code> instead.</li>
+<li>
+<strong><code><a href="../reference/compare_results.html">compare_results()</a></code> gained an “Identity columns” section.</strong> It finds its value columns with <code><a href="../reference/csfmt_interpret.html">csfmt_interpret()</a></code>, so an identity column outside the csfmt structural schema (<code>location</code> rather than <code>location_code</code>) is read as a value column and <code>cur</code>/<code>prv</code> come back as character instead of numeric. <code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> then fails outright with <code>Error in cur - prv : non-numeric argument to binary operator</code>. The nowcasting vignette teaches exactly those non-schema names, so this is easy to hit.</li>
+<li>
+<strong>README grown from 23 words to a landing page</strong>: what the package is, the two routes through it, installation, one quick start, a which-function-do-I-want table, and links to the pkgdown site. It copies no passage from either vignette (longest shared run of consecutive words: three), though it necessarily summarises the same pipeline the nowcasting vignette explains in full.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="corrected-statistical-documentation-2026-8-4">Corrected statistical documentation<a class="anchor" aria-label="anchor" href="#corrected-statistical-documentation-2026-8-4"></a></h3>
+<p>No behaviour changed. Each of these help pages described a model, or a guarantee, that the code does not implement. An adversarial review found them.</p>
+<ul><li>
+<strong><code><a href="../reference/nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1()</a></code> is not fitted without an intercept.</strong> The documentation said “no intercept” in two places, but the formula is built as <code>y ~ d1 + d2 + ...</code>, which carries R’s default intercept — an inline comment in the source already said <code># + intercept</code>. The documented model now matches the fitted one.</li>
+<li>
+<strong>“Honestly dispersed” removed from the same engine.</strong> Simulating from a fitted model and truncating at the observed count does not establish calibrated coverage. The documentation now says calibration is an empirical question about a given series and points at <code><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code>, which exists to measure it.</li>
+<li>
+<strong>The calibration functions no longer claim split conformal or nominal coverage.</strong> The estimator takes the ordinary type-7 quantile of <code>|truth - median| / halfwidth</code>, not the conformal order statistic, and that symmetric residual is only faithful for intervals roughly symmetric about the median. There is no finite-sample guarantee. <code>coverage_raw</code> is now documented as what the engine did on the replayed weeks, not as a property of the engine.</li>
+<li>
+<strong><code>complete_by_md</code> is documented as identically 1.</strong> It was described as detecting reporting that continues past the horizon. It cannot: <code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> discards delays at or beyond <code>max_delay</code> before the total is formed, so the final cumulative fraction of that truncated total is always 1 and <code>pct_w&lt;max_delay&gt;</code> is always 100. To look for a tail, re-run with a larger <code>max_delay</code>. <strong>This is a source defect left unfixed and now documented.</strong>
+</li>
+<li>
+<strong><code><a href="../reference/q_value.html">q_value()</a></code> is no longer described as the inverse of <code><a href="../reference/q_label.html">q_label()</a></code>.</strong> The label format holds two integer-percent digits, so <code>q_label(1)</code> gives <code>"q100x0"</code>, which <code><a href="../reference/q_value.html">q_value()</a></code> returns <code>NA</code> for. The round trip holds on <code>[0, 1)</code>.</li>
+<li>
+<strong><code><a href="../reference/csfmt_parse.html">csfmt_parse()</a></code> is no longer described as the inverse of <code><a href="../reference/csfmt_var.html">csfmt_var()</a></code>.</strong> It strips a role from the right against a fixed vocabulary, so on the package’s own rate name <code>numerator_nowcasted_vs_denominator_nowcasted_pr100</code> it eats the denominator’s <code>_nowcasted</code> as the role and returns <code>denom = "denominator"</code>. A new section documents the limit with that exact name.</li>
+<li>
+<strong><code><a href="../reference/validate_ensemble.html">validate_ensemble()</a></code> is retitled “Check a csfmt_ensemble_v3’s structural shape”.</strong> It checks class, two column names, and that each draw matrix has one row per row of <code>$data</code> — the row COUNT only. Permuting the rows of <code>$data</code> or of a draw matrix passes, as do a missing key, a broken <code>time_series_internal_id</code> and a deleted <code>time_series_label</code>. The page previously implied it was a safety net for hand-edited objects; it now says to rebuild with <code><a href="../reference/csfmt_ensemble_v3.html">csfmt_ensemble_v3()</a></code> instead, and its example demonstrates a permutation passing.</li>
+<li>
+<strong><code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> cannot see HLM transitions.</strong> <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> writes role <code>"hlmstatus"</code> while the check selects role <code>"status"</code>, so only <code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> output reaches <code>qc$signal</code>. The example said otherwise and now records the gap.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="packaging-2026-8-4">Packaging<a class="anchor" aria-label="anchor" href="#packaging-2026-8-4"></a></h3>
+<ul><li>
+<code>^pkgdown$</code> and <code>^Rplots\.pdf$</code> added to <code>.Rbuildignore</code>. <code><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">pkgdown::build_site()</a></code> leaves a <code>pkgdown/favicon/</code> directory behind, and an example that draws a plot leaves an <code>Rplots.pdf</code>; both otherwise ship in the tarball and raise a non-standard-top-level-file NOTE.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.7.1" id="version-202671">Version 2026.7.1<a class="anchor" aria-label="anchor" href="#version-202671"></a></h2>
 <div class="section level3">

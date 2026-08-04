@@ -13,7 +13,7 @@ presentation) routes on the catalog instead of hardcoding column names."><meta p
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,7 +86,51 @@ presentation) routes on the catalog instead of hardcoding column names.</p>
     <p>A data.table: `column, measure, denom, role, q, level, per, suffix,
   interpretable` (the last TRUE when a role/quantile/level coordinate was found).</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p>Neither package vignette covers this function. It is the dataset-wide
+  form of <code><a href="csfmt_parse.html">csfmt_parse</a></code>, and is what
+  <code><a href="compare_results.html">compare_results</a></code> uses to find the value columns it should diff.</p>
+<p>Other naming grammar functions:
+<code><a href="csfmt_parse.html">csfmt_parse()</a></code>,
+<code><a href="csfmt_var.html">csfmt_var()</a></code>,
+<code><a href="q_label.html">q_label()</a></code>,
+<code><a href="q_value.html">q_value()</a></code></p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  isoyearweek <span class="op">=</span> <span class="st">"2023-01"</span>,</span></span>
+<span class="r-in"><span>  numerator_nowcasted_q50x0 <span class="op">=</span> <span class="fl">42</span>,</span></span>
+<span class="r-in"><span>  numerator_nowcasted_vs_denominator_nowcasted_pr100_q50x0 <span class="op">=</span> <span class="fl">8.4</span>,</span></span>
+<span class="r-in"><span>  numerator_nowcasted_status_prob_high <span class="op">=</span> <span class="fl">0.3</span>,</span></span>
+<span class="r-in"><span>  a_column_outside_the_grammar <span class="op">=</span> <span class="fl">1</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># isoyearweek is structural, so it is not a value column at all; the last</span></span></span>
+<span class="r-in"><span><span class="co"># column is a value column the grammar cannot read (interpretable = FALSE)</span></span></span>
+<span class="r-in"><span><span class="fu">csfmt_interpret</span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                      column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                      &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                numerator_nowcasted_q50x0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: numerator_nowcasted_vs_denominator_nowcasted_pr100_q50x0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:                     numerator_nowcasted_status_prob_high</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:                             a_column_outside_the_grammar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                         measure       denom      role     q  level   per suffix</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                          &lt;char&gt;      &lt;char&gt;    &lt;char&gt; &lt;num&gt; &lt;char&gt; &lt;int&gt; &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                    numerator        &lt;NA&gt; nowcasted   0.5   &lt;NA&gt;    NA   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:          numerator_nowcasted denominator nowcasted   0.5   &lt;NA&gt;   100   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:          numerator_nowcasted        &lt;NA&gt;    status    NA   high    NA   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4: a_column_outside_the_grammar        &lt;NA&gt;      &lt;NA&gt;    NA   &lt;NA&gt;    NA   &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    interpretable</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;lgcl&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:          TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:          TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:          TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:         FALSE</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

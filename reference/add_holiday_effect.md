@@ -32,6 +32,15 @@ A `csfmt_rts_data_v1` (`data.table`) equal to `data` with the count `n`
 multiplied by `holiday_effect` on flagged holidays, and a `holiday`
 column indicating those dates.
 
+## See also
+
+Neither package vignette covers the data simulators. Use them to
+generate a series whose truth you already know, then run
+[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+or
+[`signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+on it.
+
 ## Examples
 
 ``` r

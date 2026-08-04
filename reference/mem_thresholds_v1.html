@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -119,7 +119,87 @@ seasons; only the baseline they are fit on changes.</p></dd>
   `$draws` (the ordinal 1..5 status for `measure` and its threshold levels), so
   the intensity level propagates through the later quantile collapse.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code> names this function
+  in its closing "Where next" list but does not demonstrate it; the example
+  below is its only worked demonstration.</p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># MEM needs several complete prior seasons, so this fixture spans four:</span></span></span>
+<span class="r-in"><span><span class="co"># 212 weeks with a winter peak in each.</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"mem"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="va">w</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span></span>
+<span class="r-in"><span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2018-30"</span>, <span class="va">w</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">212L</span></span></span>
+<span class="r-in"><span>  <span class="va">iyw</span> <span class="op">&lt;-</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">0</span><span class="op">:</span><span class="op">(</span><span class="va">n</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">lam</span> <span class="op">&lt;-</span> <span class="fl">20</span> <span class="op">+</span> <span class="fl">60</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="fu">cstime</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/cstime/man/isoyearweek_to_seasonweek_n.html" class="external-link">isoyearweek_to_seasonweek_n</a></span><span class="op">(</span><span class="va">iyw</span><span class="op">)</span> <span class="op">-</span> <span class="fl">25</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">40</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="csfmt_ensemble_v3.html">csfmt_ensemble_v3</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>      isoyearweek <span class="op">=</span> <span class="va">iyw</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>, age <span class="op">=</span> <span class="st">"total"</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span>,</span></span>
+<span class="r-in"><span>    id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"location_code"</span>, <span class="st">"age"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    draws <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>numerator_nowcasted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="fl">50</span>, <span class="va">lam</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">n</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu">mem_thresholds_v1</span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="st">"numerator_nowcasted"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># thresholds are estimated leave-future-out, so the early seasons get none</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">ens</span><span class="op">$</span><span class="va">data</span><span class="op">[</span></span></span>
+<span class="r-in"><span>    <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">mem_high</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    <span class="fu">.</span><span class="op">(</span></span></span>
+<span class="r-in"><span>      season <span class="op">=</span> <span class="fu">cstime</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/cstime/man/isoyearweek_to_season_c.html" class="external-link">isoyearweek_to_season_c</a></span><span class="op">(</span><span class="va">isoyearweek</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>      <span class="va">mem_preepidemic</span>, <span class="va">mem_medium</span>, <span class="va">mem_high</span>, <span class="va">mem_veryhigh</span>, <span class="va">mem_n_seasons</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># A week whose season has no thresholds gets NA for every draw, so it is not</span></span></span>
+<span class="r-in"><span>  <span class="co"># classified at all. On this fixture that is the first two seasons:</span></span></span>
+<span class="r-in"><span>  <span class="va">status</span> <span class="op">&lt;-</span> <span class="va">ens</span><span class="op">$</span><span class="va">draws</span><span class="op">$</span><span class="va">numerator_nowcasted_status</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    weeks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    weeks_with_no_threshold <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">status</span>, <span class="fl">1</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># For a week that DOES have thresholds, every draw is classified, so the</span></span></span>
+<span class="r-in"><span>  <span class="co"># alert level arrives as a distribution rather than as a single label.</span></span></span>
+<span class="r-in"><span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens</span>, probs <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">pcols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"_status_prob_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">r</span><span class="op">[</span></span></span>
+<span class="r-in"><span>    <span class="va">isoyearweek</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2021-45"</span>, <span class="st">"2022-02"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"isoyearweek"</span>, <span class="va">pcols</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    with <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span>  <span class="op">]</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> mem_thresholds_v1: 3 season(s) fit on &lt; 5 training seasons (provisional); see mem_n_seasons.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       season mem_preepidemic mem_medium mem_high mem_veryhigh mem_n_seasons</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt;           &lt;num&gt;      &lt;num&gt;    &lt;num&gt;        &lt;num&gt;         &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 2020/2021        37.26995   64.43633 81.87090     91.01148             2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 2021/2022        40.28893   66.68661 82.29283     90.30798             3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: 2022/2023        41.83822   71.02438 81.28250     86.27663             4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   weeks weeks_with_no_threshold </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     212                     104 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    isoyearweek numerator_nowcasted_status_prob_preepidemic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         &lt;char&gt;                                       &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     2021-45                                        1.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     2022-02                                        0.02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    numerator_nowcasted_status_prob_low numerator_nowcasted_status_prob_medium</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                  &lt;num&gt;                                  &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                0.00                                   0.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                                0.94                                   0.04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    numerator_nowcasted_status_prob_high</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                   &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                    0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                                    0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    numerator_nowcasted_status_prob_veryhigh</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                       &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                                        0</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

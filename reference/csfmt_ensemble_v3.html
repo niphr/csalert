@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,56 @@
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A `csfmt_ensemble_v3`.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code> is built on this
+  format: its nowcast engine produces one and <code><a href="ens_collapse.html">ens_collapse</a></code>
+  reduces it. The vignette never calls this constructor directly, because the
+  engines build the ensemble for you; call it yourself only when you already
+  hold draws from somewhere else.</p>
+<p>Other ensemble format functions:
+<code><a href="print.csfmt_ensemble_v3.html">print.csfmt_ensemble_v3()</a></code>,
+<code><a href="set_time_series_id.html">set_time_series_id()</a></code>,
+<code><a href="validate_ensemble.html">validate_ensemble()</a></code></p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  location_code <span class="op">=</span> <span class="st">"nation"</span>,</span></span>
+<span class="r-in"><span>  age <span class="op">=</span> <span class="st">"total"</span>,</span></span>
+<span class="r-in"><span>  isoyearweek <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="st">"2023-02"</span>, <span class="st">"2023-03"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu">csfmt_ensemble_v3</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">d</span>,</span></span>
+<span class="r-in"><span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"location_code"</span>, <span class="st">"age"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  draws <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>numerator_nowcasted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">3</span> <span class="op">*</span> <span class="fl">100</span>, <span class="fl">20</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ens</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;csfmt_ensemble_v3&gt; 3 rows | 1 series | draws: numerator_nowcasted</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># $data carries the identity + the canonical sort keys. The trailing []</span></span></span>
+<span class="r-in"><span><span class="co"># forces the print: data.table suppresses the first auto-print of a table</span></span></span>
+<span class="r-in"><span><span class="co"># that was last modified by reference, which the constructor does.</span></span></span>
+<span class="r-in"><span><span class="va">ens</span><span class="op">$</span><span class="va">data</span><span class="op">[</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Key: &lt;time_series_id, time_series_internal_id&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    location_code    age isoyearweek   time_series_id time_series_label</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt; &lt;char&gt;      &lt;char&gt;           &lt;char&gt;            &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        nation  total     2023-01 0ec581372be7c933   nation\037total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:        nation  total     2023-02 0ec581372be7c933   nation\037total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:        nation  total     2023-03 0ec581372be7c933   nation\037total</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    time_series_internal_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                      &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                       1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                       2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:                       3</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># $draws holds one [weeks x draws] matrix per measure</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">ens</span><span class="op">$</span><span class="va">draws</span><span class="op">$</span><span class="va">numerator_nowcasted</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1]   3 100</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
