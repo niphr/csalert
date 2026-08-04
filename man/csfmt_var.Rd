@@ -39,3 +39,15 @@ Construct a csfmt measure column name from components
 csfmt_var("numerator", role = "nowcasted", q = 0.5)   # "numerator_nowcasted_q50x0"
 csfmt_var("consults", denom = "population", per = 100) # a rate column name
 }
+\seealso{
+\code{vignette("nowcasting", package = "csalert")}, whose closing
+  section builds a column name with this function and takes it apart again with
+  \code{\link{csfmt_parse}}.
+
+Other naming grammar functions: 
+\code{\link{csfmt_interpret}()},
+\code{\link{csfmt_parse}()},
+\code{\link{q_label}()},
+\code{\link{q_value}()}
+}
+\concept{naming grammar functions}

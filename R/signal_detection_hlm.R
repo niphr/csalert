@@ -1,20 +1,20 @@
-gen_data_signal_detection_hlm <- function(seed = 4){
-
+gen_data_signal_detection_hlm <- function(seed = 4) {
   isoyear <- NULL
   cases_n <- NULL
   seasonweek <- NULL
 
-
   d <- cstidy::csfmt_rts_data_v1(data.table(
     granularity_time = "isoyearweek",
     location_code = "norge",
-    isoyearweek = cstime::dates_by_isoyearweek[isoyear %in% c(2015:2023)]$isoyearweek,
+    isoyearweek = cstime::dates_by_isoyearweek[
+      isoyear %in% c(2015:2023)
+    ]$isoyearweek,
     age = "total",
     sex = "total",
     border = 2020
   ))
   # set.seed(4)
-  d[, cases_n := stats::rpois(.N, lambda = seasonweek*4)]
+  d[, cases_n := stats::rpois(.N, lambda = seasonweek * 4)]
   shouldPrint(d)
   return(d)
 }
@@ -31,12 +31,16 @@ gen_data_signal_detection_hlm <- function(seed = 4){
 #'
 #' @param x Data object.
 #' @param ... Not in use.
+#' @seealso Neither package vignette runs this function.
+#'   \code{vignette("nowcasting", package = "csalert")} names it in its closing
+#'   "Where next" list as one of the stages that can run on an ensemble, but does
+#'   not demonstrate it; the example below is its only worked demonstration.
 #' @rdname signal_detection_hlm
 #' @export
 signal_detection_hlm <- function(
   x,
- ...
-){
+  ...
+) {
   UseMethod("signal_detection_hlm", x)
 }
 
@@ -86,8 +90,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   value_naming_prefix = "from_numerator",
   remove_training_data = FALSE,
   ...
-  ){
-
+) {
   . <- NULL
   time_series_id <- NULL
   to_be_forecasted <- NULL
@@ -99,8 +102,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   baseline_mean <- NULL
   baseline_sd <- NULL
 
-
-  if(!"time_series_id" %in% names(x)){
+  if (!"time_series_id" %in% names(x)) {
     remove_time_series_id <- TRUE
   } else {
     remove_time_series_id <- FALSE
@@ -115,7 +117,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
 
   # check granularity time. can only do date and isoyearweek
   gran_time <- x$granularity_time[1]
-  if(!gran_time %in% c("isoyearweek")){
+  if (!gran_time %in% c("isoyearweek")) {
     stop("granularity_time is not isoyearweek")
   }
 
@@ -124,17 +126,22 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   remove_last_rows <- remove_last_isoyearweeks
   forecast_rows <- forecast_isoyearweeks
 
-  if(forecast_isoyearweeks > 0){
-    with_pred <- cstidy::expand_time_to(x, max_isoyearweek = cstime::date_to_isoyearweek_c(max(x$date)+forecast_isoyearweeks*7))
+  if (forecast_isoyearweeks > 0) {
+    with_pred <- cstidy::expand_time_to(
+      x,
+      max_isoyearweek = cstime::date_to_isoyearweek_c(
+        max(x$date) + forecast_isoyearweeks * 7
+      )
+    )
   } else {
     with_pred <- copy(x)
   }
 
   # numerator name
   suffix <- stringr::str_extract(value, "_[a-z0-9]+$")
-  if(value_naming_prefix=="from_numerator"){
+  if (value_naming_prefix == "from_numerator") {
     prefix <- stringr::str_remove(value, "_[a-z0-9]+$")
-  } else if(value_naming_prefix=="generic") {
+  } else if (value_naming_prefix == "generic") {
     prefix <- "value"
   } else {
     prefix <- value_naming_prefix
@@ -143,10 +150,21 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   # create forecast var names (num, denom)
   varname_forecast_value <- paste0(prefix, "_forecasted", suffix)
   varname_forecast <- paste0(varname_forecast_value, "_forecast")
-  varname_baseline_predinterval_q50x0_value <- paste0(prefix, "_baseline_predinterval_q50x0", suffix)
-  varname_baseline_predinterval_q00x5_value <- paste0(prefix, "_baseline_predinterval_q00x5", suffix)
-  varname_baseline_predinterval_q99x5_value <- paste0(prefix, "_baseline_predinterval_q99x5", suffix)
-
+  varname_baseline_predinterval_q50x0_value <- paste0(
+    prefix,
+    "_baseline_predinterval_q50x0",
+    suffix
+  )
+  varname_baseline_predinterval_q00x5_value <- paste0(
+    prefix,
+    "_baseline_predinterval_q00x5",
+    suffix
+  )
+  varname_baseline_predinterval_q99x5_value <- paste0(
+    prefix,
+    "_baseline_predinterval_q99x5",
+    suffix
+  )
 
   varname_status <- paste0(value, "_status")
 
@@ -158,48 +176,80 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
     years = 1:baseline_isoyears
   ) %>%
     setDT()
-  baseline[, lag := years*52 + weeks]
+  baseline[, lag := years * 52 + weeks]
   baseline[, var := paste0("d", 1:.N)]
 
-  for(i in 1:nrow(baseline)){
-    with_pred[, (baseline$var[i]) := shift(get(value), n = baseline$lag[i]), by = .(time_series_id)]
+  for (i in 1:nrow(baseline)) {
+    with_pred[,
+      (baseline$var[i]) := shift(get(value), n = baseline$lag[i]),
+      by = .(time_series_id)
+    ]
   }
   with_pred[, baseline_mean := row_mean(.SD), .SDcols = baseline$var]
   with_pred[, baseline_sd := row_sd(.SD), .SDcols = baseline$var]
 
   # dont assign floats to integer columns
-  if(suffix=="_n"){
+  if (suffix == "_n") {
     fn <- round
   } else {
     fn <- function(x) return(x)
   }
-  with_pred[to_be_forecasted==FALSE , (varname_forecast_value) := get(value)]
-  with_pred[,(varname_forecast) := to_be_forecasted]
-  with_pred[, (varname_baseline_predinterval_q50x0_value) := fn(stats::qnorm(0.50, baseline_mean, baseline_sd))]
-  with_pred[to_be_forecasted==TRUE, (varname_forecast_value) := get(varname_baseline_predinterval_q50x0_value)]
-  with_pred[, (varname_baseline_predinterval_q00x5_value) := fn(stats::qnorm(0.005, baseline_mean, baseline_sd))]
-  with_pred[, (varname_baseline_predinterval_q99x5_value) := fn(stats::qnorm(0.995, baseline_mean, baseline_sd))]
+  with_pred[to_be_forecasted == FALSE, (varname_forecast_value) := get(value)]
+  with_pred[, (varname_forecast) := to_be_forecasted]
+  with_pred[,
+    (varname_baseline_predinterval_q50x0_value) := fn(stats::qnorm(
+      0.50,
+      baseline_mean,
+      baseline_sd
+    ))
+  ]
+  with_pred[
+    to_be_forecasted == TRUE,
+    (varname_forecast_value) := get(varname_baseline_predinterval_q50x0_value)
+  ]
+  with_pred[,
+    (varname_baseline_predinterval_q00x5_value) := fn(stats::qnorm(
+      0.005,
+      baseline_mean,
+      baseline_sd
+    ))
+  ]
+  with_pred[,
+    (varname_baseline_predinterval_q99x5_value) := fn(stats::qnorm(
+      0.995,
+      baseline_mean,
+      baseline_sd
+    ))
+  ]
 
   with_pred[, (varname_status) := "null"]
-  with_pred[get(value) > get(varname_baseline_predinterval_q99x5_value), (varname_status) := "high"]
+  with_pred[
+    get(value) > get(varname_baseline_predinterval_q99x5_value),
+    (varname_status) := "high"
+  ]
   with_pred[is.na(baseline_mean), (varname_status) := "training"]
-  with_pred[to_be_forecasted==TRUE, (varname_status) := "forecast"]
-  with_pred[, (varname_status) := factor(
-    get(varname_status),
-    levels = c("training", "forecast", "null", "high")
-  )]
+  with_pred[to_be_forecasted == TRUE, (varname_status) := "forecast"]
+  with_pred[,
+    (varname_status) := factor(
+      get(varname_status),
+      levels = c("training", "forecast", "null", "high")
+    )
+  ]
 
-  for(i in 1:nrow(baseline)){
+  for (i in 1:nrow(baseline)) {
     with_pred[, (baseline$var[i]) := NULL]
   }
   with_pred[, baseline_mean := NULL]
   with_pred[, baseline_sd := NULL]
   with_pred[, to_be_forecasted := NULL]
 
-  if(remove_training_data) with_pred <- with_pred[get(varname_status) != "training"]
+  if (remove_training_data) {
+    with_pred <- with_pred[get(varname_status) != "training"]
+  }
 
-
-  if(remove_time_series_id & "time_series_id" %in% names(with_pred)) with_pred[, time_series_id := NULL]
+  if (remove_time_series_id & "time_series_id" %in% names(with_pred)) {
+    with_pred[, time_series_id := NULL]
+  }
 
   cstidy::set_csfmt_rts_data_v1(with_pred)
 

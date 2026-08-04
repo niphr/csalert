@@ -2,7 +2,7 @@
 % Please edit documentation in R/naming_grammar.R
 \name{csfmt_parse}
 \alias{csfmt_parse}
-\title{Parse a csfmt measure column name into components (inverse of [csfmt_var])}
+\title{Parse a csfmt measure column name into components}
 \usage{
 csfmt_parse(varname)
 }
@@ -11,11 +11,47 @@ csfmt_parse(varname)
 }
 \value{
 Named list with the components that were present (e.g. `measure`,
-  `role`, `q`, `denom`, `per`), i.e. the inverse of [csfmt_var].
+  `role`, `q`, `denom`, `per`).
 }
 \description{
-Parse a csfmt measure column name into components (inverse of [csfmt_var])
+Reads a column name written by [csfmt_var] back into its parts. It strips the
+trailing coordinates, then a role, then a `_vs_<denom>` segment, and whatever
+is left is the measure.
 }
+\section{Where it does not invert csfmt_var}{
+
+The parse is a right-to-left strip against a fixed role vocabulary, so it
+cannot tell which of several role-looking segments was the role. On the
+package's own rate name it gets the denominator wrong:
+
+\preformatted{
+csfmt_var("numerator_nowcasted", denom = "denominator_nowcasted", per = 100)
+#> "numerator_nowcasted_vs_denominator_nowcasted_pr100"
+csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")$denom
+#> "denominator"          # the denominator's own "_nowcasted" was eaten as the role
+}
+
+Treat it as reliable for a single-role name such as
+`numerator_nowcasted_q50x0`, and check the result whenever the measure or the
+denominator itself ends in a role word.
+}
+
 \examples{
 csfmt_parse("numerator_nowcasted_q50x0")
+
+# the documented limit: a denominator that itself ends in a role word is
+# truncated, because the role is stripped before the _vs_ segment is read
+csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")
 }
+\seealso{
+[csfmt_var] writes these names.
+  \code{vignette("nowcasting", package = "csalert")}, whose closing section
+  parses a collapsed median column with this function.
+
+Other naming grammar functions: 
+\code{\link{csfmt_interpret}()},
+\code{\link{csfmt_var}()},
+\code{\link{q_label}()},
+\code{\link{q_value}()}
+}
+\concept{naming grammar functions}

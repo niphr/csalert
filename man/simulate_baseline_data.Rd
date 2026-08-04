@@ -88,3 +88,8 @@ Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
 An improved algorithm for outbreak detection in multiple surveillance
 systems. Statistics in Medicine. 2013.
 }
+\seealso{
+Neither package vignette covers the data simulators. Use them to
+  generate a series whose truth you already know, then run
+  \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+}

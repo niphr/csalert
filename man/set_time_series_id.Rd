@@ -19,3 +19,27 @@ set_time_series_id(d, id_cols, sep = "\\037")
 \description{
 Assign content-hash time_series_id (+ readable label) by reference
 }
+\examples{
+d <- data.table::data.table(
+  location_code = c("nation", "nation", "county03"),
+  age = "total",
+  isoyearweek = c("2023-01", "2023-02", "2023-01"),
+  numerator = c(10, 12, 4)
+)
+set_time_series_id(d, id_cols = c("location_code", "age"))
+
+# the two nation rows share one content hash; the county row gets its own
+d[]
+}
+\seealso{
+Neither package vignette covers this function. It is called for you by
+  \code{\link{csfmt_ensemble_v3}} and \code{\link{csfmt_reporting_triangle_v3}};
+  call it directly only when you are keying a data.table those constructors
+  never see.
+
+Other ensemble format functions: 
+\code{\link{csfmt_ensemble_v3}()},
+\code{\link{print.csfmt_ensemble_v3}()},
+\code{\link{validate_ensemble}()}
+}
+\concept{ensemble format functions}

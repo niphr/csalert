@@ -19,3 +19,52 @@ qc_week_over_week_v1(current, previous, max_delay, tol = 1e-06)
 \description{
 Week-over-week QC: settled-data integrity (A) + frontier status signal (B)
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+
+id <- c("indicator_tag", "location_code", "age", "sex")
+
+# seed inside `run()`, so the two runs differ only by the data revision and
+# not by their Monte-Carlo draws
+run <- function(x) {
+  set.seed(2)
+  ens_collapse(nowcast_quasipoisson_v1(
+    csfmt_reporting_triangle_v3(x, id_cols = id),
+    max_delay = 3, n_sim = 200
+  ))
+}
+
+cur <- run(d)
+d_prv <- data.table::copy(d)
+d_prv[isoyearweek_reference == w[i + 10], numerator := numerator - 5]
+prv <- run(d_prv)
+
+qc <- qc_week_over_week_v1(cur, prv, max_delay = 3)
+
+# A settled week whose published median moved between runs. This table is
+# ideally empty; a row in it means history was rewritten.
+qc$integrity
+
+# Status transitions on the frontier weeks. Empty here because these runs have
+# no status column at all: only mem_thresholds_v1() writes role "status", and
+# it was not run. NOTE signal_detection_hlm() does NOT qualify -- it writes
+# role "hlmstatus", which this check does not select, so HLM transitions never
+# appear here.
+qc$signal
+}
+\seealso{
+Neither package vignette covers run-over-run comparison.
+  \code{\link{compare_results}} is the underlying diff, and documents which
+  identity column names this check needs.
+  \code{\link{qc_surveillance_data_v1}} answers a different question, about one
+  input feed rather than two finished runs.
+}

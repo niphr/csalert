@@ -25,3 +25,38 @@ Named list (by time_series_id) of `list(reference, mat)`, where `mat`
 \description{
 Densify a reporting triangle into per-series reference x delay count matrices
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+m <- reporting_triangle_matrix(tri, max_delay = 3)
+names(m)
+
+# rows are reference weeks, columns are delays 0, 1, 2
+head(m[[1]]$reference, 3)
+head(m[[1]]$mat, 3)
+
+# the newest weeks are only partly reported: the later delays are still zero
+tail(m[[1]]$mat, 3)
+}
+\seealso{
+Neither package vignette covers this function. It is the densification
+  step every nowcast engine runs first, so reach for it directly only when you
+  want the raw reference x delay matrix rather than an ensemble.
+
+Other reporting triangle functions: 
+\code{\link{csfmt_reporting_triangle_v3}()}
+}
+\concept{reporting triangle functions}

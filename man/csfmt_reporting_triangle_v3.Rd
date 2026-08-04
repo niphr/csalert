@@ -29,3 +29,34 @@ A validated `csfmt_reporting_triangle_v3` (a data.table with the
 \description{
 Construct a csfmt_reporting_triangle_v3
 }
+\examples{
+# 40 reference weeks, each reported over delays 0-2, then right-truncated at
+# the newest reference week so the most recent weeks are still incomplete
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+# the as-of boundary is the newest reporting week seen
+attr(tri, "as_of")
+head(tri, 3)
+}
+\seealso{
+\code{vignette("nowcasting", package = "csalert")}, which builds a
+  triangle with this constructor and takes it through the whole pipeline.
+
+Other reporting triangle functions: 
+\code{\link{reporting_triangle_matrix}()}
+}
+\concept{reporting triangle functions}

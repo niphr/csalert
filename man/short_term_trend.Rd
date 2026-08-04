@@ -107,3 +107,9 @@ print(res[, .(
   hospitalization_with_covid19_as_primary_cause_trend0_41_status
 )])
 }
+\seealso{
+\code{vignette("short_term_trend", package = "csalert")}, which runs
+  this function on one location and then on every Norwegian county.
+  \code{vignette("nowcasting", package = "csalert")} names the ensemble method
+  in its closing "Where next" list but does not demonstrate it.
+}

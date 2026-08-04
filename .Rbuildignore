@@ -12,3 +12,5 @@ dev
 ^CRAN-SUBMISSION$
 ^\.github$
 ^index\.md$
+^pkgdown$
+^Rplots\.pdf$

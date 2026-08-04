@@ -14,6 +14,10 @@
 #'     \item{alpha}{Significance level for change in trend.}
 #' }
 #' @returns sts object with the alarms slot set to 0/1 if not-increasing/increasing.
+#' @seealso Neither package vignette covers this function. It is the
+#'   \code{surveillance::sts} form of the same trend method that
+#'   \code{vignette("short_term_trend", package = "csalert")} demonstrates through
+#'   \code{\link{short_term_trend}}.
 #' @examples
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]
@@ -34,8 +38,8 @@
 short_term_trend_sts_v1 <- function(
   sts,
   control = list(
-    w = 5,                  # window length (behind)
-    alpha = 0.05            # (one-sided) (1-alpha)% prediction interval
+    w = 5, # window length (behind)
+    alpha = 0.05 # (one-sided) (1-alpha)% prediction interval
   )
 ) {
   stopifnot(inherits(sts, "sts"))
@@ -54,8 +58,12 @@ short_term_trend_sts_v1 <- function(
   observed <- surveillance::observed(sts)
   freq <- sts@freq
   if (epochAsDate) {
-    epochStr <- switch( as.character(freq), "12" = "month","52" =    "week",
-                        "365" = "day")
+    epochStr <- switch(
+      as.character(freq),
+      "12" = "month",
+      "52" = "week",
+      "365" = "day"
+    )
   } else {
     epochStr <- "none"
   }
@@ -75,28 +83,26 @@ short_term_trend_sts_v1 <- function(
   ######################################################################
   score <- trend <- pvalue <- expected <-
     mu0Vector <- phiVector <- trendVector <-
-    matrix(data = 0, nrow = length(control$range), ncol = ncol(sts))
+      matrix(data = 0, nrow = length(control$range), ncol = ncol(sts))
 
   # Define objects
-  n <- control$b*(2*control$w+1)
-
+  n <- control$b * (2 * control$w + 1)
 
   # loop over columns of sts
   for (j in 1:ncol(sts)) {
-
     #Vector of dates
     if (epochAsDate) {
-      vectorOfDates <- as.Date(sts@epoch, origin="1970-01-01")
+      vectorOfDates <- as.Date(sts@epoch, origin = "1970-01-01")
     } else {
-      vectorOfDates <- seq_len(length(observed[,j]))
+      vectorOfDates <- seq_len(length(observed[, j]))
     }
 
     # Loop over control$range
-    for(k in (control$w):nrow(observed)){
-      start <- k-control$w+1
+    for (k in (control$w):nrow(observed)) {
+      start <- k - control$w + 1
       stop <- k
-      obs <- observed[start:stop,j]
-      pop <- population[start:stop,j]
+      obs <- observed[start:stop, j]
+      pop <- population[start:stop, j]
       trend <- 1:control$w
 
       model <- glm2::glm2(
@@ -107,12 +113,12 @@ short_term_trend_sts_v1 <- function(
       # determine the trend based on beta
       vals <- stats::coef(summary(model))
       co <- vals["trend", "Estimate"]
-      pval <- vals["trend",][[4]]
+      pval <- vals["trend", ][[4]]
 
-      if(pval < control$alpha & co > 0){
-        sts@alarm[k,j] <- 1
+      if (pval < control$alpha & co > 0) {
+        sts@alarm[k, j] <- 1
       } else {
-        sts@alarm[k,j] <- 0
+        sts@alarm[k, j] <- 0
       }
     }
   }

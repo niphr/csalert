@@ -18,3 +18,13 @@
 Shows the nominal interval level, the grouping, and the per-group calibration
 factor table (factor > 1 widens an under-dispersed engine; < 1 narrows).
 }
+\seealso{
+Neither package vignette covers calibration; see the example on
+  \code{\link{nowcast_estimate_calibration_v1}}, which prints its result with
+  this method.
+
+Other nowcast calibration functions: 
+\code{\link{nowcast_apply_calibration_v1}()},
+\code{\link{nowcast_estimate_calibration_v1}()}
+}
+\concept{nowcast calibration functions}

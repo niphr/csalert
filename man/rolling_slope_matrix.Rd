@@ -19,3 +19,25 @@ Closed-form simple linear regression of each window (length `width`, time
 index 1..width) applied independently down every column. Returns matrices of
 the same shape; leading `width-1` rows of each column are NA.
 }
+\examples{
+# 10 weeks x 4 draws, all rising at a true slope of 2 per week
+set.seed(1)
+Y <- matrix(rep(1:10, 4) * 2 + rnorm(40), nrow = 10)
+
+rs <- rolling_slope_matrix(Y, width = 4)
+
+# the first three rows have no complete window, so they are NA
+head(rs$beta1, 3)
+
+# later rows recover the slope, one estimate per draw
+round(rs$beta1[8:10, ], 2)
+
+# `se` is the OLS standard error of that slope
+round(rs$se[10, ], 2)
+}
+\seealso{
+Neither package vignette covers this function. It is the numeric
+  kernel behind the ensemble method of \code{\link{short_term_trend}}, which
+  is the function you normally want; use this one when you have a bare
+  weeks x draws matrix and no ensemble.
+}

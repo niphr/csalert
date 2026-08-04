@@ -27,3 +27,42 @@ the same `<measure>_nowcasted` columns as the modelling engines -- here equal to
 the observed value -- so all downstream code is identical; the single draw makes
 every collapsed quantile equal the observed point.
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+ens <- nowcast_passthrough_to_ensemble_v1(tri, max_delay = 3)
+ens
+
+# one draw only, so every collapsed quantile equals the observed total --
+# including for the newest, still-incomplete weeks
+r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+tail(r[, .(
+  isoyearweek, original,
+  lo = numerator_nowcasted_q05x0,
+  med = numerator_nowcasted_q50x0,
+  hi = numerator_nowcasted_q95x0
+)], 3)
+}
+\seealso{
+Neither package vignette covers this engine;
+  \code{vignette("nowcasting", package = "csalert")} runs
+  \code{\link{nowcast_quasipoisson_v1}} instead. The example below is this
+  engine's only worked demonstration.
+
+Other nowcast engines: 
+\code{\link{nowcast_quasipoisson_v1}()}
+}
+\concept{nowcast engines}

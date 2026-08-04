@@ -22,3 +22,38 @@ A `csfmt_ensemble_v3`.
 \description{
 Construct a csfmt_ensemble_v3
 }
+\examples{
+d <- data.table::data.table(
+  location_code = "nation",
+  age = "total",
+  isoyearweek = c("2023-01", "2023-02", "2023-03")
+)
+set.seed(1)
+ens <- csfmt_ensemble_v3(
+  d,
+  id_cols = c("location_code", "age"),
+  draws = list(numerator_nowcasted = matrix(rpois(3 * 100, 20), nrow = 3))
+)
+ens
+
+# $data carries the identity + the canonical sort keys. The trailing []
+# forces the print: data.table suppresses the first auto-print of a table
+# that was last modified by reference, which the constructor does.
+ens$data[]
+
+# $draws holds one [weeks x draws] matrix per measure
+dim(ens$draws$numerator_nowcasted)
+}
+\seealso{
+\code{vignette("nowcasting", package = "csalert")} is built on this
+  format: its nowcast engine produces one and \code{\link{ens_collapse}}
+  reduces it. The vignette never calls this constructor directly, because the
+  engines build the ensemble for you; call it yourself only when you already
+  hold draws from somewhere else.
+
+Other ensemble format functions: 
+\code{\link{print.csfmt_ensemble_v3}()},
+\code{\link{set_time_series_id}()},
+\code{\link{validate_ensemble}()}
+}
+\concept{ensemble format functions}

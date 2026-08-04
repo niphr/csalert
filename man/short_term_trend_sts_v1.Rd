@@ -43,3 +43,9 @@ x <- csalert::short_term_trend_sts_v1(
 )
 plot(x)
 }
+\seealso{
+Neither package vignette covers this function. It is the
+  \code{surveillance::sts} form of the same trend method that
+  \code{vignette("short_term_trend", package = "csalert")} demonstrates through
+  \code{\link{short_term_trend}}.
+}

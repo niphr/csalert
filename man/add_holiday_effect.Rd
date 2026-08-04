@@ -50,3 +50,8 @@ holidays <- data.table(
 d <- add_holiday_effect(baseline, holiday_data = holidays, holiday_effect = 2)
 print(d[holiday == TRUE, .(date, n, holiday)])
 }
+\seealso{
+Neither package vignette covers the data simulators. Use them to
+  generate a series whose truth you already know, then run
+  \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+}

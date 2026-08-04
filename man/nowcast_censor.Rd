@@ -19,3 +19,35 @@ Keeps only cells reported on or before `as_of` and rebuilds the triangle, so
 its as-of boundary and delay structure are exactly what an engine would have
 seen at that week. The basis for replay-based backtesting.
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+# rewind to what was known nine weeks earlier
+past <- nowcast_censor(tri, as_of = w[i + 30])
+c(now = attr(tri, "as_of"), then = attr(past, "as_of"))
+c(rows_now = nrow(tri), rows_then = nrow(past))
+}
+\seealso{
+Neither package vignette covers this function.
+  \code{vignette("nowcasting", package = "csalert")} describes replay in prose
+  and then calls \code{\link{nowcast_evaluate_v1}}, which censors for you.
+
+Other nowcast diagnostics: 
+\code{\link{nowcast_backtest}()},
+\code{\link{nowcast_evaluate_v1}()},
+\code{\link{nowcast_truth}()}
+}
+\concept{nowcast diagnostics}

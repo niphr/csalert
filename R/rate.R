@@ -18,26 +18,79 @@
 #' @param name Optional output measure name (defaults to the grammar name).
 #' @param ... Passed to methods.
 #' @returns `x` with the rate measure added to `$draws`.
+#' @family ensemble operations
+#' @seealso \code{vignette("nowcasting", package = "csalert")} names this function
+#'   in its closing "Where next" list but does not demonstrate it; the example
+#'   below is its only worked demonstration.
+#' @examples
+#' d <- data.table::data.table(
+#'   location_code = "nation",
+#'   age = "total",
+#'   isoyearweek = c("2023-01", "2023-02", "2023-03")
+#' )
+#' # The numerator must be a SUBSET of the denominator (tests positive out of
+#' # tests taken), so simulate the denominator first and the numerator
+#' # conditionally on it. Two independent Poissons would not be a proportion.
+#' set.seed(1)
+#' denom <- matrix(rpois(3 * 100, 200), nrow = 3)
+#' numer <- matrix(rbinom(length(denom), size = denom, prob = 0.10), nrow = 3)
+#' ens <- csfmt_ensemble_v3(
+#'   d,
+#'   id_cols = c("location_code", "age"),
+#'   draws = list(
+#'     numerator_nowcasted = numer,
+#'     denominator_nowcasted = denom
+#'   )
+#' )
+#'
+#' ens <- ens_add_rate(
+#'   ens,
+#'   numerator = "numerator_nowcasted",
+#'   denominator = "denominator_nowcasted",
+#'   per = 100
+#' )
+#'
+#' # the rate is a third draw matrix, named by the grammar
+#' names(ens$draws)
+#'
+#' # its interval carries the uncertainty of both measures
+#' r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+#' r[, .(
+#'   isoyearweek,
+#'   lo = numerator_nowcasted_vs_denominator_nowcasted_pr100_q05x0,
+#'   med = numerator_nowcasted_vs_denominator_nowcasted_pr100_q50x0,
+#'   hi = numerator_nowcasted_vs_denominator_nowcasted_pr100_q95x0
+#' )]
 #' @export
 ens_add_rate <- function(x, ...) UseMethod("ens_add_rate")
 
 #' @rdname ens_add_rate
 #' @export
-ens_add_rate.csfmt_ensemble_v3 <- function(x, numerator, denominator, per = 100,
-                                            name = NULL, ...) {
-  if (!all(c(numerator, denominator) %in% names(x$draws)))
+ens_add_rate.csfmt_ensemble_v3 <- function(
+  x,
+  numerator,
+  denominator,
+  per = 100,
+  name = NULL,
+  ...
+) {
+  if (!all(c(numerator, denominator) %in% names(x$draws))) {
     stop("numerator and denominator must both be measures in $draws")
+  }
 
   N <- x$draws[[numerator]]
   D <- x$draws[[denominator]]
-  if (any(N > D, na.rm = TRUE))
+  if (any(N > D, na.rm = TRUE)) {
     warning("numerator > denominator in some draws; rate capped at `per`")
+  }
 
   rate <- per * N / D
-  rate[!is.finite(rate)] <- NA_real_      # denom 0 (or NA) -> NA, not a fake 0
-  rate[rate > per] <- per                 # coherence cap (num <= denom)
+  rate[!is.finite(rate)] <- NA_real_ # denom 0 (or NA) -> NA, not a fake 0
+  rate[rate > per] <- per # coherence cap (num <= denom)
 
-  if (is.null(name)) name <- csfmt_var(numerator, denom = denominator, per = per)
+  if (is.null(name)) {
+    name <- csfmt_var(numerator, denom = denominator, per = per)
+  }
   x$draws[[name]] <- rate
   validate_ensemble(x)
 }

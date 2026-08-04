@@ -27,3 +27,23 @@ A list: `ok` (logical) and `reasons` (character vector; empty if ok).
 \description{
 Quality-control checks on surveillance input data
 }
+\examples{
+d <- data.table::data.table(
+  isoyearweek_reference = c("2023-01", "2023-02"),
+  numerator = c(10, 12)
+)
+
+qc_surveillance_data_v1(d)
+
+# the feed has not been updated as far as the caller expected
+qc_surveillance_data_v1(d, expect_latest = "2023-05")
+
+# nothing arrived at all
+qc_surveillance_data_v1(d[0])
+}
+\seealso{
+Neither package vignette covers input quality control. This function
+  returns a verdict and nothing else -- the caller decides what to do with it.
+  \code{\link{qc_week_over_week_v1}} answers a different question, about two
+  finished runs rather than one input feed.
+}

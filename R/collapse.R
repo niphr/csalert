@@ -18,13 +18,45 @@
 #' @param ... Passed to methods.
 #' @returns A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
 #'   `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
+#' @family ensemble operations
+#' @seealso \code{vignette("nowcasting", package = "csalert")}, which collapses a
+#'   nowcast ensemble with this function and plots the resulting band.
+#' @examples
+#' d <- data.table::data.table(
+#'   location_code = "nation",
+#'   age = "total",
+#'   isoyearweek = c("2023-01", "2023-02", "2023-03")
+#' )
+#' set.seed(1)
+#' ens <- csfmt_ensemble_v3(
+#'   d,
+#'   id_cols = c("location_code", "age"),
+#'   draws = list(numerator_nowcasted = matrix(rpois(3 * 100, 20), nrow = 3))
+#' )
+#'
+#' # one column per requested probability, named by the grammar
+#' r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+#' r[, .(
+#'   isoyearweek,
+#'   lo = numerator_nowcasted_q05x0,
+#'   med = numerator_nowcasted_q50x0,
+#'   hi = numerator_nowcasted_q95x0
+#' )]
+#'
+#' # the quantile columns are all that collapse adds; the draws are gone, and
+#' # this reduction is one-way
+#' setdiff(names(r), names(ens$data))
 #' @export
 ens_collapse <- function(x, ...) UseMethod("ens_collapse")
 
 #' @rdname ens_collapse
 #' @export
-ens_collapse.csfmt_ensemble_v3 <- function(x, probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-                     heal = FALSE, ...) {
+ens_collapse.csfmt_ensemble_v3 <- function(
+  x,
+  probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
+  heal = FALSE,
+  ...
+) {
   stopifnot(is.numeric(probs))
   ens <- x
   d <- data.table::copy(ens$data)
@@ -35,7 +67,7 @@ ens_collapse.csfmt_ensemble_v3 <- function(x, probs = c(.025, .05, .1, .25, .5, 
     if (is.null(levs)) {
       # continuous: quantiles over the draw axis
       q <- matrixStats::rowQuantiles(M, probs = probs, na.rm = TRUE)
-      q <- matrix(q, nrow = nrow(d), ncol = length(probs))  # keep shape for 1-row/1-prob
+      q <- matrix(q, nrow = nrow(d), ncol = length(probs)) # keep shape for 1-row/1-prob
       cols <- vapply(probs, function(p) csfmt_var(m, q = p), character(1))
       d[, (cols) := data.table::as.data.table(q)]
     } else {
@@ -45,9 +77,10 @@ ens_collapse.csfmt_ensemble_v3 <- function(x, probs = c(.025, .05, .1, .25, .5, 
   }
 
   if (heal) {
-    if (!requireNamespace("cstidy", quietly = TRUE))
+    if (!requireNamespace("cstidy", quietly = TRUE)) {
       stop("collapse(heal = TRUE) requires the 'cstidy' package")
-    cstidy::set_csfmt_rts_data_v3(d)   # heal ONCE, here, into the clean csfmt
+    }
+    cstidy::set_csfmt_rts_data_v3(d) # heal ONCE, here, into the clean csfmt
   }
   d[]
 }
@@ -57,7 +90,11 @@ ens_collapse.csfmt_ensemble_v3 <- function(x, probs = c(.025, .05, .1, .25, .5, 
 collapse_status_into <- function(d, measure, M, levs, probs) {
   K <- length(levs)
   n <- nrow(M)
-  prob <- vapply(seq_len(K), function(k) rowMeans(M == k, na.rm = TRUE), numeric(n))
+  prob <- vapply(
+    seq_len(K),
+    function(k) rowMeans(M == k, na.rm = TRUE),
+    numeric(n)
+  )
   pcols <- vapply(levs, function(L) csfmt_var(measure, level = L), character(1))
   d[, (pcols) := data.table::as.data.table(prob)]
 

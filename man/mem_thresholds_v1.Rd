@@ -48,3 +48,56 @@ The `csfmt_ensemble_v3` with per-draw MEM intensity columns added to
 \description{
 MEM intensity thresholds
 }
+\examples{
+# MEM needs several complete prior seasons, so this fixture spans four:
+# 212 weeks with a winter peak in each.
+if (requireNamespace("mem", quietly = TRUE)) {
+  w <- cstime::dates_by_isoyearweek$isoyearweek
+  i <- match("2018-30", w)
+  n <- 212L
+  iyw <- w[i + 0:(n - 1)]
+  set.seed(1)
+  lam <- 20 + 60 * exp(-(cstime::isoyearweek_to_seasonweek_n(iyw) - 25)^2 / 40)
+  ens <- csfmt_ensemble_v3(
+    data.table::data.table(
+      isoyearweek = iyw, location_code = "nation", age = "total"
+    ),
+    id_cols = c("location_code", "age"),
+    draws = list(numerator_nowcasted = matrix(rpois(n * 50, lam), nrow = n))
+  )
+
+  ens <- mem_thresholds_v1(ens, measure = "numerator_nowcasted")
+
+  # thresholds are estimated leave-future-out, so the early seasons get none
+  print(unique(ens$data[
+    !is.na(mem_high),
+    .(
+      season = cstime::isoyearweek_to_season_c(isoyearweek),
+      mem_preepidemic, mem_medium, mem_high, mem_veryhigh, mem_n_seasons
+    )
+  ]))
+
+  # A week whose season has no thresholds gets NA for every draw, so it is not
+  # classified at all. On this fixture that is the first two seasons:
+  status <- ens$draws$numerator_nowcasted_status
+  print(c(
+    weeks = nrow(status),
+    weeks_with_no_threshold = sum(apply(status, 1, function(r) all(is.na(r))))
+  ))
+
+  # For a week that DOES have thresholds, every draw is classified, so the
+  # alert level arrives as a distribution rather than as a single label.
+  r <- ens_collapse(ens, probs = 0.5)
+  pcols <- grep("_status_prob_", names(r), value = TRUE)
+  print(r[
+    isoyearweek \%in\% c("2021-45", "2022-02"),
+    c("isoyearweek", pcols),
+    with = FALSE
+  ])
+}
+}
+\seealso{
+\code{vignette("nowcasting", package = "csalert")} names this function
+  in its closing "Where next" list but does not demonstrate it; the example
+  below is its only worked demonstration.
+}

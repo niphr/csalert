@@ -19,3 +19,38 @@ Sums each reference week's counts across all delays up to `max_delay` -- the
 quantity a nowcast is trying to predict -- and keeps only weeks old enough that
 this total is settled (at least `max_delay` weeks before the triangle's as-of).
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+truth <- nowcast_truth(tri, max_delay = 3)
+
+# the two newest weeks are missing: they are not settled yet, so they have no
+# truth to be scored against
+tail(truth, 3)
+c(reference_weeks = 40L, settled = nrow(truth))
+}
+\seealso{
+Neither package vignette covers this function.
+  \code{vignette("nowcasting", package = "csalert")} scores a nowcast against
+  settled truth through \code{\link{nowcast_evaluate_v1}}, which calls this
+  function for you.
+
+Other nowcast diagnostics: 
+\code{\link{nowcast_backtest}()},
+\code{\link{nowcast_censor}()},
+\code{\link{nowcast_evaluate_v1}()}
+}
+\concept{nowcast diagnostics}

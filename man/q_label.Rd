@@ -16,6 +16,31 @@ Character vector of quantile labels.
 `0.025 -> "q02x5"`, `0.5 -> "q50x0"`, `0.975 -> "q97x5"`, `0.005 -> "q00x5"`.
 Two integer-percent digits, then `x`, then one decimal-percent digit.
 }
+\details{
+The format is lossy in two ways. It holds one decimal-percent digit, so a
+finer probability is rounded (`0.0125 -> "q01x2"`). And it holds exactly two
+integer-percent digits, so `p = 1` produces the three-digit `"q100x0"`, which
+[q_value] cannot read back. Keep `p` on the 0.001 grid and strictly below 1.
+}
 \examples{
 q_label(c(0.025, 0.5, 0.975))
+
+# limit 1: a probability finer than one decimal percent is rounded
+q_value(q_label(0.0125))
+
+# limit 2: p = 1 produces a three-digit label q_value() returns NA for
+q_label(1)
+q_value(q_label(1))
 }
+\seealso{
+[q_value] reads these labels back, for `p < 1`. Neither package
+  vignette calls this function by name, but every `_qNNxN` column printed in
+  \code{vignette("nowcasting", package = "csalert")} was labelled by it.
+
+Other naming grammar functions: 
+\code{\link{csfmt_interpret}()},
+\code{\link{csfmt_parse}()},
+\code{\link{csfmt_var}()},
+\code{\link{q_value}()}
+}
+\concept{naming grammar functions}

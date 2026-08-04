@@ -32,3 +32,37 @@ A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
 An ensemble operation (`ens_` family): dispatches on the ensemble class,
 matching [nowcast_quasipoisson_v1()] / [short_term_trend()].
 }
+\examples{
+d <- data.table::data.table(
+  location_code = "nation",
+  age = "total",
+  isoyearweek = c("2023-01", "2023-02", "2023-03")
+)
+set.seed(1)
+ens <- csfmt_ensemble_v3(
+  d,
+  id_cols = c("location_code", "age"),
+  draws = list(numerator_nowcasted = matrix(rpois(3 * 100, 20), nrow = 3))
+)
+
+# one column per requested probability, named by the grammar
+r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+r[, .(
+  isoyearweek,
+  lo = numerator_nowcasted_q05x0,
+  med = numerator_nowcasted_q50x0,
+  hi = numerator_nowcasted_q95x0
+)]
+
+# the quantile columns are all that collapse adds; the draws are gone, and
+# this reduction is one-way
+setdiff(names(r), names(ens$data))
+}
+\seealso{
+\code{vignette("nowcasting", package = "csalert")}, which collapses a
+  nowcast ensemble with this function and plots the resulting band.
+
+Other ensemble operations: 
+\code{\link{ens_add_rate}()}
+}
+\concept{ensemble operations}

@@ -61,3 +61,14 @@ nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_d
 nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
 }
+\seealso{
+\code{vignette("nowcasting", package = "csalert")}, which runs this
+  function on its synthetic triangle and reads the coverage and revision
+  columns off the result.
+
+Other nowcast diagnostics: 
+\code{\link{nowcast_backtest}()},
+\code{\link{nowcast_censor}()},
+\code{\link{nowcast_truth}()}
+}
+\concept{nowcast diagnostics}

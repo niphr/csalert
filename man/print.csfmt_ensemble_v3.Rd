@@ -18,3 +18,13 @@
 Compact one-line summary: number of rows, number of time series, and the names
 of the per-measure draw matrices.
 }
+\seealso{
+\code{vignette("nowcasting", package = "csalert")}, which prints an
+  ensemble with this method right after the nowcast step.
+
+Other ensemble format functions: 
+\code{\link{csfmt_ensemble_v3}()},
+\code{\link{set_time_series_id}()},
+\code{\link{validate_ensemble}()}
+}
+\concept{ensemble format functions}

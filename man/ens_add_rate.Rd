@@ -28,3 +28,52 @@ An ensemble operation (`ens_` family): dispatches on the ensemble class, so
 the class -- not a name prefix on the caller -- carries the "operates on an
 ensemble" meaning, matching [nowcast_quasipoisson_v1()] / [short_term_trend()].
 }
+\examples{
+d <- data.table::data.table(
+  location_code = "nation",
+  age = "total",
+  isoyearweek = c("2023-01", "2023-02", "2023-03")
+)
+# The numerator must be a SUBSET of the denominator (tests positive out of
+# tests taken), so simulate the denominator first and the numerator
+# conditionally on it. Two independent Poissons would not be a proportion.
+set.seed(1)
+denom <- matrix(rpois(3 * 100, 200), nrow = 3)
+numer <- matrix(rbinom(length(denom), size = denom, prob = 0.10), nrow = 3)
+ens <- csfmt_ensemble_v3(
+  d,
+  id_cols = c("location_code", "age"),
+  draws = list(
+    numerator_nowcasted = numer,
+    denominator_nowcasted = denom
+  )
+)
+
+ens <- ens_add_rate(
+  ens,
+  numerator = "numerator_nowcasted",
+  denominator = "denominator_nowcasted",
+  per = 100
+)
+
+# the rate is a third draw matrix, named by the grammar
+names(ens$draws)
+
+# its interval carries the uncertainty of both measures
+r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+r[, .(
+  isoyearweek,
+  lo = numerator_nowcasted_vs_denominator_nowcasted_pr100_q05x0,
+  med = numerator_nowcasted_vs_denominator_nowcasted_pr100_q50x0,
+  hi = numerator_nowcasted_vs_denominator_nowcasted_pr100_q95x0
+)]
+}
+\seealso{
+\code{vignette("nowcasting", package = "csalert")} names this function
+  in its closing "Where next" list but does not demonstrate it; the example
+  below is its only worked demonstration.
+
+Other ensemble operations: 
+\code{\link{ens_collapse}()}
+}
+\concept{ensemble operations}

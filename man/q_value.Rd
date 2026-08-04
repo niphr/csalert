@@ -2,7 +2,7 @@
 % Please edit documentation in R/naming_grammar.R
 \name{q_value}
 \alias{q_value}
-\title{Quantile label -> probability (inverse of [q_label])}
+\title{Quantile label -> probability}
 \usage{
 q_value(label)
 }
@@ -10,11 +10,35 @@ q_value(label)
 \item{label}{Character vector of quantile labels, e.g. "q02x5".}
 }
 \value{
-Numeric vector of probabilities.
+Numeric vector of probabilities; `NA` for an unparseable label.
 }
 \description{
-Quantile label -> probability (inverse of [q_label])
+Reads back a label written by [q_label]. The pattern accepted is exactly two
+integer-percent digits, `x`, then one decimal digit. Any string that does not
+match returns `NA` rather than erroring.
+}
+\details{
+The round trip `q_value(q_label(p))` returns `p` only when `p` is expressible
+in that format, i.e. a probability on the 0.001 grid below 1. `q_label()`
+rounds anything finer (`0.0125` becomes `"q01x2"`, which reads back as
+`0.012`), and `q_label(1)` gives the three-digit `"q100x0"`, which returns
+`NA`. Every probability the package itself uses is on the grid.
 }
 \examples{
 q_value(c("q02x5", "q50x0", "q97x5"))
+
+# unparseable labels come back NA, including the three-digit q100x0
+q_value(c("q100x0", "not_a_label"))
 }
+\seealso{
+[q_label] writes these labels. Neither package vignette calls this
+  function by name. It is how generic tooling recovers the probability behind a
+  `_qNNxN` column.
+
+Other naming grammar functions: 
+\code{\link{csfmt_interpret}()},
+\code{\link{csfmt_parse}()},
+\code{\link{csfmt_var}()},
+\code{\link{q_label}()}
+}
+\concept{naming grammar functions}

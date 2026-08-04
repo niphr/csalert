@@ -15,22 +15,54 @@
 #' @param value_col Count column name.
 #' @returns A validated `csfmt_reporting_triangle_v3` (a data.table with the
 #'   as-of boundary and column roles stored as attributes).
+#' @family reporting triangle functions
+#' @seealso \code{vignette("nowcasting", package = "csalert")}, which builds a
+#'   triangle with this constructor and takes it through the whole pipeline.
+#' @examples
+#' # 40 reference weeks, each reported over delays 0-2, then right-truncated at
+#' # the newest reference week so the most recent weeks are still incomplete
+#' w <- cstime::dates_by_isoyearweek$isoyearweek
+#' i <- match("2023-01", w)
+#' set.seed(1)
+#' d <- data.table::data.table(
+#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
+#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   numerator = rpois(120, c(30, 15, 5)),
+#'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+#' )
+#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#'
+#' tri <- csfmt_reporting_triangle_v3(
+#'   d,
+#'   id_cols = c("indicator_tag", "location_code", "age", "sex")
+#' )
+#'
+#' # the as-of boundary is the newest reporting week seen
+#' attr(tri, "as_of")
+#' head(tri, 3)
 #' @export
-csfmt_reporting_triangle_v3 <- function(data, id_cols,
-                                        reference_col = "isoyearweek_reference",
-                                        reporting_col = "isoyearweek_reporting",
-                                        value_col = "numerator") {
-  stopifnot(data.table::is.data.table(data),
-            all(id_cols %in% names(data)),
-            all(c(reference_col, reporting_col, value_col) %in% names(data)))
+csfmt_reporting_triangle_v3 <- function(
+  data,
+  id_cols,
+  reference_col = "isoyearweek_reference",
+  reporting_col = "isoyearweek_reporting",
+  value_col = "numerator"
+) {
+  stopifnot(
+    data.table::is.data.table(data),
+    all(id_cols %in% names(data)),
+    all(c(reference_col, reporting_col, value_col) %in% names(data))
+  )
   d <- data.table::copy(data)
   # NA-safe: a missing reference/reporting week is not a "reporting before
   # reference" violation (it just carries no delay info); only flag genuine
   # negative-delay rows. Callers are responsible for cleaning NA weeks.
-  if (any(d[[reporting_col]] < d[[reference_col]], na.rm = TRUE))
+  if (any(d[[reporting_col]] < d[[reference_col]], na.rm = TRUE)) {
     stop("reporting week is before reference week")
-  if (any(d[[value_col]] < 0, na.rm = TRUE))
+  }
+  if (any(d[[value_col]] < 0, na.rm = TRUE)) {
     stop("negative counts in the reporting triangle")
+  }
 
   set_time_series_id(d, id_cols)
   data.table::setattr(d, "id_cols", id_cols)
@@ -38,7 +70,11 @@ csfmt_reporting_triangle_v3 <- function(data, id_cols,
   data.table::setattr(d, "reference_col", reference_col)
   data.table::setattr(d, "reporting_col", reporting_col)
   data.table::setattr(d, "value_col", value_col)
-  data.table::setattr(d, "class", unique(c("csfmt_reporting_triangle_v3", class(d))))
+  data.table::setattr(
+    d,
+    "class",
+    unique(c("csfmt_reporting_triangle_v3", class(d)))
+  )
   d[]
 }
 
@@ -49,9 +85,41 @@ csfmt_reporting_triangle_v3 <- function(data, id_cols,
 #'   `value_col`; pass a denominator column to reshape that instead).
 #' @returns Named list (by time_series_id) of `list(reference, mat)`, where `mat`
 #'   is a reference x delay count matrix (zeros filled within the observed region).
+#' @family reporting triangle functions
+#' @seealso Neither package vignette covers this function. It is the densification
+#'   step every nowcast engine runs first, so reach for it directly only when you
+#'   want the raw reference x delay matrix rather than an ensemble.
+#' @examples
+#' w <- cstime::dates_by_isoyearweek$isoyearweek
+#' i <- match("2023-01", w)
+#' set.seed(1)
+#' d <- data.table::data.table(
+#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
+#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   numerator = rpois(120, c(30, 15, 5)),
+#'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+#' )
+#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' tri <- csfmt_reporting_triangle_v3(
+#'   d,
+#'   id_cols = c("indicator_tag", "location_code", "age", "sex")
+#' )
+#'
+#' m <- reporting_triangle_matrix(tri, max_delay = 3)
+#' names(m)
+#'
+#' # rows are reference weeks, columns are delays 0, 1, 2
+#' head(m[[1]]$reference, 3)
+#' head(m[[1]]$mat, 3)
+#'
+#' # the newest weeks are only partly reported: the later delays are still zero
+#' tail(m[[1]]$mat, 3)
 #' @export
-reporting_triangle_matrix <- function(triangle, max_delay,
-                                      value_col = attr(triangle, "value_col")) {
+reporting_triangle_matrix <- function(
+  triangle,
+  max_delay,
+  value_col = attr(triangle, "value_col")
+) {
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
   ref_col <- attr(triangle, "reference_col")
   rep_col <- attr(triangle, "reporting_col")
@@ -59,31 +127,49 @@ reporting_triangle_matrix <- function(triangle, max_delay,
 
   d <- data.table::as.data.table(triangle)
   d[, .ref := get(ref_col)]
-  d[, .delay := round(as.numeric(
-    cstime::isoyearweek_to_last_date(get(rep_col)) -
-      cstime::isoyearweek_to_last_date(get(ref_col))) / 7)]
+  d[,
+    .delay := round(
+      as.numeric(
+        cstime::isoyearweek_to_last_date(get(rep_col)) -
+          cstime::isoyearweek_to_last_date(get(ref_col))
+      ) /
+        7
+    )
+  ]
   d <- d[.delay >= 0 & .delay < max_delay]
 
-  all_weeks  <- cstime::dates_by_isoyearweek$isoyearweek
+  all_weeks <- cstime::dates_by_isoyearweek$isoyearweek
   delay_cols <- as.character(0:(max_delay - 1))
 
   out <- list()
   for (tsid in unique(d$time_series_id)) {
     ds <- d[time_series_id == tsid]
-    m <- data.table::dcast.data.table(ds, .ref ~ .delay, value.var = val_col,
-                                      fun.aggregate = sum, fill = 0)
-    for (k in delay_cols) if (!k %in% names(m)) m[, (k) := 0]   # complete delay axis
+    m <- data.table::dcast.data.table(
+      ds,
+      .ref ~ .delay,
+      value.var = val_col,
+      fun.aggregate = sum,
+      fill = 0
+    )
+    for (k in delay_cols) {
+      if (!k %in% names(m)) m[, (k) := 0]
+    } # complete delay axis
 
     # complete the reference axis: contiguous weeks min..max (fills interior gaps
     # and zero-case weeks), so the nowcast truncation works on contiguous rows
-    i1 <- match(min(m$.ref), all_weeks); i2 <- match(max(m$.ref), all_weeks)
+    i1 <- match(min(m$.ref), all_weeks)
+    i2 <- match(max(m$.ref), all_weeks)
     full <- data.table::data.table(.ref = all_weeks[i1:i2])
     m <- m[full, on = ".ref"]
-    for (k in delay_cols) m[is.na(get(k)), (k) := 0]
+    for (k in delay_cols) {
+      m[is.na(get(k)), (k) := 0]
+    }
 
     data.table::setcolorder(m, c(".ref", delay_cols))
-    out[[tsid]] <- list(reference = m$.ref,
-                        mat = as.matrix(m[, delay_cols, with = FALSE]))
+    out[[tsid]] <- list(
+      reference = m$.ref,
+      mat = as.matrix(m[, delay_cols, with = FALSE])
+    )
   }
   out
 }

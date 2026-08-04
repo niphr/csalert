@@ -33,3 +33,12 @@ d <- data.table::data.table(
 tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
 reporting_completion_trend_v1(tri, max_delay = 3, n_months = 6)
 }
+\seealso{
+Neither package vignette covers this function;
+  \code{vignette("nowcasting", package = "csalert")} runs
+  \code{\link{reporting_completion_v1}}, which this one wraps.
+
+Other reporting completion functions: 
+\code{\link{reporting_completion_v1}()}
+}
+\concept{reporting completion functions}

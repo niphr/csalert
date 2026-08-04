@@ -40,9 +40,49 @@ A `csfmt_ensemble_v3` with one row per reference week and an
 \description{
 A discriminative (regression) nowcast engine: for each horizon it
 regresses the settled total on the counts reported so far
-(`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson/identity, no intercept)
-and completes the incomplete weeks by simulating from that fit -- parameter
-uncertainty plus a dispersion-matched negbin. No per-week magnitude parameter,
-so it is robust for the recent weeks and honestly dispersed. Shares the contract
-`f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
+(`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson with an identity link
+and R's default intercept) and completes the incomplete weeks by simulating
+from that fit -- parameter uncertainty plus a dispersion-matched negbin. There
+is no per-week magnitude parameter, so the recent weeks do not each carry their
+own noisy level. Whether the intervals it produces are calibrated for YOUR
+series is an empirical question; measure it with [nowcast_evaluate_v1]. Shares
+the contract `f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+set.seed(2)
+ens <- nowcast_quasipoisson_v1(tri, max_delay = 3, n_sim = 200)
+ens
+
+# settled weeks sit exactly on their observed total; the newest weeks are
+# completed, and carry an interval
+r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+tail(r[, .(
+  isoyearweek, original,
+  lo = numerator_nowcasted_q05x0,
+  med = numerator_nowcasted_q50x0,
+  hi = numerator_nowcasted_q95x0
+)], 4)
+}
+\seealso{
+\code{vignette("nowcasting", package = "csalert")}, which runs this
+  engine on a synthetic triangle and then scores it.
+
+Other nowcast engines: 
+\code{\link{nowcast_passthrough_to_ensemble_v1}()}
+}
+\concept{nowcast engines}

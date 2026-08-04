@@ -75,3 +75,9 @@ print(res[, .(
   hospitalization_with_covid19_as_primary_cause_n_status
 )])
 }
+\seealso{
+Neither package vignette runs this function.
+  \code{vignette("nowcasting", package = "csalert")} names it in its closing
+  "Where next" list as one of the stages that can run on an ensemble, but does
+  not demonstrate it; the example below is its only worked demonstration.
+}

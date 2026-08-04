@@ -85,6 +85,9 @@ periodic_pattern <- function(n_p = 2,
 #' An improved algorithm for outbreak detection in multiple surveillance
 #' systems. Statistics in Medicine. 2013.
 #'
+#' @seealso Neither package vignette covers the data simulators. Use them to
+#'   generate a series whose truth you already know, then run
+#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
 #' @export
 #' @examples
 #' library(data.table)
@@ -224,6 +227,9 @@ simulate_baseline_data <-  function(start_date,
 #' An improved algorithm for outbreak detection in multiple surveillance
 #' systems. Statistics in Medicine. 2013.
 #'
+#' @seealso Neither package vignette covers the data simulators. Use them to
+#'   generate a series whose truth you already know, then run
+#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
 #' @export
 #' @examples
 #' library(data.table)
@@ -376,6 +382,9 @@ simulate_seasonal_outbreak_data <-  function(data,
 #' An improved algorithm for outbreak detection in multiple surveillance
 #' systems. Statistics in Medicine. 2013.
 #'
+#' @seealso Neither package vignette covers the data simulators. Use them to
+#'   generate a series whose truth you already know, then run
+#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
 #' @export
 #' @examples
 #' library(data.table)
@@ -504,6 +513,9 @@ simulate_spike_outbreak_data <-  function(data,
 #' count \code{n} multiplied by \code{holiday_effect} on flagged holidays, and a
 #' \code{holiday} column indicating those dates.
 #'
+#' @seealso Neither package vignette covers the data simulators. Use them to
+#'   generate a series whose truth you already know, then run
+#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
 #' @export
 #' @examples
 #' library(data.table)

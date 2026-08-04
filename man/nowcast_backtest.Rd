@@ -46,3 +46,48 @@ at the requested horizons (horizon = weeks between reference and as-of). An
 as-of week whose method call errors (e.g. too little history) is skipped with a
 warning rather than aborting the sweep.
 }
+\examples{
+w <- cstime::dates_by_isoyearweek$isoyearweek
+i <- match("2023-01", w)
+set.seed(1)
+d <- data.table::data.table(
+  isoyearweek_reference = w[i + rep(0:39, each = 3)],
+  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  numerator = rpois(120, c(30, 15, 5)),
+  indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
+)
+d <- d[isoyearweek_reporting <= w[i + 39]]
+tri <- csfmt_reporting_triangle_v3(
+  d,
+  id_cols = c("indicator_tag", "location_code", "age", "sex")
+)
+
+# a method is f(triangle) -> ensemble, with its own parameters baked in
+method <- function(x) nowcast_quasipoisson_v1(x, max_delay = 3, n_sim = 200)
+
+# Replay 19 as-of weeks. This window is a runtime choice, not a fitting
+# boundary: the engine needs only three settled training rows, and with fewer
+# it returns the observed totals rather than failing. Leaving `as_of_weeks`
+# NULL replays every week after the burn-in, which is slower.
+bt <- nowcast_backtest(
+  tri, method,
+  max_delay = 3,
+  as_of_weeks = w[i + 20:38],
+  horizons = 0:1,
+  probs = c(0.05, 0.5, 0.95),
+  seed = 1
+)
+head(bt, 6)
+}
+\seealso{
+Neither package vignette covers this function.
+  \code{vignette("nowcasting", package = "csalert")} reaches the same replay
+  through \code{\link{nowcast_evaluate_v1}}, which wraps it and scores the
+  result. Use this function directly when you want the raw replayed quantiles.
+
+Other nowcast diagnostics: 
+\code{\link{nowcast_censor}()},
+\code{\link{nowcast_evaluate_v1}()},
+\code{\link{nowcast_truth}()}
+}
+\concept{nowcast diagnostics}

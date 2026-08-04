@@ -21,3 +21,28 @@ schema) and returns a catalog: one row per column with its parsed components.
 This makes a dataset self-describing -- generic tooling (QC, collapse,
 presentation) routes on the catalog instead of hardcoding column names.
 }
+\examples{
+d <- data.table::data.table(
+  isoyearweek = "2023-01",
+  numerator_nowcasted_q50x0 = 42,
+  numerator_nowcasted_vs_denominator_nowcasted_pr100_q50x0 = 8.4,
+  numerator_nowcasted_status_prob_high = 0.3,
+  a_column_outside_the_grammar = 1
+)
+
+# isoyearweek is structural, so it is not a value column at all; the last
+# column is a value column the grammar cannot read (interpretable = FALSE)
+csfmt_interpret(d)
+}
+\seealso{
+Neither package vignette covers this function. It is the dataset-wide
+  form of \code{\link{csfmt_parse}}, and is what
+  \code{\link{compare_results}} uses to find the value columns it should diff.
+
+Other naming grammar functions: 
+\code{\link{csfmt_parse}()},
+\code{\link{csfmt_var}()},
+\code{\link{q_label}()},
+\code{\link{q_value}()}
+}
+\concept{naming grammar functions}
