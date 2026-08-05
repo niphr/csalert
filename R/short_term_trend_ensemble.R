@@ -152,7 +152,16 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   # FALSE this is exactly 0 or 1 -- a bare positive slope reads as certainty.
   inc <- rowMeans(beta1 > 0, na.rm = TRUE)
   inc[is.nan(inc)] <- NA_real_
-  x$data[[csfmt_var(measure, role = "trend", suffix = "_increasing_pr")]] <- inc
+  # data.table::set(), NOT `[[<-`. Base assignment copies the table and breaks its
+  # self-reference, so the NEXT stage that uses `:=` on $data emits data.table's
+  # "shallow copy was taken" advisory. It fires in the canonical order
+  # rate -> trend -> mem -> hlm, i.e. in every production pipeline that runs a
+  # trend before another ensemble stage.
+  data.table::set(
+    x$data,
+    j = csfmt_var(measure, role = "trend", suffix = "_increasing_pr"),
+    value = inc
+  )
 
   validate_ensemble(x)
 }

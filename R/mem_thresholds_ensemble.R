@@ -66,9 +66,8 @@ mem_fit <- function(model_data, i.seasons = 10) {
 #' MEM intensity thresholds
 #' @param x Data object.
 #' @param ... Passed to methods.
-#' @seealso \code{vignette("nowcasting", package = "csalert")} names this function
-#'   in its closing "Where next" list but does not demonstrate it; the example
-#'   below is its only worked demonstration.
+#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs this
+#'   function as stage 6 of its pipeline, on a five-season synthetic series.
 #' @examples
 #' # MEM needs several complete prior seasons, so this fixture spans four:
 #' # 212 weeks with a winter peak in each.

@@ -69,9 +69,9 @@ r[, .(
 )]
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")} names this function
-  in its closing "Where next" list but does not demonstrate it; the example
-  below is its only worked demonstration.
+\code{vignette("nowcasting", package = "csalert")}, which runs this
+  function as stage 4 of its pipeline, on a numerator and denominator that
+  were nowcast together.
 
 Other ensemble operations: 
 \code{\link{ens_collapse}()}

@@ -449,6 +449,37 @@ short_term_trend <- function(
 
 #' @method short_term_trend csfmt_rts_data_v1
 #' @rdname short_term_trend
+#' @section Deprecated (the csfmt_rts_data_v1 method):
+#' `short_term_trend.csfmt_rts_data_v1` is **deprecated**. It belongs to the
+#' pre-ensemble architecture, in which each analysis stage read and wrote a
+#' `cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
+#' analysis substrate: every stage takes the ensemble and returns the ensemble,
+#' and [ens_collapse] is terminal.
+#'
+#' It still works and emits no warning, so existing pipelines are undisturbed.
+#' New work should call `short_term_trend()` on the **ensemble**, before
+#' `ens_collapse()`:
+#'
+#' \preformatted{
+#' ens <- nowcast_quasipoisson_v1(triangle, max_delay = 5)
+#' ens <- short_term_trend(ens, measure = "numerator_nowcasted")
+#' out <- ens_collapse(ens, heal = TRUE)
+#' }
+#'
+#' **The replacement is not a drop-in.** The two methods differ in interface and
+#' in output, not only in the class they accept:
+#' \itemize{
+#'   \item the v1 method takes `numerator`, `denominator`, `prX` and the
+#'     `*_naming_prefix` arguments. The ensemble method takes one `measure`
+#'     naming a `$draws` matrix; a rate is built beforehand with [ens_add_rate].
+#'   \item the v1 method fits a quasi-Poisson log-link model and returns a factor
+#'     status column plus a doubling time. The ensemble method computes a
+#'     per-draw OLS slope, a growth rate and a P(increasing), and returns no
+#'     classification at all.
+#' }
+#' Migrating is therefore a rewrite of the call site, and the numbers will not
+#' match. See \code{vignette("nowcasting", package = "csalert")}, which runs the
+#' ensemble method as stage 5 of its pipeline.
 #' @param numerator Character of name of numerator
 #' @param denominator Character of name of denominator (optional)
 #' @param prX If using denominator, what scaling factor should be used for numerator/denominator?
@@ -560,4 +591,30 @@ short_term_trend.csfmt_rts_data_v1 <- function(
   data.table::shouldPrint(retval)
 
   return(retval)
+}
+
+#' @method short_term_trend csfmt_rts_data_v3
+#' @rdname short_term_trend
+#' @returns The `csfmt_rts_data_v3` method always errors: see the section below.
+#' @section Why there is no csfmt_rts_data_v3 method:
+#' `csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
+#' is terminal. It carries quantiles, not draws, so a per-draw trend and a
+#' P(increasing) cannot be recovered from it. Calling `short_term_trend()` on one
+#' is always a mistake, so the method exists only to say so:
+#'
+#' \preformatted{
+#' ens <- short_term_trend(ens, measure = "numerator_nowcasted")  # before
+#' out <- ens_collapse(ens, heal = TRUE)                          # then collapse
+#' }
+#' @export
+short_term_trend.csfmt_rts_data_v3 <- function(x, ...) {
+  stop(
+    "short_term_trend() does not accept a csfmt_rts_data_v3.\n",
+    "  A collapsed table is terminal output: it holds quantiles, not draws, so a\n",
+    "  per-draw trend and P(increasing) cannot be recovered from it.\n",
+    "  Run short_term_trend() on the csfmt_ensemble_v3, BEFORE ens_collapse():\n",
+    "    ens <- short_term_trend(ens, measure = \"numerator_nowcasted\")\n",
+    "    out <- ens_collapse(ens, heal = TRUE)",
+    call. = FALSE
+  )
 }

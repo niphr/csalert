@@ -31,10 +31,9 @@ gen_data_signal_detection_hlm <- function(seed = 4) {
 #'
 #' @param x Data object.
 #' @param ... Not in use.
-#' @seealso Neither package vignette runs this function.
-#'   \code{vignette("nowcasting", package = "csalert")} names it in its closing
-#'   "Where next" list as one of the stages that can run on an ensemble, but does
-#'   not demonstrate it; the example below is its only worked demonstration.
+#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs the
+#'   ensemble method as stage 7 of its pipeline. The example below is the only
+#'   worked demonstration of the `csfmt_rts_data_v1` method, which is deprecated.
 #' @rdname signal_detection_hlm
 #' @export
 signal_detection_hlm <- function(
@@ -55,6 +54,39 @@ signal_detection_hlm <- function(
 
 #' @method signal_detection_hlm csfmt_rts_data_v1
 #' @rdname signal_detection_hlm
+#' @section Deprecated (the csfmt_rts_data_v1 method):
+#' `signal_detection_hlm.csfmt_rts_data_v1` is **deprecated**. It belongs to the
+#' pre-ensemble architecture, in which each analysis stage read and wrote a
+#' `cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
+#' analysis substrate: every stage takes the ensemble and returns the ensemble,
+#' and [ens_collapse] is terminal.
+#'
+#' It still works and emits no warning, so existing pipelines are undisturbed.
+#' New work should call `signal_detection_hlm()` on the **ensemble**, before
+#' `ens_collapse()`:
+#'
+#' \preformatted{
+#' ens <- nowcast_quasipoisson_v1(triangle, max_delay = 5)
+#' ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")
+#' out <- ens_collapse(ens, heal = TRUE)
+#' }
+#'
+#' **The replacement is not a drop-in.** The two methods differ in interface and
+#' in output, not only in the class they accept:
+#' \itemize{
+#'   \item the v1 method takes `value`, `remove_last_isoyearweeks`,
+#'     `forecast_isoyearweeks` and `value_naming_prefix`. The ensemble method
+#'     takes one `measure` naming a `$draws` matrix and `baseline_isoyears`.
+#'   \item the v1 method returns a factor status column with `training` /
+#'     `forecast` / `null` / `high` levels plus baseline prediction-interval
+#'     columns. The ensemble method classifies every DRAW against the baseline
+#'     limit, so the result is an exceedance PROBABILITY after the collapse, not
+#'     a label.
+#' }
+#' Migrating is therefore a rewrite of the call site, and the output is a
+#' different kind of quantity. See
+#' \code{vignette("nowcasting", package = "csalert")}, which runs the ensemble
+#' method as stage 7 of its pipeline.
 #' @param value Character of name of value
 #' @param baseline_isoyears Number of years in the past you want to include as baseline
 #' @param remove_last_isoyearweeks Number of isoyearweeks you want to remove at the end (due to unreliable data)
@@ -256,4 +288,30 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   data.table::shouldPrint(with_pred)
 
   return(with_pred)
+}
+
+#' @method signal_detection_hlm csfmt_rts_data_v3
+#' @rdname signal_detection_hlm
+#' @returns The `csfmt_rts_data_v3` method always errors: see the section below.
+#' @section Why there is no csfmt_rts_data_v3 method:
+#' `csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
+#' is terminal. It carries quantiles, not draws, so the per-draw exceedance this
+#' function computes cannot be produced from it. Calling `signal_detection_hlm()`
+#' on one is always a mistake, so the method exists only to say so:
+#'
+#' \preformatted{
+#' ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")  # before
+#' out <- ens_collapse(ens, heal = TRUE)                              # then collapse
+#' }
+#' @export
+signal_detection_hlm.csfmt_rts_data_v3 <- function(x, ...) {
+  stop(
+    "signal_detection_hlm() does not accept a csfmt_rts_data_v3.\n",
+    "  A collapsed table is terminal output: it holds quantiles, not draws, so the\n",
+    "  per-draw exceedance probability cannot be computed from it.\n",
+    "  Run signal_detection_hlm() on the csfmt_ensemble_v3, BEFORE ens_collapse():\n",
+    "    ens <- signal_detection_hlm(ens, measure = \"numerator_nowcasted\")\n",
+    "    out <- ens_collapse(ens, heal = TRUE)",
+    call. = FALSE
+  )
 }

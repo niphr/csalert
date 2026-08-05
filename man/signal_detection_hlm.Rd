@@ -4,6 +4,7 @@
 \name{signal_detection_hlm}
 \alias{signal_detection_hlm}
 \alias{signal_detection_hlm.csfmt_rts_data_v1}
+\alias{signal_detection_hlm.csfmt_rts_data_v3}
 \alias{signal_detection_hlm.csfmt_ensemble_v3}
 \title{Detect signals using the historical limits method}
 \usage{
@@ -19,6 +20,8 @@ signal_detection_hlm(x, ...)
   remove_training_data = FALSE,
   ...
 )
+
+\method{signal_detection_hlm}{csfmt_rts_data_v3}(x, ...)
 
 \method{signal_detection_hlm}{csfmt_ensemble_v3}(x, measure, baseline_isoyears = 5, ...)
 }
@@ -44,6 +47,8 @@ signal_detection_hlm(x, ...)
 \value{
 The original csfmt_rts_data_v1 dataset with extra columns. \code{*_status} is a factor with levels c("training", "forecast", "null", "high") flagging weeks above the baseline, \code{*_forecasted*} holds the observed value (or the baseline median for forecast weeks), and \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and upper (99.5\%) baseline prediction interval.
 
+The `csfmt_rts_data_v3` method always errors: see the section below.
+
 The `csfmt_ensemble_v3` with a per-draw exceedance column added to
   `$draws` for `measure` (1 where the draw exceeds its HLM baseline threshold,
   else 0), so the exceedance probability falls out of the quantile collapse.
@@ -57,6 +62,55 @@ standard deviation are computed from the surrounding weeks
 \code{baseline_isoyears} years. A week is flagged as \code{"high"} when its
 value exceeds the upper (99.5\%) baseline prediction interval.
 }
+\section{Deprecated (the csfmt_rts_data_v1 method)}{
+
+`signal_detection_hlm.csfmt_rts_data_v1` is **deprecated**. It belongs to the
+pre-ensemble architecture, in which each analysis stage read and wrote a
+`cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
+analysis substrate: every stage takes the ensemble and returns the ensemble,
+and [ens_collapse] is terminal.
+
+It still works and emits no warning, so existing pipelines are undisturbed.
+New work should call `signal_detection_hlm()` on the **ensemble**, before
+`ens_collapse()`:
+
+\preformatted{
+ens <- nowcast_quasipoisson_v1(triangle, max_delay = 5)
+ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")
+out <- ens_collapse(ens, heal = TRUE)
+}
+
+**The replacement is not a drop-in.** The two methods differ in interface and
+in output, not only in the class they accept:
+\itemize{
+  \item the v1 method takes `value`, `remove_last_isoyearweeks`,
+    `forecast_isoyearweeks` and `value_naming_prefix`. The ensemble method
+    takes one `measure` naming a `$draws` matrix and `baseline_isoyears`.
+  \item the v1 method returns a factor status column with `training` /
+    `forecast` / `null` / `high` levels plus baseline prediction-interval
+    columns. The ensemble method classifies every DRAW against the baseline
+    limit, so the result is an exceedance PROBABILITY after the collapse, not
+    a label.
+}
+Migrating is therefore a rewrite of the call site, and the output is a
+different kind of quantity. See
+\code{vignette("nowcasting", package = "csalert")}, which runs the ensemble
+method as stage 7 of its pipeline.
+}
+
+\section{Why there is no csfmt_rts_data_v3 method}{
+
+`csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
+is terminal. It carries quantiles, not draws, so the per-draw exceedance this
+function computes cannot be produced from it. Calling `signal_detection_hlm()`
+on one is always a mistake, so the method exists only to say so:
+
+\preformatted{
+ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")  # before
+out <- ens_collapse(ens, heal = TRUE)                              # then collapse
+}
+}
+
 \examples{
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
@@ -76,8 +130,7 @@ print(res[, .(
 )])
 }
 \seealso{
-Neither package vignette runs this function.
-  \code{vignette("nowcasting", package = "csalert")} names it in its closing
-  "Where next" list as one of the stages that can run on an ensemble, but does
-  not demonstrate it; the example below is its only worked demonstration.
+\code{vignette("nowcasting", package = "csalert")}, which runs the
+  ensemble method as stage 7 of its pipeline. The example below is the only
+  worked demonstration of the `csfmt_rts_data_v1` method, which is deprecated.
 }
