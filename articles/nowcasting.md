@@ -13,20 +13,59 @@ around three S3 formats:
   [`cstidy::csfmt_rts_data_v3`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html)
   for the usual plots and tables).
 
-This vignette runs one synthetic series through four stages:
+## The ensemble is the analysis substrate
+
+One rule explains the shape of everything below.
+
+> **Every analytical stage takes a `csfmt_ensemble_v3` and returns a
+> `csfmt_ensemble_v3`.**
+> [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+> is **terminal**: it reduces the draws to quantiles, and a collapsed
+> table is output, never input.
+
+So the canonical pipeline is a single chain through the ensemble:
+
+    csfmt_reporting_triangle_v3
+      -> nowcast_quasipoisson_v1  OR  nowcast_passthrough_to_ensemble_v1
+      -> [ens_add_rate]              # when a denominator exists
+      -> [short_term_trend]          # growth rate + P(increasing)
+      -> [mem_thresholds_v1]         # MEM intensity
+      -> [signal_detection_hlm]      # per-draw exceedance
+      -> ens_collapse(heal = TRUE)   # ensemble -> quantiles -> csfmt_rts_data_v3
+
+The bracketed stages are optional and order-flexible among themselves;
+each one adds draw columns and hands the ensemble on. What you cannot do
+is collapse and then carry on: a collapsed table holds quantiles, not
+draws, so feeding it back into
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+cannot recover a per-draw trend or a P(increasing). That is by design,
+not a gap — the draws are the uncertainty, and the collapse is where you
+spend them.
+
+This vignette runs one synthetic series through the whole chain:
 
 1.  **Nowcast** — complete the right-truncated recent weeks.
 2.  **Validation** — replay the method against what was known in the
-    past and score it.
+    past.
 3.  **Reporting completion** — read the reporting delay off the triangle
     itself.
-4.  **Short-term trend** — estimate the recent slope of the completed
-    series, per draw.
+4.  **Rate** — a nowcasted numerator over a nowcasted denominator, per
+    draw.
+5.  **Short-term trend** — the recent slope of that rate, per draw.
+6.  **MEM intensity** — seasonal intensity thresholds, classified per
+    draw.
+7.  **Signal detection** — historical-limits exceedance, per draw.
+8.  **Collapse** — quantiles, healed into
+    [`cstidy::csfmt_rts_data_v3`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html).
 
-One triangle carries all four, so the stages compose rather than each
-opening a fresh demo dataset. When you set up a *new* indicator, run
-stage 3 first: it is what supports the choice of `max_delay` that the
-other three then use.
+Stages 4 to 8 are the ensemble chain above. Stages 2 and 3 are not: they
+take the **triangle**, not the ensemble, because they ask about the
+reporting process rather than about the completed counts. That asymmetry
+is worth remembering — diagnostics of *how data arrives* read the
+triangle; analyses of *what the data says* read the ensemble.
+
+When you set up a *new* indicator, run stage 3 first: it is what
+supports the choice of `max_delay` that everything else then uses.
 
 ``` r
 library(data.table)
@@ -36,7 +75,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.8.5
+#> csalert 2026.8.6
 #> https://niphr.github.io/csalert/
 ```
 
@@ -44,10 +83,17 @@ library(csalert)
 
 Real surveillance data arrives with a delay: a case with reference week
 `W` may only be *reported* in week `W`, `W+1`, `W+2`, and so on. The
-generator below simulates 70 reference weeks of a seasonal indicator,
-with a **reporting speed-up built in at the start of ISO year 2024** —
-the same system, reporting faster. Stage 3 recovers that change from the
-triangle alone.
+generator below simulates a laboratory indicator from ISO week 2019-35
+to 2024-18 — five winter seasons, which is what stages 6 and 7 need —
+with a **reporting speed-up built in at the start of ISO year 2024**.
+Stage 3 recovers that change from the triangle alone.
+
+It emits a **numerator and a denominator**: tests taken, and how many
+were positive. Simulating positives as a binomial *conditional on the
+tests* keeps the numerator a subset of the denominator, which is what
+makes their ratio a proportion. Two independent Poissons would not be.
+Each test carries one reporting delay, so a result and its test land in
+the same triangle cell.
 
 [`set.seed()`](https://rdrr.io/r/base/Random.html) is called *inside*
 the generator, not beside it. A seed set outside a function that is
@@ -55,46 +101,55 @@ called more than once leaves the second call running on a different
 stream, and the resulting Monte-Carlo noise reads as signal.
 
 ``` r
-sim_reports <- function(first_ref = "2023-01",
-                        n_weeks = 70L,
+sim_reports <- function(first_ref = "2019-35",
+                        last_ref = "2024-18",
                         delay_slow = c(0.45, 0.30, 0.15, 0.07, 0.03),
                         delay_fast = c(0.70, 0.20, 0.06, 0.03, 0.01),
                         seed = 1L) {
   set.seed(seed)                                    # pinned inside, see above
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   i0 <- match(first_ref, weeks)
-  rows <- lapply(seq_len(n_weeks), function(w) {
-    ref <- weeks[i0 + w - 1L]
+  i1 <- match(last_ref, weeks)
+  rows <- lapply(i0:i1, function(ri) {
+    ref <- weeks[ri]
+    s <- cos(2 * pi * (cstime::isoyearweek_to_isoweek_n(ref) - 5) / 52)  # winter peak
+    n_tests <- rpois(1, 400 + 120 * s)
+    positive <- rbinom(n_tests, 1, stats::plogis(-2.2 + 1.1 * s))        # subset of tests
     p <- if (cstime::isoyearweek_to_isoyear_n(ref) <= 2023) delay_slow else delay_fast
-    n <- rpois(1, 60 + 25 * sin(2 * pi * w / 52))   # a seasonal signal
     data.table(
       isoyearweek_reference = ref,
-      isoyearweek_reporting = weeks[i0 + w - 1L + sample(0:4, n, TRUE, p)]
+      isoyearweek_reporting = weeks[ri + sample(0:4, n_tests, TRUE, p)],
+      positive = positive
     )
   })
   # "today" is the last reference week: drop what has not been reported yet, so
   # the most recent weeks are still incomplete -- the problem a nowcast solves
-  rbindlist(rows)[isoyearweek_reporting <= weeks[i0 + n_weeks - 1L]]
+  rbindlist(rows)[isoyearweek_reporting <= weeks[i1]]
 }
 
 reports <- sim_reports()
-triangle_long <- reports[, .(numerator = .N),
+triangle_long <- reports[, .(numerator = sum(positive), denominator = .N),
                          by = .(isoyearweek_reference, isoyearweek_reporting)]
-triangle_long[, `:=`(indicator = "example", location = "nation",
+triangle_long[, `:=`(indicator_tag = "lab_flu", location_code = "nation",
                      age = "total", sex = "total")]
 head(triangle_long, 4)
-#>    isoyearweek_reference isoyearweek_reporting numerator indicator location
-#>                   <char>                <char>     <int>    <char>   <char>
-#> 1:               2023-01               2023-04         4   example   nation
-#> 2:               2023-01               2023-01        23   example   nation
-#> 3:               2023-01               2023-03        10   example   nation
-#> 4:               2023-01               2023-02        20   example   nation
-#>       age    sex
-#>    <char> <char>
-#> 1:  total  total
-#> 2:  total  total
-#> 3:  total  total
-#> 4:  total  total
+#>    isoyearweek_reference isoyearweek_reporting numerator denominator
+#>                   <char>                <char>     <int>       <int>
+#> 1:               2019-35               2019-35         1         132
+#> 2:               2019-35               2019-39         0          12
+#> 3:               2019-35               2019-36         3          78
+#> 4:               2019-35               2019-38         0          24
+#>    indicator_tag location_code    age    sex
+#>           <char>        <char> <char> <char>
+#> 1:       lab_flu        nation  total  total
+#> 2:       lab_flu        nation  total  total
+#> 3:       lab_flu        nation  total  total
+#> 4:       lab_flu        nation  total  total
+c(cells = nrow(triangle_long),
+  numerator_never_exceeds_denominator =
+    all(triangle_long$numerator <= triangle_long$denominator))
+#>                               cells numerator_never_exceeds_denominator 
+#>                                1215                                   1
 ```
 
 Wrap it as a `csfmt_reporting_triangle_v3`. The as-of boundary is read
@@ -104,7 +159,7 @@ clock.
 ``` r
 tri <- csfmt_reporting_triangle_v3(
   triangle_long,
-  id_cols       = c("indicator", "location", "age", "sex"),
+  id_cols       = c("indicator_tag", "location_code", "age", "sex"),
   reference_col = "isoyearweek_reference",
   reporting_col = "isoyearweek_reporting",
   value_col     = "numerator"
@@ -151,11 +206,16 @@ weeks) restricts training to the settled weeks within roughly that span,
 so the partial-to-total mapping can follow a reporting regime that
 changes — as this series’ does.
 
+`denominator_col` nowcasts a second measure alongside the numerator, on
+the same draw axis. Stage 4 needs it: a rate is only coherent if both
+its parts are completed in the same Monte-Carlo world.
+
 ``` r
 set.seed(2)
-ens <- nowcast_quasipoisson_v1(tri, max_delay = max_delay, n_sim = 500)
+ens <- nowcast_quasipoisson_v1(tri, max_delay = max_delay, n_sim = 500,
+                               denominator_col = "denominator")
 ens
-#> <csfmt_ensemble_v3> 70 rows | 1 series | draws: numerator_nowcasted
+#> <csfmt_ensemble_v3> 245 rows | 1 series | draws: numerator_nowcasted, denominator_nowcasted
 ```
 
 Collapse the draws to a quantile summary. `original` is the count
@@ -170,14 +230,14 @@ tail(q[, .(isoyearweek, original,
            hi  = numerator_nowcasted_q95x0)], 8)
 #>    isoyearweek original    lo   med    hi
 #>         <char>    <num> <num> <num> <num>
-#> 1:     2024-11       70 70.00    70    70
-#> 2:     2024-12       86 86.00    86    86
-#> 3:     2024-13       88 88.00    88    88
-#> 4:     2024-14       77 77.00    77    77
-#> 5:     2024-15       79 79.00    80    97
-#> 6:     2024-16       64 64.00    67    82
-#> 7:     2024-17       75 75.00    85   100
-#> 8:     2024-18       55 65.95    80    95
+#> 1:     2024-11      100   100   100   100
+#> 2:     2024-12       94    94    94    94
+#> 3:     2024-13       69    69    69    69
+#> 4:     2024-14       67    67    67    67
+#> 5:     2024-15       50    50    50    61
+#> 6:     2024-16       47    47    49    62
+#> 7:     2024-17       43    43    46    57
+#> 8:     2024-18       23    29    46    66
 ```
 
 The settled weeks are pinned to their observed total, so they have no
@@ -206,6 +266,11 @@ ref_weeks <- q$isoyearweek
 
 ## 2. Validation: replay the method against the past
 
+This stage and the next take the **triangle**, not the ensemble: they
+ask how the data arrives, which is a property of the reporting process
+and is destroyed the moment the delay axis is collapsed into weekly
+totals.
+
 Because the triangle records *when* every count arrived, you can
 reconstruct what was known at any past week and replay the engine
 against it, without keeping a second dated extract.
@@ -229,7 +294,7 @@ past <- nowcast_censor(tri, as_of = ref_weeks[length(ref_weeks) - 8L])
 c(now  = attr(tri, "as_of"),  then      = attr(past, "as_of"),
   rows_now = nrow(tri),       rows_then = nrow(past))
 #>       now      then  rows_now rows_then 
-#> "2024-18" "2024-10"     "324"     "285"
+#> "2024-18" "2024-10"    "1215"    "1175"
 ```
 
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
@@ -244,12 +309,12 @@ truth <- nowcast_truth(tri, max_delay = max_delay)
 tail(truth, 3)
 #>    reference truth
 #>       <char> <num>
-#> 1:   2024-12    86
-#> 2:   2024-13    88
-#> 3:   2024-14    77
+#> 1:   2024-12    94
+#> 2:   2024-13    69
+#> 3:   2024-14    67
 c(reference_weeks = length(ref_weeks), settled = nrow(truth))
 #> reference_weeks         settled 
-#>              70              66
+#>             245             241
 ```
 
 A *method* is any function `f(triangle) -> csfmt_ensemble_v3` with its
@@ -280,10 +345,10 @@ bt <- nowcast_backtest(
 head(bt, 4)
 #>    reference   as_of horizon quantile_level predicted
 #>       <char>  <char>   <int>          <num>     <num>
-#> 1:   2023-38 2023-41       3           0.05        33
-#> 2:   2023-39 2023-41       2           0.05        24
-#> 3:   2023-40 2023-41       1           0.05        36
-#> 4:   2023-41 2023-41       0           0.05        45
+#> 1:   2023-38 2023-41       3           0.05     24.00
+#> 2:   2023-39 2023-41       2           0.05     19.00
+#> 3:   2023-40 2023-41       1           0.05     14.00
+#> 4:   2023-41 2023-41       0           0.05     22.95
 nrow(bt)
 #> [1] 600
 ```
@@ -331,14 +396,14 @@ ev <- nowcast_evaluate_v1(
 ev[, .(method, horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
 #>          method horizon     n coverage_50 coverage_90 median_signed median_abs
 #>          <char>   <int> <int>       <num>       <num>         <num>      <num>
-#> 1: quasipoisson       3    29       1.000       1.000        0.0000     0.0141
-#> 2: quasipoisson       2    28       0.964       1.000        0.0000     0.0343
-#> 3: quasipoisson       1    27       0.778       1.000        0.0141     0.0455
-#> 4: quasipoisson       0    26       0.654       0.885        0.0182     0.0893
-#> 5:  passthrough       3    29       0.276       0.276       -0.0185     0.0185
-#> 6:  passthrough       2    28       0.000       0.000       -0.0652     0.0652
-#> 7:  passthrough       1    27       0.000       0.000       -0.1774     0.1774
-#> 8:  passthrough       0    26       0.000       0.000       -0.3859     0.3859
+#> 1: quasipoisson       3    29       1.000       1.000        0.0000     0.0161
+#> 2: quasipoisson       2    28       0.893       1.000        0.0039     0.0371
+#> 3: quasipoisson       1    27       0.630       0.963        0.0448     0.0660
+#> 4: quasipoisson       0    26       0.346       0.692        0.1421     0.1937
+#> 5:  passthrough       3    29       0.310       0.310       -0.0100     0.0100
+#> 6:  passthrough       2    28       0.036       0.036       -0.0594     0.0594
+#> 7:  passthrough       1    27       0.000       0.000       -0.1544     0.1544
+#> 8:  passthrough       0    26       0.000       0.000       -0.3842     0.3842
 ```
 
 Read that table as a measurement on **this** sample and no further. Each
@@ -362,6 +427,43 @@ Its `coverage_50` and `coverage_90` are equal because a single draw
 gives it no interval at all — the “interval” is a point, so it covers
 the truth only when the republished count already equals it, which at
 horizon 3 happens on the weeks where nothing arrived at delay 4.
+
+### The engine’s horizon-0 row is worth stopping on
+
+The quasipoisson engine’s horizon-0 coverage is well below nominal, and
+its `median_signed` is *positive* — it is over-completing. That is not a
+random dip. The replay window above ends at the as-of week, so it
+straddles the reporting speed-up this series has at the start of ISO
+2024, and the engine trains on the 26 preceding settled weeks. Learn the
+completion factors of a slow regime, apply them to partial counts from a
+fast one, and you scale up counts that were already nearly complete.
+
+The contrast is visible if the replay is restricted to as-of weeks that
+sit entirely inside the slow regime:
+
+``` r
+slow_weeks <- tail(ref_weeks[cstime::isoyearweek_to_isoyear_n(ref_weeks) == 2023], 30)
+c(from = slow_weeks[1], to = slow_weeks[length(slow_weeks)])
+#>      from        to 
+#> "2023-23" "2023-52"
+nowcast_evaluate_v1(tri, method_qp, max_delay = max_delay,
+                    as_of_weeks = slow_weeks, horizons = 0:3, seed = 1)[
+  , .(horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
+#>    horizon     n coverage_50 coverage_90 median_signed median_abs
+#>      <int> <int>       <num>       <num>         <num>      <num>
+#> 1:       3    30       1.000       1.000        0.0000     0.0000
+#> 2:       2    30       0.933       1.000        0.0000     0.0596
+#> 3:       1    30       0.833       1.000        0.0665     0.0909
+#> 4:       0    30       0.533       0.867        0.1056     0.1909
+```
+
+Horizon 0 recovers, and the bias changes sign. Read that as a
+demonstration of the mechanism, not as a measured effect size: the two
+windows also differ in which weeks and which part of the season they
+cover, and 26 to 30 scored weeks cannot separate those from the regime
+change. The general lesson is the one `delay_window` exists for — **a
+nowcast engine is only as current as the reporting behaviour it was
+trained on**, and stage 3 is how you find out when that behaviour moved.
 
 [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
 reports the same per-horizon coverage alongside an interval-scaling
@@ -434,7 +536,7 @@ age <- match(attr(tri, "as_of"), weeks) - match(ref_weeks, weeks)
 completion <- reporting_completion_v1(tri, max_delay = max_delay)
 c(age_eligible = sum(age >= max_delay - 1L), reported = completion$n_settled)
 #> age_eligible     reported 
-#>           66           66
+#>          241          241
 ```
 
 They agree only because this series has no zero-count weeks. On an
@@ -523,12 +625,12 @@ worth being precise about which. Thin the current week’s reports down to
 ``` r
 set.seed(5)
 monday <- reports[isoyearweek_reporting != attr(tri, "as_of") | runif(.N) < 0.15]
-tl_mon <- monday[, .(numerator = .N),
+tl_mon <- monday[, .(numerator = sum(positive), denominator = .N),
                  by = .(isoyearweek_reference, isoyearweek_reporting)]
-tl_mon[, `:=`(indicator = "example", location = "nation",
+tl_mon[, `:=`(indicator_tag = "lab_flu", location_code = "nation",
               age = "total", sex = "total")]
 tri_mon <- csfmt_reporting_triangle_v3(
-  tl_mon, id_cols = c("indicator", "location", "age", "sex")
+  tl_mon, id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
 rbind(
@@ -541,12 +643,12 @@ rbind(
 )
 #>                        extract n_settled mean_delay pct_delay0 pct_delay1
 #>                         <char>     <int>      <num>      <num>      <num>
-#> 1:      Sunday (week complete)        66       0.82       52.1       77.9
-#> 2: Monday (15% of the week in)        66       0.82       52.2       77.9
+#> 1:      Sunday (week complete)       241       0.88       47.3       76.7
+#> 2: Monday (15% of the week in)       241       0.88       47.3       76.7
 #>    pct_delay2 pct_delay3
 #>         <num>      <num>
-#> 1:       90.9       97.4
-#> 2:       90.9       97.4
+#> 1:       90.6       97.1
+#> 2:       90.6       97.1
 ```
 
 The pooled curve barely moves, and `n_settled` is identical, because the
@@ -556,10 +658,11 @@ so it contributes nothing to `pct_delayD` whichever day you run on. (A
 `max_delay` of 1 leaves a single delay bucket, no completion to measure,
 and no useful summary; use 2 or more.)
 
-One reference week *is* affected, and it is the newest settled one. Its
-last delay cell — delay `max_delay - 1` — is being reported during the
-current week, so a mid-week extract sees only part of it. Count the
-weeks whose settled total moved, rather than assuming it is one:
+At most **one** reference week can have its settled total affected: the
+newest settled one, whose last delay cell — delay `max_delay - 1` — is
+still being reported during the current week. Every older week finished
+reporting earlier; every newer week is not settled. Count the weeks that
+actually moved, rather than assuming it is one:
 
 ``` r
 cmp <- merge(nowcast_truth(tri, max_delay), nowcast_truth(tri_mon, max_delay),
@@ -568,29 +671,51 @@ cmp[(.N - 2):.N]
 #> Key: <reference>
 #>    reference truth_sunday truth_monday
 #>       <char>        <num>        <num>
-#> 1:   2024-12           86           86
-#> 2:   2024-13           88           88
-#> 3:   2024-14           77           76
+#> 1:   2024-12           94           94
+#> 2:   2024-13           69           69
+#> 3:   2024-14           67           67
 cmp[truth_sunday != truth_monday]
 #> Key: <reference>
-#>    reference truth_sunday truth_monday
-#>       <char>        <num>        <num>
-#> 1:   2024-14           77           76
+#> Empty data.table (0 rows and 3 cols): reference,truth_sunday,truth_monday
 ```
 
-So: **on this triangle** the day of the week moves the pooled delay
-curve by about a tenth of a percentage point. That is not a general
-result. One settled week’s cell is being diluted into a pool of 66, and
-the effect scales with how much weight that single week carries — with
-three qualifying weeks, or with one recent week far larger than the
-rest, the same mechanism is material. Measure it on your own series
-before deciding it is negligible.
+On this series, none did — and the reason is worth seeing, because it
+bounds the whole effect. The only cell at risk is the delay-4 numerator
+of the newest settled week, and in the fast 2024 regime delay 4 carries
+1% of a week’s tests:
 
-The newest settled week’s *total* is a different matter, and there a
-mid-week extract genuinely undercounts. That total is what
+``` r
+newest_settled <- weeks[match(attr(tri, "as_of"), weeks) - (max_delay - 1L)]
+triangle_long[isoyearweek_reference == newest_settled &
+              isoyearweek_reporting == attr(tri, "as_of"),
+              .(isoyearweek_reference, isoyearweek_reporting, numerator, denominator)]
+#>    isoyearweek_reference isoyearweek_reporting numerator denominator
+#>                   <char>                <char>     <int>       <int>
+#> 1:               2024-14               2024-18         0           3
+```
+
+Five tests, none of them positive. Thinning zero positives leaves zero,
+so the numerator’s settled total cannot move. **The weekday effect is
+bounded by the mass sitting in the last delay bucket** — widen
+`max_delay` past where reporting actually finishes and that bucket
+empties, which is why it vanishes here and did not vanish on a series
+with a heavier tail.
+
+**None of this generalises, and the two reasons it vanishes here are
+both about scale.** The at-risk cell is one week’s last delay bucket,
+diluted into a pool of 241 settled weeks; and that bucket is nearly
+empty because `max_delay` is wide enough. Shrink the series, shrink the
+horizon, or give the indicator a heavier reporting tail, and the same
+mechanism becomes material — a period slice with the minimum three
+qualifying weeks gives that one cell a third of the weight.
+
+The general statement is the conditional one: a mid-week extract
+undercounts the newest settled week’s total by whatever share of its
+last delay bucket has not arrived. That total is what
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
 scores a backtest against, so run the backtest off an end-of-week
-extract, or accept that the newest scored week enters low.
+extract, or measure the gap on your own series rather than assuming it
+is as small as it is here.
 
 ### “As of today”, for the weeks on screen
 
@@ -608,7 +733,7 @@ data.table(
 #>           status     N
 #>           <char> <int>
 #> 1:  current week     1
-#> 2:       settled    66
+#> 2:       settled   241
 #> 3: still filling     3
 ```
 
@@ -640,15 +765,26 @@ reporting_completion_v1(tri, max_delay = max_delay, period = "year")[
   , .(period, n_settled, mean_delay, pct_delay0, pct_delay1, pct_delay2, pct_delay3)]
 #>    period n_settled mean_delay pct_delay0 pct_delay1 pct_delay2 pct_delay3
 #>    <char>     <int>      <num>      <num>      <num>      <num>      <num>
-#> 1:   2023        52       0.93       46.7       74.2       89.5       96.9
-#> 2:   2024        14       0.49       68.0       88.7       95.1       98.8
+#> 1:   2019        18       0.96       44.4       73.5       89.4       96.4
+#> 2:   2020        53       0.95       44.2       75.0       89.8       96.3
+#> 3:   2021        52       0.92       45.5       75.6       89.8       97.0
+#> 4:   2022        52       0.90       45.1       76.0       91.4       97.2
+#> 5:   2023        52       0.95       44.4       74.5       89.0       97.0
+#> 6:   2024        14       0.49       67.7       89.1       95.7       98.8
 ```
 
 That is the change built into `sim_reports()`, recovered from the
-triangle: in 2023 about 47% of a week’s cases were in by the end of the
-reference week, in 2024 about 68%, and `mean_delay` roughly halved. The
-pooled row above reports `pct_delay0` around 52 — a number that was
-never true of either year.
+triangle. Five consecutive ISO years sit within a couple of points of
+each other — `pct_delay0` around 43 to 45, `mean_delay` around 0.95 —
+and then 2024 steps to about 69% and 0.45. A flat run followed by a step
+is what a genuine regime change looks like; a single year out of line
+with its neighbours is usually noise.
+
+The pooled row from the previous table reports `pct_delay0` of 47.3,
+which is close to the five slow years only because they outnumber the
+fast one five to one. It is not a compromise between the regimes; it is
+the old regime with a little contamination, and it will drift year by
+year as 2024 accumulates weeks.
 
 The stratification is by **ISO year**, not calendar year, and the ISO
 year of a week is the calendar year of its Thursday. That decides which
@@ -677,12 +813,12 @@ tail(reporting_completion_v1(tri, max_delay = max_delay, period = "month")[
   , .(period, n_settled, mean_delay, pct_delay0, pct_delay1)], 6)
 #>     period n_settled mean_delay pct_delay0 pct_delay1
 #>     <char>     <int>      <num>      <num>      <num>
-#> 1: 2023-10         4       0.77       51.6       80.0
-#> 2: 2023-11         5       0.95       45.0       75.6
-#> 3: 2023-12         4       0.96       44.9       72.4
-#> 4: 2024-01         4       0.52       66.8       87.4
-#> 5: 2024-02         5       0.51       65.3       89.2
-#> 6: 2024-03         4       0.45       72.0       89.3
+#> 1: 2023-10         4       0.83       51.0       76.0
+#> 2: 2023-11         5       0.88       46.5       79.7
+#> 3: 2023-12         4       1.02       43.8       71.2
+#> 4: 2024-01         4       0.52       66.3       89.1
+#> 5: 2024-02         5       0.48       67.4       89.0
+#> 6: 2024-03         4       0.50       68.0       88.2
 ```
 
 The step lands between 2023-12 and 2024-01. Note the small `n_settled`
@@ -720,22 +856,22 @@ sens <- rbindlist(lapply(2:8, function(md) {
 sens
 #>    max_delay n_settled mean_delay complete_by_md   last_col last_pct pct_delay0
 #>        <int>     <int>      <num>          <num>     <char>    <num>      <num>
-#> 1:         2        69       0.32              1 pct_delay1      100       67.5
-#> 2:         3        68       0.56              1 pct_delay2      100       57.9
-#> 3:         4        67       0.72              1 pct_delay3      100       53.9
-#> 4:         5        66       0.82              1 pct_delay4      100       52.1
-#> 5:         6        65       0.82              1 pct_delay5      100       51.9
-#> 6:         7        64       0.83              1 pct_delay6      100       51.4
-#> 7:         8        63       0.84              1 pct_delay7      100       51.0
+#> 1:         2       244       0.38              1 pct_delay1      100       62.0
+#> 2:         3       243       0.63              1 pct_delay2      100       52.4
+#> 3:         4       242       0.79              1 pct_delay3      100       48.9
+#> 4:         5       241       0.88              1 pct_delay4      100       47.3
+#> 5:         6       240       0.89              1 pct_delay5      100       47.2
+#> 6:         7       239       0.89              1 pct_delay6      100       47.1
+#> 7:         8       238       0.89              1 pct_delay7      100       46.9
 #>    pct_delay1 pct_delay2
 #>         <num>      <num>
 #> 1:      100.0         NA
-#> 2:       85.9      100.0
-#> 3:       80.2       93.4
-#> 4:       77.9       90.9
-#> 5:       77.7       90.8
-#> 6:       77.5       90.8
-#> 7:       77.3       90.7
+#> 2:       84.7      100.0
+#> 3:       79.0       93.3
+#> 4:       76.7       90.6
+#> 5:       76.6       90.6
+#> 6:       76.6       90.5
+#> 7:       76.4       90.5
 c(complete_by_md_always_1 = all(sens$complete_by_md == 1),
   last_pct_always_100     = all(sens$last_pct == 100))
 #> complete_by_md_always_1     last_pct_always_100 
@@ -756,14 +892,14 @@ per
 #>    period_arg  rows complete_by_md_all_1 pct_delay4_all_100
 #>        <char> <int>               <lgcl>             <lgcl>
 #> 1:        all     1                 TRUE               TRUE
-#> 2:       year     2                 TRUE               TRUE
-#> 3:      month    15                 TRUE               TRUE
+#> 2:       year     6                 TRUE               TRUE
+#> 3:      month    55                 TRUE               TRUE
 ```
 
 **The diagnostic that does work is the `max_delay` sweep itself.** Read
-the `sens` table above down its rows: `mean_delay` rises from 0.32 at
-`max_delay` 2 to 0.82 at 5, then moves only to 0.84 at 8. `pct_delay0`
-falls from 67.5 to 52.1 and then drifts to 51.0. That flattening is what
+the `sens` table above down its rows: `mean_delay` rises from 0.38 at
+`max_delay` 2 to 0.88 at 5, then moves only to 0.89 at 8. `pct_delay0`
+falls from 61.8 to 47.3 and then drifts to 46.8. That flattening is what
 *supports* `max_delay <- 5L` here — it is a sensitivity analysis, not a
 proof. A `mean_delay` that kept climbing would be clear evidence the
 tail was still being cut off; a plateau is weaker evidence in the other
@@ -773,15 +909,16 @@ composition both flatten the curve too.
 Two cautions on reading that sweep:
 
 - The short horizons are not merely imprecise, they are biased
-  optimistic. `pct_delay0` at `max_delay` 2 reads 67.5% because it is
+  optimistic. `pct_delay0` at `max_delay` 2 reads 61.8% because it is
   conditioning on the cases that arrived within two weeks — a smaller
   denominator, so a larger share.
 - Not all of the residual movement past 5 is about the tail. `n_settled`
-  falls from 66 to 63 across those rows, because a longer horizon
-  settles fewer weeks. This series reports faster in 2024, so dropping
-  its three newest weeks lowers the pooled `pct_delay0` on composition
-  alone. Compare rows at equal `n_settled`, or read `period = "year"`
-  instead, before calling a small drift a tail.
+  falls from 244 to 238 across those rows, because a longer horizon
+  settles fewer weeks, and the weeks it drops are the newest — which on
+  this series are the fast-reporting ones. That pulls the pooled
+  `pct_delay0` down slightly on composition alone. Compare rows at equal
+  `n_settled`, or read `period = "year"` instead, before calling a small
+  drift a tail.
 
 `sim_reports()` emits no delay beyond 4, so on *this* triangle a horizon
 of 5 truncates nothing and the flattening really is exact — but only
@@ -790,7 +927,66 @@ unavailable: widen until `mean_delay` stops moving, then treat the
 remaining tail as bounded by what a still-wider horizon would have
 shown, not as zero.
 
-## 4. Short-term trend on the nowcast
+## 4. Rate: a nowcasted numerator over a nowcasted denominator
+
+From here on every stage takes the ensemble and returns the ensemble.
+
+**Estimand.** The percentage of tests that were positive, per reference
+week — computed **per draw**, so it carries the uncertainty of both the
+numerator and the denominator. Collapsing first and dividing the medians
+would throw that away and give a ratio no draw ever produced.
+
+Because draws are index-aligned across measures (column `j` is the same
+Monte-Carlo world for every measure), the division is element-wise:
+
+``` r
+ens <- ens_add_rate(ens,
+                    numerator   = "numerator_nowcasted",
+                    denominator = "denominator_nowcasted",
+                    per         = 100)
+names(ens$draws)
+#> [1] "numerator_nowcasted"                               
+#> [2] "denominator_nowcasted"                             
+#> [3] "numerator_nowcasted_vs_denominator_nowcasted_pr100"
+```
+
+The new measure’s name is built by the grammar, not pasted, so build it
+the same way rather than typing it out:
+
+``` r
+rate <- csfmt_var("numerator_nowcasted", denom = "denominator_nowcasted", per = 100)
+rate
+#> [1] "numerator_nowcasted_vs_denominator_nowcasted_pr100"
+```
+
+``` r
+qr <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
+tail(qr[, .(isoyearweek,
+            positives = numerator_nowcasted_q50x0,
+            tests     = denominator_nowcasted_q50x0,
+            pct_lo    = round(get(csfmt_var(rate, q = 0.05)), 2),
+            pct       = round(get(csfmt_var(rate, q = 0.50)), 2),
+            pct_hi    = round(get(csfmt_var(rate, q = 0.95)), 2))], 6)
+#>    isoyearweek positives tests pct_lo   pct pct_hi
+#>         <char>     <num> <num>  <num> <num>  <num>
+#> 1:     2024-13        69   433  15.94 15.94  15.94
+#> 2:     2024-14        67   464  14.44 14.44  14.44
+#> 3:     2024-15        50   452  10.46 11.11  13.33
+#> 4:     2024-16        49   427  10.33 11.45  14.45
+#> 5:     2024-17        46   387  10.39 11.98  15.21
+#> 6:     2024-18        46   464   6.20 10.02  14.59
+```
+
+Two guards are worth knowing about. A denominator of zero gives `NA`,
+not a fabricated 0% that would read as a real drop. And because the
+numerator is a subset of the denominator, the rate is capped at `per`; a
+draw that violated that would warn rather than silently exceed 100%. No
+warning appeared above, so no draw did — but the numerator and
+denominator here are nowcast **independently**, and nothing in the
+engine enforces coherence between them. On a series where the two are
+close, expect that warning.
+
+## 5. Short-term trend on the rate
 
 **Estimand.** The OLS slope of the *completed* series over the last
 `trend_isoyearweeks` weeks, and that slope as a percentage of the
@@ -820,16 +1016,16 @@ closed-form OLS straight line through that draw’s last
 point column:
 
 ``` r
-ens_trend <- short_term_trend(ens, measure = "numerator_nowcasted",
-                              trend_isoyearweeks = 6)
-names(ens_trend$draws)
-#> [1] "numerator_nowcasted"             "numerator_nowcasted_trend_beta1"
-#> [3] "numerator_nowcasted_trend_gr"
+ens_trend <- short_term_trend(ens, measure = rate, trend_isoyearweeks = 6)
+setdiff(names(ens_trend$draws), names(ens$draws))
+#> [1] "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_beta1"
+#> [2] "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_gr"
 setdiff(names(ens_trend$data), names(ens$data))
-#> [1] "numerator_nowcasted_trend_increasing_pr"
+#> character(0)
 ```
 
-- `..._trend_beta1` — the OLS slope, in counts per week, per draw.
+- `..._trend_beta1` — the OLS slope, in percentage points per week, per
+  draw.
 - `..._trend_gr` — the growth rate `100 * slope / level`, per draw, in
   percent of the current level per week.
 - `..._trend_increasing_pr` — the share of draws with a positive slope.
@@ -839,40 +1035,47 @@ setdiff(names(ens_trend$data), names(ens$data))
 Collapse as usual:
 
 ``` r
+gr <- csfmt_var(rate, role = "trend", suffix = "_gr")
 qt <- ens_collapse(ens_trend, probs = c(0.05, 0.5, 0.95))
 trend <- qt[, .(isoyearweek,
-                gr    = round(numerator_nowcasted_trend_gr_q50x0, 2),
-                gr_lo = round(numerator_nowcasted_trend_gr_q05x0, 2),
-                gr_hi = round(numerator_nowcasted_trend_gr_q95x0, 2),
-                p_increasing = numerator_nowcasted_trend_increasing_pr)]
+                gr    = round(get(csfmt_var(gr, q = 0.50)), 2),
+                gr_lo = round(get(csfmt_var(gr, q = 0.05)), 2),
+                gr_hi = round(get(csfmt_var(gr, q = 0.95)), 2),
+                p_increasing = get(csfmt_var(rate, role = "trend",
+                                             suffix = "_increasing_pr")))]
 tail(trend, 10)
-#>     isoyearweek    gr gr_lo gr_hi p_increasing
-#>          <char> <num> <num> <num>        <num>
-#>  1:     2024-09  0.15  0.15  0.15        1.000
-#>  2:     2024-10  3.22  3.22  3.22        1.000
-#>  3:     2024-11  5.06  5.06  5.06        1.000
-#>  4:     2024-12  2.52  2.52  2.52        1.000
-#>  5:     2024-13  2.86  2.86  2.86        1.000
-#>  6:     2024-14 -0.52 -0.52 -0.52        0.000
-#>  7:     2024-15 -3.29 -3.51 -0.21        0.036
-#>  8:     2024-16 -1.29 -2.77  1.52        0.226
-#>  9:     2024-17 -1.87 -4.61  0.70        0.124
-#> 10:     2024-18 -1.12 -4.75  1.79        0.272
+#>     isoyearweek     gr  gr_lo  gr_hi p_increasing
+#>          <char>  <num>  <num>  <num>        <num>
+#>  1:     2024-09  -2.19  -2.19  -2.19        0.000
+#>  2:     2024-10  -4.39  -4.39  -4.39        0.000
+#>  3:     2024-11  -6.25  -6.25  -6.25        0.000
+#>  4:     2024-12  -6.21  -6.21  -6.21        0.000
+#>  5:     2024-13 -10.75 -10.75 -10.75        0.000
+#>  6:     2024-14 -11.74 -11.74 -11.74        0.000
+#>  7:     2024-15 -17.56 -19.54 -12.25        0.000
+#>  8:     2024-16 -19.52 -23.61 -12.60        0.000
+#>  9:     2024-17 -13.43 -18.29  -7.53        0.000
+#> 10:     2024-18 -10.00 -25.25  -2.26        0.012
 ```
 
 The last four rows are the nowcast weeks. Their point estimates are
-negative — the seasonal wave in this series is past its peak — but the
-5-95% bands cross zero, so on this series and this window the recent
-direction is not resolved. That is the honest reading of a trend fitted
-to weeks that are still filling.
+negative and their 5-95% bands sit entirely below zero, with
+`p_increasing` at 0 — the series is on the spring side of its winter
+peak, and the nowcast uncertainty is not wide enough to admit a rise.
+Note what that statement is and is not: it says the *completed* rate
+fell over each six-week window, given this nowcast. It does not say the
+fall will continue, and it is conditional on the nowcast being right
+about the four weeks that are still filling — which stage 2 measured as
+the engine’s weakest point.
 
 ### The settled weeks have no interval, and that is the right answer
 
 Look at the rows above the nowcast weeks: `gr_lo` and `gr_hi` equal
 `gr`, and `p_increasing` is exactly 0 or 1. That is not a display
 artefact and it is not a defect. Those windows lie entirely inside the
-settled weeks, where every draw is the same observed total. The six
-counts are *known*, so their OLS slope is a known number, and the
+settled weeks, where every draw of the numerator and of the denominator
+is the same observed total, so every draw of their ratio is too. The six
+rates are *known*, so their OLS slope is a known number, and the
 descriptive estimand has nothing left to be uncertain about.
 `p_increasing` collapses to a **sign indicator** on that one number —
 which is what a share-of-draws becomes when all the draws agree. It is
@@ -889,7 +1092,7 @@ data.table(
 )
 #>    settled_rows_with_a_full_window all_intervals_degenerate p_increasing_values
 #>                              <int>                   <lgcl>              <char>
-#> 1:                              61                     TRUE                0, 1
+#> 1:                             236                     TRUE                0, 1
 ```
 
 ### `propagate_slope_error = TRUE` changes the estimand
@@ -913,12 +1116,12 @@ three assumptions:
 3.  they are **homoskedastic**, with a `t` reference distribution.
 
 None of the three holds for the series in this vignette. `sim_reports()`
-draws counts from a Poisson whose mean is a **sinusoid**, so the window
-mean is curved, not linear, and the variance grows with the level rather
-than staying constant. So the interval below is a model-based
-perturbation under assumptions the data generator violates — informative
-about the sensitivity of the slope, not a valid confidence statement
-about it.
+draws tests from a Poisson and positives from a binomial, both with a
+**sinusoidal** mean, so the window mean is curved rather than linear and
+the variance of the rate changes with the level and with the number of
+tests. So the interval below is a model-based perturbation under
+assumptions the data generator violates — informative about the
+sensitivity of the slope, not a valid confidence statement about it.
 
 Use the default when you want to describe what the completed series did.
 Reach for this one only when a latent linear trend is genuinely the
@@ -926,28 +1129,26 @@ thing you mean, and say so when you publish the interval:
 
 ``` r
 set.seed(3)
-ens_trend2 <- short_term_trend(ens, measure = "numerator_nowcasted",
-                               trend_isoyearweeks = 6,
+ens_trend2 <- short_term_trend(ens, measure = rate, trend_isoyearweeks = 6,
                                propagate_slope_error = TRUE)
 qt2 <- ens_collapse(ens_trend2, probs = c(0.05, 0.5, 0.95))
 trend2 <- qt2[, .(isoyearweek,
-                  gr    = round(numerator_nowcasted_trend_gr_q50x0, 2),
-                  gr_lo = round(numerator_nowcasted_trend_gr_q05x0, 2),
-                  gr_hi = round(numerator_nowcasted_trend_gr_q95x0, 2),
-                  p_increasing = numerator_nowcasted_trend_increasing_pr)]
+                  gr    = round(get(csfmt_var(gr, q = 0.50)), 2),
+                  gr_lo = round(get(csfmt_var(gr, q = 0.05)), 2),
+                  gr_hi = round(get(csfmt_var(gr, q = 0.95)), 2))]
 tail(trend2, 10)
-#>     isoyearweek    gr  gr_lo gr_hi p_increasing
-#>          <char> <num>  <num> <num>        <num>
-#>  1:     2024-09 -0.03  -6.27  6.33        0.494
-#>  2:     2024-10  3.34  -3.81 11.32        0.820
-#>  3:     2024-11  5.21  -4.77 15.89        0.830
-#>  4:     2024-12  2.46  -5.48  9.97        0.738
-#>  5:     2024-13  2.55  -4.73 10.02        0.750
-#>  6:     2024-14 -0.07  -9.88  7.60        0.488
-#>  7:     2024-15 -3.07 -11.65  4.26        0.212
-#>  8:     2024-16 -0.64  -7.90  6.86        0.412
-#>  9:     2024-17 -2.31  -7.48  4.27        0.232
-#> 10:     2024-18 -1.17  -8.32  4.44        0.378
+#>     isoyearweek     gr  gr_lo  gr_hi
+#>          <char>  <num>  <num>  <num>
+#>  1:     2024-09  -2.35  -6.38   1.35
+#>  2:     2024-10  -4.33 -10.77   1.43
+#>  3:     2024-11  -6.22  -9.82  -2.29
+#>  4:     2024-12  -6.09 -10.11  -1.98
+#>  5:     2024-13 -10.75 -15.60  -5.24
+#>  6:     2024-14 -12.02 -17.87  -6.03
+#>  7:     2024-15 -16.67 -26.32  -7.83
+#>  8:     2024-16 -19.21 -25.34 -10.78
+#>  9:     2024-17 -13.58 -22.22  -2.75
+#> 10:     2024-18 -10.37 -29.96   0.13
 c(degenerate_intervals_now = sum(trend2$gr_lo == trend2$gr_hi, na.rm = TRUE))
 #> degenerate_intervals_now 
 #>                        0
@@ -972,10 +1173,173 @@ That one fits a quasi-Poisson log-link model over a moving window and
 returns a factor status column (`increasing` / `notincreasing`),
 following Benedetti (2019); see
 [`vignette("short_term_trend", package = "csalert")`](https://niphr.github.io/csalert/articles/short_term_trend.md).
-The ensemble method here is an OLS slope on the count scale, chosen
-because it is a fixed linear filter and so can be applied down 500 draw
-columns at once. Use the ensemble method when the input carries draws,
-and the `csfmt_rts_data_v1` method when it does not.
+The ensemble method here is an OLS slope, chosen because it is a fixed
+linear filter and so can be applied down 500 draw columns at once. **The
+`csfmt_rts_data_v1` method is the pre-ensemble architecture and is
+deprecated**; new work should run
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+on the ensemble, as above, before
+[`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md).
+
+Carry the trend ensemble forward — the chain continues from here:
+
+``` r
+ens <- ens_trend
+```
+
+## 6. MEM intensity thresholds
+
+**Estimand.** Which of five seasonal intensity levels this week’s rate
+falls in, where the thresholds come from the *same series’ own previous
+seasons* via the Moving Epidemic Method. Classification happens per
+draw, so the answer is a distribution over levels rather than one label.
+
+This is the first stage that needs **history**, and a lot of it:
+[`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+needs complete prior seasons to fit a season’s thresholds —
+`min_seasons` (default 2) is a hard floor, `prefer_seasons` (default 5)
+is the depth below which a fit is reported as provisional, and a season
+needs `min_weeks_per_season` (default 30) weeks to count as training at
+all. It is the reason this vignette’s series starts in 2019 rather than
+last year.
+
+``` r
+ens <- mem_thresholds_v1(ens, measure = rate)
+#> mem_thresholds_v1: 3 season(s) fit on < 5 training seasons (provisional); see mem_n_seasons.
+tail(ens$data[, .(isoyearweek, mem_n_seasons, mem_preepidemic,
+                  mem_medium, mem_high, mem_veryhigh)], 3)
+#>    isoyearweek mem_n_seasons mem_preepidemic mem_medium mem_high mem_veryhigh
+#>         <char>         <int>           <num>      <num>    <num>        <num>
+#> 1:     2024-16             4        17.05336   24.31637   27.181     28.55243
+#> 2:     2024-17             4        17.05336   24.31637   27.181     28.55243
+#> 3:     2024-18             4        17.05336   24.31637   27.181     28.55243
+```
+
+The **message** is not noise to skip past: it says some seasons were fit
+on fewer than `prefer_seasons` training seasons, and `mem_n_seasons`
+records how many each one actually got. Thresholds fit on two seasons
+are worth much less than thresholds fit on five, and this is where you
+find out which you have.
+
+The classification arrives as per-level probabilities after the
+collapse:
+
+``` r
+qm <- ens_collapse(ens, probs = 0.5)
+pcols <- grep("_status_prob_", names(qm), value = TRUE)
+intensity <- qm[, c("isoyearweek", pcols), with = FALSE]
+setnames(intensity, pcols, sub(".*_status_prob_", "", pcols))
+tail(intensity, 6)
+#>    isoyearweek preepidemic   low medium  high veryhigh
+#>         <char>       <num> <num>  <num> <num>    <num>
+#> 1:     2024-13        1.00  0.00      0     0        0
+#> 2:     2024-14        1.00  0.00      0     0        0
+#> 3:     2024-15        1.00  0.00      0     0        0
+#> 4:     2024-16        1.00  0.00      0     0        0
+#> 5:     2024-17        1.00  0.00      0     0        0
+#> 6:     2024-18        0.99  0.01      0     0        0
+```
+
+Weeks whose season has no thresholds — the early seasons, which have no
+prior seasons to learn from — get `NA` for every draw and are not
+classified at all:
+
+``` r
+status <- ens$draws[[csfmt_var(rate, role = "status")]]
+c(weeks = nrow(status),
+  weeks_with_no_threshold = sum(apply(status, 1, function(r) all(is.na(r)))))
+#>                   weeks weeks_with_no_threshold 
+#>                     245                     100
+```
+
+A real influenza series would also want `exclude_seasons` to keep
+anomalous seasons — a pandemic year, a season with a data gap — out of
+the training baseline. Thresholds are still estimated *for* an excluded
+season; only the baseline they are fit on changes.
+
+## 7. Signal detection: historical limits
+
+**Estimand.** Whether this week’s rate exceeds what the same calendar
+week has looked like in previous years — the historical-limits method.
+The baseline is the mean and standard deviation of the same week (plus
+or minus one) across `baseline_isoyears` prior years, and the threshold
+is its 99.5th percentile. Every draw is compared against that threshold,
+so the output is an exceedance *probability*, not a yes/no flag.
+
+The default `baseline_isoyears = 5` needs five full years of history
+before the first week can be classified. This series is shorter than
+that, so it uses three, which is the kind of trade every new indicator
+faces:
+
+``` r
+ens <- signal_detection_hlm(ens, measure = rate, baseline_isoyears = 3)
+qh <- ens_collapse(ens, probs = 0.5)
+hcols <- grep("_hlmstatus_prob_", names(qh), value = TRUE)
+signal <- qh[, c("isoyearweek", "hlm_threshold", hcols), with = FALSE]
+setnames(signal, hcols, sub(".*_hlmstatus_prob_", "p_", hcols))
+tail(signal, 6)
+#>    isoyearweek hlm_threshold p_null p_high
+#>         <char>         <num>  <num>  <num>
+#> 1:     2024-13      24.15171  1.000  0.000
+#> 2:     2024-14      23.31266  1.000  0.000
+#> 3:     2024-15      22.69595  1.000  0.000
+#> 4:     2024-16      20.59243  1.000  0.000
+#> 5:     2024-17      16.33812  0.988  0.012
+#> 6:     2024-18      16.47576  0.980  0.020
+```
+
+`p_high` is the share of draws above the threshold. It is a statement
+about *nowcast* uncertainty — how likely the completed rate exceeds the
+historical limit — and not a p-value, a posterior probability, or a
+false-alarm rate. The baseline itself is estimated from the point
+history with no uncertainty attached, so `hlm_threshold` is treated as
+known.
+
+``` r
+hlm <- ens$draws[[csfmt_var(rate, role = "hlmstatus")]]
+c(weeks = nrow(hlm),
+  weeks_with_no_baseline = sum(apply(hlm, 1, function(r) all(is.na(r)))))
+#>                  weeks weeks_with_no_baseline 
+#>                    245                    157
+```
+
+## 8. Collapse: the end of the chain
+
+[`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+reduces every draw matrix over the draw axis into quantile columns, and
+every ordinal status matrix into per-level probabilities. With
+`heal = TRUE` it hands the result to
+[`cstidy::set_csfmt_rts_data_v3()`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html),
+which adds the standard calendar columns and returns a
+`csfmt_rts_data_v3`.
+
+``` r
+final <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95), heal = TRUE)
+class(final)
+#> [1] "csfmt_rts_data_v3" "data.table"        "data.frame"
+c(rows = nrow(final), cols = ncol(final))
+#> rows cols 
+#>  245   52
+tail(final[, .(isoyearweek, isoyear, isoweek, season, seasonweek)], 3)
+#>    isoyearweek isoyear isoweek    season seasonweek
+#>         <char>   <int>   <int>    <char>      <num>
+#> 1:     2024-16    2024      16 2023/2024         34
+#> 2:     2024-17    2024      17 2023/2024         35
+#> 3:     2024-18    2024      18 2023/2024         36
+```
+
+**This is where the pipeline ends.** `csfmt_rts_data_v3` is a
+presentation and storage format: plots, tables, reports. It is not an
+analysis substrate, and there is no route back — the draws are gone, so
+a per-draw trend, a MEM class probability or an exceedance probability
+computed after this point is not available. Everything that needs draws
+must happen before the collapse, which is why stages 4 to 7 are all
+upstream of it.
+
+On storage, one caveat worth stating plainly: `csdb` currently ships
+table validators for `csfmt_rts_data_v1` and `v2` only. There is no `v3`
+validator yet, so writing a healed v3 to a database is not something
+this pipeline can do today.
 
 ## The naming grammar
 
@@ -1043,18 +1407,14 @@ q_value(q_label(1))        # NA: three integer digits do not parse
 
 ## Where next
 
-- Add a rate with
-  [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md)
-  (a nowcasted numerator over a nowcasted denominator), MEM intensity
-  thresholds with
-  [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md),
-  or exceedance detection with
-  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md).
-  All three write a new matrix into `$draws` before the collapse, so
-  they compose with stage 4 above.
-- `ens_collapse(heal = TRUE)` returns a
-  [`cstidy::csfmt_rts_data_v3`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html)
-  for the standard plotting and table helpers.
+- Run the chain on several series at once. Every stage above is written
+  over the `time_series_id` axis, so a triangle with many locations or
+  age groups flows through unchanged; the seam masking in the trend and
+  the per-series MEM fits are already handled.
+- [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
+  substitutes for the engine at stage 1 when an indicator should not be
+  nowcast-completed. Everything downstream is identical, so an indicator
+  can opt out of nowcasting without opting out of the pipeline.
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
   wraps stage 3’s year and month slices into one table with a `scope`
   column.

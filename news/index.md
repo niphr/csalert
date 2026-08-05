@@ -1,5 +1,61 @@
 # Changelog
 
+## Version 2026.8.6
+
+### Bug fix
+
+- **[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  on an ensemble broke the data.table’s self-reference, so the NEXT
+  stage warned.** It added its P(increasing) column with base `[[<-`,
+  which copies the table. Any later stage assigning with `:=` then
+  emitted data.table’s ten-line “shallow copy was taken” advisory.
+  Bisected: `rate -> hlm` is clean, `rate -> trend -> hlm` warns. That
+  is the canonical order, so every production pipeline running a trend
+  before another ensemble stage saw it on every run. Now uses
+  [`data.table::set()`](https://rdrr.io/pkg/data.table/man/assign.html).
+  Proven causally red: reverting the one line reproduces the warning.
+
+### Documentation
+
+- **[`vignette("nowcasting")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+  now runs the whole canonical chain** on one synthetic triangle with a
+  denominator: nowcast, replay validation, reporting completion, rate,
+  short-term trend, MEM intensity, HLM signal detection, and the
+  terminal collapse. It opens by stating the rule the architecture turns
+  on – every analytical stage takes a `csfmt_ensemble_v3` and returns
+  one, and
+  [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+  is terminal, so a collapsed table is output and never input.
+  [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md),
+  [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  and
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  were previously named in prose but never run; production depends on
+  all three.
+
+### Deprecated
+
+- **[`short_term_trend.csfmt_rts_data_v1()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  and
+  [`signal_detection_hlm.csfmt_rts_data_v1()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  are deprecated.** They are the pre-ensemble architecture. Both still
+  work and NEITHER WARNS AT RUN TIME, so existing pipelines are
+  undisturbed; the mark is a signpost for new work.
+- The replacement is not a drop-in. The v1 methods take `numerator`,
+  `denominator`, `prX` and the naming-prefix arguments and return a
+  status label; the ensemble methods take one `measure` and return a
+  per-draw slope, growth rate and P(increasing), with no classification.
+  Migrating is a rewrite of the call site and the numbers will not
+  match.
+- [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  and
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  now have `csfmt_rts_data_v3` methods that only
+  [`stop()`](https://rdrr.io/r/base/stop.html), naming the architecture
+  instead of failing with a bare `UseMethod` error. A collapsed table
+  carries quantiles, not draws, so a per-draw trend cannot be recovered
+  from one.
+
 ## Version 2026.8.5
 
 ### Bug fix

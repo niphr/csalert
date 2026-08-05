@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,16 +91,28 @@ White, Chi Zhang</h4>
 <code><a href="../reference/short_term_trend.html">csalert::short_term_trend</a></code>. Two scenarios are covered: a
 single location (Norway) and multiple locations (Norwegian
 counties).</p>
-<p>Both scenarios run the <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code> method,
-which fits a quasi-Poisson log-link model over a moving window and
-returns a factor status column, following Benedetti (2019).
-<code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> also has a
-<code>csfmt_ensemble_v3</code> method for draw-parallel input: a
-closed-form OLS slope applied down every Monte-Carlo draw, which
-propagates a nowcast’s uncertainty into the trend instead of discarding
-it. The two are different estimators on different inputs. For the
-ensemble method, and for the nowcast that feeds it, see
-<code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code>.</p>
+<blockquote>
+<p><strong>The method shown here is deprecated.</strong> Both scenarios
+below run <code>short_term_trend.csfmt_rts_data_v1</code>, which belongs
+to the pre-ensemble architecture. It still works and emits no warning,
+so existing pipelines are undisturbed — but new work should run
+<code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a <code>csfmt_ensemble_v3</code>
+instead, before <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code>. See
+<code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code>, which runs it
+as stage 5 of the full pipeline.</p>
+<p><strong>The replacement is not a drop-in.</strong> The ensemble
+method takes one <code>measure</code> naming a draws matrix rather than
+<code>numerator</code> / <code>denominator</code> / <code>prX</code>,
+and it returns a per-draw slope, growth rate and P(increasing) rather
+than a status factor and a doubling time. Migrating is a rewrite of the
+call site, and the numbers will not match.</p>
+</blockquote>
+<p>The v1 method fits a quasi-Poisson log-link model over a moving
+window and returns a factor status column, following Benedetti (2019).
+The ensemble method computes a closed-form OLS slope down every
+Monte-Carlo draw, which propagates a nowcast’s uncertainty into the
+trend instead of discarding it. They are different estimators, not two
+interfaces to one estimator.</p>
 <p>The data used below are reported counts, not nowcasts.
 <code>remove_last_isoyearweeks</code> trims the most recent weeks
 precisely because those counts are still arriving; a nowcast is the

@@ -15,7 +15,7 @@ The method is based upon a published analytics strategy by Benedetti (2019)
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,6 +88,9 @@ The method is based upon a published analytics strategy by Benedetti (2019)
 <span>  alpha <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'csfmt_rts_data_v3'</span></span>
+<span><span class="fu">short_term_trend</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'csfmt_ensemble_v3'</span></span>
 <span><span class="fu">short_term_trend</span><span class="op">(</span></span>
@@ -184,9 +187,52 @@ already has draws, and when `propagate_slope_error` is `FALSE`.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.</p>
+<p>The `csfmt_rts_data_v3` method always errors: see the section below.</p>
 <p>The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
   to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
   ready for the quantile collapse.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="deprecated-the-csfmt-rts-data-v-method-">Deprecated (the csfmt_rts_data_v1 method)<a class="anchor" aria-label="anchor" href="#deprecated-the-csfmt-rts-data-v-method-"></a></h2>
+
+
+<p>`short_term_trend.csfmt_rts_data_v1` is **deprecated**. It belongs to the
+pre-ensemble architecture, in which each analysis stage read and wrote a
+`cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
+analysis substrate: every stage takes the ensemble and returns the ensemble,
+and [ens_collapse] is terminal.</p>
+<p>It still works and emits no warning, so existing pipelines are undisturbed.
+New work should call `short_term_trend()` on the **ensemble**, before
+`ens_collapse()`:</p>
+<div class="sourceCode"><pre><code><span></span>
+<span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1</a></span><span class="op">(</span><span class="va">triangle</span>, max_delay <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/short_term_trend.html">short_term_trend</a></span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="st">"numerator_nowcasted"</span><span class="op">)</span></span>
+<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens</span>, heal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+
+<p>**The replacement is not a drop-in.** The two methods differ in interface and
+in output, not only in the class they accept:</p><ul><li><p>the v1 method takes `numerator`, `denominator`, `prX` and the
+    `*_naming_prefix` arguments. The ensemble method takes one `measure`
+    naming a `$draws` matrix; a rate is built beforehand with [ens_add_rate].</p></li>
+<li><p>the v1 method fits a quasi-Poisson log-link model and returns a factor
+    status column plus a doubling time. The ensemble method computes a
+    per-draw OLS slope, a growth rate and a P(increasing), and returns no
+    classification at all.</p></li>
+</ul><p>Migrating is therefore a rewrite of the call site, and the numbers will not
+match. See <code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code>, which runs the
+ensemble method as stage 5 of its pipeline.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="why-there-is-no-csfmt-rts-data-v-method">Why there is no csfmt_rts_data_v3 method<a class="anchor" aria-label="anchor" href="#why-there-is-no-csfmt-rts-data-v-method"></a></h2>
+
+
+<p>`csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
+is terminal. It carries quantiles, not draws, so a per-draw trend and a
+P(increasing) cannot be recovered from it. Calling `short_term_trend()` on one
+is always a mistake, so the method exists only to say so:</p>
+<div class="sourceCode"><pre><code><span></span>
+<span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/short_term_trend.html">short_term_trend</a></span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="st">"numerator_nowcasted"</span><span class="op">)</span>  <span class="co"># before</span></span>
+<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens</span>, heal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>                          <span class="co"># then collapse</span></span></code></pre></div>
+
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

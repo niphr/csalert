@@ -68,9 +68,9 @@ collapse.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-names this function in its closing "Where next" list but does not
-demonstrate it; the example below is its only worked demonstration.
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+which runs this function as stage 6 of its pipeline, on a five-season
+synthetic series.
 
 ## Examples
 

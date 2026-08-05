@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,27 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.6" id="version-202686">Version 2026.8.6<a class="anchor" aria-label="anchor" href="#version-202686"></a></h2>
+<div class="section level3">
+<h3 id="bug-fix-2026-8-6">Bug fix<a class="anchor" aria-label="anchor" href="#bug-fix-2026-8-6"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on an ensemble broke the data.table’s self-reference, so the NEXT stage warned.</strong> It added its P(increasing) column with base <code>[[&lt;-</code>, which copies the table. Any later stage assigning with <code>:=</code> then emitted data.table’s ten-line “shallow copy was taken” advisory. Bisected: <code>rate -&gt; hlm</code> is clean, <code>rate -&gt; trend -&gt; hlm</code> warns. That is the canonical order, so every production pipeline running a trend before another ensemble stage saw it on every run. Now uses <code><a href="https://rdrr.io/pkg/data.table/man/assign.html" class="external-link">data.table::set()</a></code>. Proven causally red: reverting the one line reproduces the warning.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-2026-8-6">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-6"></a></h3>
+<ul><li>
+<strong><code><a href="../articles/nowcasting.html">vignette("nowcasting")</a></code> now runs the whole canonical chain</strong> on one synthetic triangle with a denominator: nowcast, replay validation, reporting completion, rate, short-term trend, MEM intensity, HLM signal detection, and the terminal collapse. It opens by stating the rule the architecture turns on – every analytical stage takes a <code>csfmt_ensemble_v3</code> and returns one, and <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code> is terminal, so a collapsed table is output and never input. <code><a href="../reference/ens_add_rate.html">ens_add_rate()</a></code>, <code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> were previously named in prose but never run; production depends on all three.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="deprecated-2026-8-6">Deprecated<a class="anchor" aria-label="anchor" href="#deprecated-2026-8-6"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/short_term_trend.html">short_term_trend.csfmt_rts_data_v1()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm.csfmt_rts_data_v1()</a></code> are deprecated.</strong> They are the pre-ensemble architecture. Both still work and NEITHER WARNS AT RUN TIME, so existing pipelines are undisturbed; the mark is a signpost for new work.</li>
+<li>The replacement is not a drop-in. The v1 methods take <code>numerator</code>, <code>denominator</code>, <code>prX</code> and the naming-prefix arguments and return a status label; the ensemble methods take one <code>measure</code> and return a per-draw slope, growth rate and P(increasing), with no classification. Migrating is a rewrite of the call site and the numbers will not match.</li>
+<li>
+<code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> now have <code>csfmt_rts_data_v3</code> methods that only <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code>, naming the architecture instead of failing with a bare <code>UseMethod</code> error. A collapsed table carries quantiles, not draws, so a per-draw trend cannot be recovered from one.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.5" id="version-202685">Version 2026.8.5<a class="anchor" aria-label="anchor" href="#version-202685"></a></h2>
 <div class="section level3">

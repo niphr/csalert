@@ -42,9 +42,9 @@ ens_add_rate(x, numerator, denominator, per = 100, name = NULL, ...)
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-names this function in its closing "Where next" list but does not
-demonstrate it; the example below is its only worked demonstration.
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+which runs this function as stage 4 of its pipeline, on a numerator and
+denominator that were nowcast together.
 
 Other ensemble operations:
 [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)

@@ -5,17 +5,30 @@ This vignette shows how to compute short-term trend signals using
 Two scenarios are covered: a single location (Norway) and multiple
 locations (Norwegian counties).
 
-Both scenarios run the
-[`cstidy::csfmt_rts_data_v1`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html)
-method, which fits a quasi-Poisson log-link model over a moving window
-and returns a factor status column, following Benedetti (2019).
-[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
-also has a `csfmt_ensemble_v3` method for draw-parallel input: a
-closed-form OLS slope applied down every Monte-Carlo draw, which
-propagates a nowcast’s uncertainty into the trend instead of discarding
-it. The two are different estimators on different inputs. For the
-ensemble method, and for the nowcast that feeds it, see
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md).
+> **The method shown here is deprecated.** Both scenarios below run
+> `short_term_trend.csfmt_rts_data_v1`, which belongs to the
+> pre-ensemble architecture. It still works and emits no warning, so
+> existing pipelines are undisturbed — but new work should run
+> [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+> on a `csfmt_ensemble_v3` instead, before
+> [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md).
+> See
+> [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+> which runs it as stage 5 of the full pipeline.
+>
+> **The replacement is not a drop-in.** The ensemble method takes one
+> `measure` naming a draws matrix rather than `numerator` /
+> `denominator` / `prX`, and it returns a per-draw slope, growth rate
+> and P(increasing) rather than a status factor and a doubling time.
+> Migrating is a rewrite of the call site, and the numbers will not
+> match.
+
+The v1 method fits a quasi-Poisson log-link model over a moving window
+and returns a factor status column, following Benedetti (2019). The
+ensemble method computes a closed-form OLS slope down every Monte-Carlo
+draw, which propagates a nowcast’s uncertainty into the trend instead of
+discarding it. They are different estimators, not two interfaces to one
+estimator.
 
 The data used below are reported counts, not nowcasts.
 `remove_last_isoyearweeks` trims the most recent weeks precisely because
