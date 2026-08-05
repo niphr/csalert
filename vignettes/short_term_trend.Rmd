@@ -20,6 +20,10 @@ knitr::opts_chunk$set(
 
 This vignette shows how to compute short-term trend signals using `csalert::short_term_trend`. Two scenarios are covered: a single location (Norway) and multiple locations (Norwegian counties).
 
+Both scenarios run the `cstidy::csfmt_rts_data_v1` method, which fits a quasi-Poisson log-link model over a moving window and returns a factor status column, following Benedetti (2019). `short_term_trend()` also has a `csfmt_ensemble_v3` method for draw-parallel input: a closed-form OLS slope applied down every Monte-Carlo draw, which propagates a nowcast's uncertainty into the trend instead of discarding it. The two are different estimators on different inputs. For the ensemble method, and for the nowcast that feeds it, see `vignette("nowcasting", package = "csalert")`.
+
+The data used below are reported counts, not nowcasts. `remove_last_isoyearweeks` trims the most recent weeks precisely because those counts are still arriving; a nowcast is the alternative to trimming them.
+
 ```{r}
 library(ggplot2)
 library(data.table)

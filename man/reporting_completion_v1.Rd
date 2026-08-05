@@ -28,8 +28,9 @@ whether completion time is trending up or down.}
 \value{
 One row per series (and per period when stratified): identity columns
   + `period` + `n_settled`, `mean_delay`, `complete_by_md`, and
-  `pct_w1`..`pct_w<max_delay>` (the pooled \% of cases reported after that many
-  weeks observed -- the delay ECDF, no interpolation). Every one of these is
+  `pct_delay0`..`pct_delay<max_delay-1>` (the pooled \% of cases reported by the
+  end of week reference + D -- the delay ECDF, no interpolation). `pct_delay0`
+  is the reference week itself, NOT the week after. Every one of these is
   computed AFTER delays `>= max_delay` have been discarded, so they describe
   the cases that arrive within the horizon, not all eventual cases.
 }
@@ -40,9 +41,9 @@ Empirical reporting-completion summary from a reporting triangle
 
 `complete_by_md` is the last cumulative fraction of a total that was itself
 summed over the truncated delay axis, so it equals 1 for every series and every
-period, and `pct_w<max_delay>` equals 100. It does NOT measure whether
+period, and `pct_delay<max_delay-1>` equals 100. It does NOT measure whether
 reporting continues past `max_delay`. To look for a tail, re-run with a larger
-`max_delay` and compare `mean_delay` and the `pct_wN` curve.
+`max_delay` and compare `mean_delay` and the `pct_delayD` curve.
 }
 
 \examples{
@@ -61,7 +62,7 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# one pooled curve: pct_w1 is the share in after one week observed
+# one pooled curve: pct_delay0 is the share in during the reference week itself
 reporting_completion_v1(tri, max_delay = 3)
 
 # sliced by month, to expose drift in how fast reporting arrives

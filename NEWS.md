@@ -1,3 +1,49 @@
+# Version 2026.8.5
+
+## Bug fix
+
+* **`reporting_completion_v1(triangle, max_delay = 1)` returned nonsense,
+  silently.** With a single delay column `apply(M, 1, cumsum)` returns a vector
+  rather than a matrix, so the transpose produced a 1-by-n_settled matrix and the
+  function emitted one `pct_delay` column PER SETTLED WEEK instead of one in
+  total, with `complete_by_md` far below 1. Measured on a 30-week triangle: 30
+  completion columns and `complete_by_md` of 0.033, where both should be 1. No
+  error was raised. Fixed, with a regression test that also pins the column count
+  to `max_delay` at horizons 1 through 4.
+
+## Documentation
+
+* **`vignette("nowcasting")` is now a four-stage end-to-end pipeline** on one
+  seeded synthetic triangle -- nowcast, replay validation, reporting completion,
+  short-term trend -- with every chunk executing under `R CMD check`. The
+  reporting-completion section answers the question the old text left open: is
+  the first completion column the reference week or the week after? It walks a
+  named ISO week day by day and shows that delay is measured in whole ISO weeks,
+  so a Monday run and a Friday run bucket every report identically.
+* **`nowcast_truth()`'s description was off by one, in both bounds.** It said it
+  summed "all delays up to `max_delay`" and kept weeks "at least `max_delay`
+  weeks before" the as-of. The code sums delays `0 .. max_delay - 1` and keeps
+  `age >= max_delay - 1`. Measured: at `max_delay = 3` the newest settled
+  reference week is 2 weeks before as-of, not 3. Corrected.
+
+## Breaking change
+
+* **`reporting_completion_v1()` renames its completion columns from `pct_wN` to
+  `pct_delayD`, and they are now 0-based and indexed by DELAY.** With
+  `max_delay = 3` the columns were `pct_w1`, `pct_w2`, `pct_w3`; they are now
+  `pct_delay0`, `pct_delay1`, `pct_delay2`.
+* The old names were indexed by weeks-observed, counting the reference week
+  itself as week 1, so `pct_w1` held delay 0. The number in the name never
+  equalled the delay it represented, and next to a reporting triangle whose
+  columns are delays 0, 1, 2 it read as "the week after". `pct_delay0` says
+  outright that it is the reference week itself.
+* The new names match the `max_delay` argument: the column count equals
+  `max_delay` and the highest index is `max_delay - 1`.
+* **Update any code that reads these columns.** The old names are gone rather
+  than redefined, so stale code fails with an unknown-column error instead of
+  silently returning a different week. `reporting_completion_trend_v1()` passes
+  the columns through and changes with it.
+
 # Version 2026.8.4
 
 ## Documentation
@@ -64,7 +110,7 @@ that the code does not implement. An adversarial review found them.
   detecting reporting that continues past the horizon. It cannot:
   `reporting_triangle_matrix()` discards delays at or beyond `max_delay` before
   the total is formed, so the final cumulative fraction of that truncated total is
-  always 1 and `pct_w<max_delay>` is always 100. To look for a tail, re-run with a
+  always 1 and `pct_delay<max_delay-1>` is always 100. To look for a tail, re-run with a
   larger `max_delay`. **This is a source defect left unfixed and now documented.**
 - **`q_value()` is no longer described as the inverse of `q_label()`.** The label
   format holds two integer-percent digits, so `q_label(1)` gives `"q100x0"`, which

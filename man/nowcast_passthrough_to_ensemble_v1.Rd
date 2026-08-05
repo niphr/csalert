@@ -57,10 +57,10 @@ tail(r[, .(
 )], 3)
 }
 \seealso{
-Neither package vignette covers this engine;
-  \code{vignette("nowcasting", package = "csalert")} runs
-  \code{\link{nowcast_quasipoisson_v1}} instead. The example below is this
-  engine's only worked demonstration.
+\code{vignette("nowcasting", package = "csalert")} races this engine
+  against \code{\link{nowcast_quasipoisson_v1}} on the same triangle, which is
+  the clearest way to see what completion buys you over passing the observed
+  counts through unchanged.
 
 Other nowcast engines: 
 \code{\link{nowcast_quasipoisson_v1}()}

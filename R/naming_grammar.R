@@ -30,9 +30,10 @@
 #' @param p Numeric vector of probabilities in [0, 1].
 #' @returns Character vector of quantile labels.
 #' @family naming grammar functions
-#' @seealso [q_value] reads these labels back, for `p < 1`. Neither package
-#'   vignette calls this function by name, but every `_qNNxN` column printed in
-#'   \code{vignette("nowcasting", package = "csalert")} was labelled by it.
+#' @seealso [q_value] reads these labels back, for `p < 1`.
+#'   \code{vignette("nowcasting", package = "csalert")} calls this function in its
+#'   naming-grammar section, and every `_qNNxN` column it prints was labelled by
+#'   it.
 #' @examples
 #' q_label(c(0.025, 0.5, 0.975))
 #'
@@ -70,9 +71,10 @@ q_label <- function(p) {
 #' @param label Character vector of quantile labels, e.g. "q02x5".
 #' @returns Numeric vector of probabilities; `NA` for an unparseable label.
 #' @family naming grammar functions
-#' @seealso [q_label] writes these labels. Neither package vignette calls this
-#'   function by name. It is how generic tooling recovers the probability behind a
-#'   `_qNNxN` column.
+#' @seealso [q_label] writes these labels.
+#'   \code{vignette("nowcasting", package = "csalert")} calls this function in its
+#'   naming-grammar section. It is how generic tooling recovers the probability
+#'   behind a `_qNNxN` column.
 #' @examples
 #' q_value(c("q02x5", "q50x0", "q97x5"))
 #'

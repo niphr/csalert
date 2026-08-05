@@ -80,10 +80,10 @@ bt <- nowcast_backtest(
 head(bt, 6)
 }
 \seealso{
-Neither package vignette covers this function.
-  \code{vignette("nowcasting", package = "csalert")} reaches the same replay
-  through \code{\link{nowcast_evaluate_v1}}, which wraps it and scores the
-  result. Use this function directly when you want the raw replayed quantiles.
+\code{vignette("nowcasting", package = "csalert")} runs this
+  function in its validation stage. \code{\link{nowcast_evaluate_v1}} wraps it
+  and scores the result; use this one directly when you want the raw replayed
+  quantiles.
 
 Other nowcast diagnostics: 
 \code{\link{nowcast_censor}()},

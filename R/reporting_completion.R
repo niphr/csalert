@@ -4,18 +4,18 @@
 # From the SETTLED weeks (old enough to know their final total -- else the
 # right-truncation makes recent weeks look more complete than they are), pool the
 # cumulative fraction reported by each delay, then read off: the mean delay, and
-# the delay ECDF evaluated at each DISCRETE weeks-observed -- pct_wN = the pooled %
-# of a reference week's cases in once it has been observed for N weeks (N=1 is only
-# its delay-0 reports). No interpolation: these are the step heights themselves.
+# the delay ECDF evaluated at each DISCRETE delay -- pct_delayD = the pooled % of a
+# reference week's cases in by the END of week (reference + D). pct_delay0 is the
+# reference week itself. No interpolation: these are the step heights themselves.
 #
 # EVERY NUMBER HERE IS CONDITIONAL ON max_delay, INCLUDING complete_by_md.
 # reporting_triangle_matrix() has already dropped every cell with delay >=
 # max_delay, so `tot` is the row sum of the TRUNCATED matrix, and complete_by_md
 # is the last cumulative fraction of that same total. It is therefore identically
-# 1 (and pct_w<max_delay> identically 100) whatever the real tail beyond the
+# 1 (and pct_delay<max_delay-1> identically 100) whatever the real tail beyond the
 # horizon is: it CANNOT detect reporting that dribbles in past max_delay. To look
-# for a tail, re-run with a larger max_delay and compare mean_delay and the pct_wN
-# curve.
+# for a tail, re-run with a larger max_delay and compare mean_delay and the
+# pct_delayD curve.
 #
 # `period` stratifies the settled weeks in time (by the week's Thursday) so a
 # DRIFT in reporting speed is visible: one pooled curve hides a reporting system
@@ -34,16 +34,17 @@
 #'   whether completion time is trending up or down.
 #' @returns One row per series (and per period when stratified): identity columns
 #'   + `period` + `n_settled`, `mean_delay`, `complete_by_md`, and
-#'   `pct_w1`..`pct_w<max_delay>` (the pooled \% of cases reported after that many
-#'   weeks observed -- the delay ECDF, no interpolation). Every one of these is
+#'   `pct_delay0`..`pct_delay<max_delay-1>` (the pooled \% of cases reported by the
+#'   end of week reference + D -- the delay ECDF, no interpolation). `pct_delay0`
+#'   is the reference week itself, NOT the week after. Every one of these is
 #'   computed AFTER delays `>= max_delay` have been discarded, so they describe
 #'   the cases that arrive within the horizon, not all eventual cases.
 #' @section complete_by_md is always 1:
 #' `complete_by_md` is the last cumulative fraction of a total that was itself
 #' summed over the truncated delay axis, so it equals 1 for every series and every
-#' period, and `pct_w<max_delay>` equals 100. It does NOT measure whether
+#' period, and `pct_delay<max_delay-1>` equals 100. It does NOT measure whether
 #' reporting continues past `max_delay`. To look for a tail, re-run with a larger
-#' `max_delay` and compare `mean_delay` and the `pct_wN` curve.
+#' `max_delay` and compare `mean_delay` and the `pct_delayD` curve.
 #' @family reporting completion functions
 #' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs this
 #'   function on its synthetic triangle.
@@ -63,7 +64,7 @@
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
-#' # one pooled curve: pct_w1 is the share in after one week observed
+#' # one pooled curve: pct_delay0 is the share in during the reference week itself
 #' reporting_completion_v1(tri, max_delay = 3)
 #'
 #' # sliced by month, to expose drift in how fast reporting arrives
@@ -104,7 +105,14 @@ reporting_completion_v1 <- function(
     if (sum(ok) < 3L) {
       return(NULL)
     }
-    cum <- t(apply(M[ok, , drop = FALSE], 1, cumsum))
+    Mk <- M[ok, , drop = FALSE]
+    # apply(, 1, cumsum) returns a MATRIX (delays x weeks) for >= 2 delay columns,
+    # which t() puts back to weeks x delays -- but a VECTOR of length n_settled when
+    # there is only one delay column, and t() then makes that 1 x n_settled. That
+    # silently produced one pct_delay column per settled WEEK at max_delay = 1, and a
+    # complete_by_md far below 1. With a single delay the cumulative sum is the
+    # column itself, so take it directly.
+    cum <- if (ncol(Mk) == 1L) Mk else t(apply(Mk, 1, cumsum))
     frac <- colSums(cum) / sum(tot[ok]) # pooled cumulative fraction by delay
     incr <- c(frac[1], diff(frac))
     row <- data.table::data.table(
@@ -112,11 +120,13 @@ reporting_completion_v1 <- function(
       mean_delay = round(sum((seq_along(frac) - 1L) * incr), 2), # mean delay in weeks
       complete_by_md = round(frac[length(frac)], 3)
     )
-    # the delay ECDF read at each DISCRETE weeks-observed: pct_wN = pooled % of a
-    # reference week's cases reported once it has been observed for N weeks
-    # (N = delay + 1). No interpolation -- these are the step heights themselves.
+    # the delay ECDF read at each DISCRETE delay: pct_delayD = pooled % of a
+    # reference week's cases reported by the END of week (reference + D), so
+    # pct_delay0 is the reference week itself. Indexed by delay, 0-based, to match
+    # max_delay and the triangle's own delay axis -- frac[i] is delay i - 1. No
+    # interpolation: these are the step heights themselves.
     for (i in seq_along(frac)) {
-      row[[paste0("pct_w", i)]] <- round(frac[i] * 100, 1)
+      row[[paste0("pct_delay", i - 1L)]] <- round(frac[i] * 100, 1)
     }
     row
   }

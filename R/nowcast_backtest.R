@@ -22,9 +22,10 @@
 #' @param as_of An ISO-week string; cells reported after it are dropped.
 #' @returns A `csfmt_reporting_triangle_v3` censored to `as_of`.
 #' @family nowcast diagnostics
-#' @seealso Neither package vignette covers this function.
-#'   \code{vignette("nowcasting", package = "csalert")} describes replay in prose
-#'   and then calls \code{\link{nowcast_evaluate_v1}}, which censors for you.
+#' @seealso \code{vignette("nowcasting", package = "csalert")} calls this
+#'   function directly in its validation stage, to rebuild what was known as of an
+#'   earlier week. \code{\link{nowcast_evaluate_v1}} censors for you when you do
+#'   not need the censored triangle itself.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek
 #' i <- match("2023-01", w)
@@ -67,17 +68,21 @@ nowcast_censor <- function(triangle, as_of) {
 
 #' The settled (eventually-observed) total per reference week
 #'
-#' Sums each reference week's counts across all delays up to `max_delay` -- the
+#' Sums each reference week's counts across delays `0` to `max_delay - 1` -- the
 #' quantity a nowcast is trying to predict -- and keeps only weeks old enough that
-#' this total is settled (at least `max_delay` weeks before the triangle's as-of).
+#' this total is settled, meaning at least `max_delay - 1` weeks before the
+#' triangle's as-of. Both bounds are one lower than they may read: `max_delay = 3`
+#' sums delays 0, 1 and 2, and the newest settled reference week is 2 weeks before
+#' as-of, not 3. Anything reported at a delay of `max_delay` or more falls outside
+#' this total, so it is a horizon-capped truth, not the eventual one.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param max_delay Delay horizon in weeks.
 #' @returns A data.table `reference`, `truth`.
 #' @family nowcast diagnostics
-#' @seealso Neither package vignette covers this function.
-#'   \code{vignette("nowcasting", package = "csalert")} scores a nowcast against
-#'   settled truth through \code{\link{nowcast_evaluate_v1}}, which calls this
-#'   function for you.
+#' @seealso \code{vignette("nowcasting", package = "csalert")} calls this
+#'   function directly in its validation stage to obtain settled truth.
+#'   \code{\link{nowcast_evaluate_v1}} calls it for you when you only want the
+#'   scores.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek
 #' i <- match("2023-01", w)
@@ -138,10 +143,10 @@ nowcast_truth <- function(triangle, max_delay) {
 #' @returns A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
 #'   `predicted`.
 #' @family nowcast diagnostics
-#' @seealso Neither package vignette covers this function.
-#'   \code{vignette("nowcasting", package = "csalert")} reaches the same replay
-#'   through \code{\link{nowcast_evaluate_v1}}, which wraps it and scores the
-#'   result. Use this function directly when you want the raw replayed quantiles.
+#' @seealso \code{vignette("nowcasting", package = "csalert")} runs this
+#'   function in its validation stage. \code{\link{nowcast_evaluate_v1}} wraps it
+#'   and scores the result; use this one directly when you want the raw replayed
+#'   quantiles.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek
 #' i <- match("2023-01", w)

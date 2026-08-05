@@ -21,10 +21,10 @@
 #'   way (its observed total is also surfaced as `<denom>_observed`).
 #' @returns A `csfmt_ensemble_v3` with single-column draw matrices.
 #' @family nowcast engines
-#' @seealso Neither package vignette covers this engine;
-#'   \code{vignette("nowcasting", package = "csalert")} runs
-#'   \code{\link{nowcast_quasipoisson_v1}} instead. The example below is this
-#'   engine's only worked demonstration.
+#' @seealso \code{vignette("nowcasting", package = "csalert")} races this engine
+#'   against \code{\link{nowcast_quasipoisson_v1}} on the same triangle, which is
+#'   the clearest way to see what completion buys you over passing the observed
+#'   counts through unchanged.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek
 #' i <- match("2023-01", w)

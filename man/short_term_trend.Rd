@@ -110,6 +110,6 @@ print(res[, .(
 \seealso{
 \code{vignette("short_term_trend", package = "csalert")}, which runs
   this function on one location and then on every Norwegian county.
-  \code{vignette("nowcasting", package = "csalert")} names the ensemble method
-  in its closing "Where next" list but does not demonstrate it.
+  \code{vignette("nowcasting", package = "csalert")} runs the ensemble method
+  as the final stage of its pipeline, on the output of a nowcast.
 }

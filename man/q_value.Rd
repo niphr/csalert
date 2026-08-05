@@ -31,9 +31,10 @@ q_value(c("q02x5", "q50x0", "q97x5"))
 q_value(c("q100x0", "not_a_label"))
 }
 \seealso{
-[q_label] writes these labels. Neither package vignette calls this
-  function by name. It is how generic tooling recovers the probability behind a
-  `_qNNxN` column.
+[q_label] writes these labels.
+  \code{vignette("nowcasting", package = "csalert")} calls this function in its
+  naming-grammar section. It is how generic tooling recovers the probability
+  behind a `_qNNxN` column.
 
 Other naming grammar functions: 
 \code{\link{csfmt_interpret}()},

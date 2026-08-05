@@ -33,9 +33,10 @@ q_label(1)
 q_value(q_label(1))
 }
 \seealso{
-[q_value] reads these labels back, for `p < 1`. Neither package
-  vignette calls this function by name, but every `_qNNxN` column printed in
-  \code{vignette("nowcasting", package = "csalert")} was labelled by it.
+[q_value] reads these labels back, for `p < 1`.
+  \code{vignette("nowcasting", package = "csalert")} calls this function in its
+  naming-grammar section, and every `_qNNxN` column it prints was labelled by
+  it.
 
 Other naming grammar functions: 
 \code{\link{csfmt_interpret}()},
