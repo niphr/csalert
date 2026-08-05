@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,7 +18,7 @@
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle with csfmt_ensemble_v3</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
     <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -51,6 +51,30 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.5" id="version-202685">Version 2026.8.5<a class="anchor" aria-label="anchor" href="#version-202685"></a></h2>
+<div class="section level3">
+<h3 id="bug-fix-2026-8-5">Bug fix<a class="anchor" aria-label="anchor" href="#bug-fix-2026-8-5"></a></h3>
+<ul><li>
+<strong><code>reporting_completion_v1(triangle, max_delay = 1)</code> returned nonsense, silently.</strong> With a single delay column <code>apply(M, 1, cumsum)</code> returns a vector rather than a matrix, so the transpose produced a 1-by-n_settled matrix and the function emitted one <code>pct_delay</code> column PER SETTLED WEEK instead of one in total, with <code>complete_by_md</code> far below 1. Measured on a 30-week triangle: 30 completion columns and <code>complete_by_md</code> of 0.033, where both should be 1. No error was raised. Fixed, with a regression test that also pins the column count to <code>max_delay</code> at horizons 1 through 4.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-2026-8-5">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-5"></a></h3>
+<ul><li>
+<strong><code><a href="../articles/nowcasting.html">vignette("nowcasting")</a></code> is now a four-stage end-to-end pipeline</strong> on one seeded synthetic triangle – nowcast, replay validation, reporting completion, short-term trend – with every chunk executing under <code>R CMD check</code>. The reporting-completion section answers the question the old text left open: is the first completion column the reference week or the week after? It walks a named ISO week day by day and shows that delay is measured in whole ISO weeks, so a Monday run and a Friday run bucket every report identically.</li>
+<li>
+<strong><code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code>’s description was off by one, in both bounds.</strong> It said it summed “all delays up to <code>max_delay</code>” and kept weeks “at least <code>max_delay</code> weeks before” the as-of. The code sums delays <code>0 .. max_delay - 1</code> and keeps <code>age &gt;= max_delay - 1</code>. Measured: at <code>max_delay = 3</code> the newest settled reference week is 2 weeks before as-of, not 3. Corrected.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-change-2026-8-5">Breaking change<a class="anchor" aria-label="anchor" href="#breaking-change-2026-8-5"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> renames its completion columns from <code>pct_wN</code> to <code>pct_delayD</code>, and they are now 0-based and indexed by DELAY.</strong> With <code>max_delay = 3</code> the columns were <code>pct_w1</code>, <code>pct_w2</code>, <code>pct_w3</code>; they are now <code>pct_delay0</code>, <code>pct_delay1</code>, <code>pct_delay2</code>.</li>
+<li>The old names were indexed by weeks-observed, counting the reference week itself as week 1, so <code>pct_w1</code> held delay 0. The number in the name never equalled the delay it represented, and next to a reporting triangle whose columns are delays 0, 1, 2 it read as “the week after”. <code>pct_delay0</code> says outright that it is the reference week itself.</li>
+<li>The new names match the <code>max_delay</code> argument: the column count equals <code>max_delay</code> and the highest index is <code>max_delay - 1</code>.</li>
+<li>
+<strong>Update any code that reads these columns.</strong> The old names are gone rather than redefined, so stale code fails with an unknown-column error instead of silently returning a different week. <code><a href="../reference/reporting_completion_trend_v1.html">reporting_completion_trend_v1()</a></code> passes the columns through and changes with it.</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.4" id="version-202684">Version 2026.8.4<a class="anchor" aria-label="anchor" href="#version-202684"></a></h2>
 <div class="section level3">
 <h3 id="documentation-2026-8-4">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-4"></a></h3>
@@ -75,7 +99,7 @@
 <li>
 <strong>The calibration functions no longer claim split conformal or nominal coverage.</strong> The estimator takes the ordinary type-7 quantile of <code>|truth - median| / halfwidth</code>, not the conformal order statistic, and that symmetric residual is only faithful for intervals roughly symmetric about the median. There is no finite-sample guarantee. <code>coverage_raw</code> is now documented as what the engine did on the replayed weeks, not as a property of the engine.</li>
 <li>
-<strong><code>complete_by_md</code> is documented as identically 1.</strong> It was described as detecting reporting that continues past the horizon. It cannot: <code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> discards delays at or beyond <code>max_delay</code> before the total is formed, so the final cumulative fraction of that truncated total is always 1 and <code>pct_w&lt;max_delay&gt;</code> is always 100. To look for a tail, re-run with a larger <code>max_delay</code>. <strong>This is a source defect left unfixed and now documented.</strong>
+<strong><code>complete_by_md</code> is documented as identically 1.</strong> It was described as detecting reporting that continues past the horizon. It cannot: <code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> discards delays at or beyond <code>max_delay</code> before the total is formed, so the final cumulative fraction of that truncated total is always 1 and <code>pct_delay&lt;max_delay-1&gt;</code> is always 100. To look for a tail, re-run with a larger <code>max_delay</code>. <strong>This is a source defect left unfixed and now documented.</strong>
 </li>
 <li>
 <strong><code><a href="../reference/q_value.html">q_value()</a></code> is no longer described as the inverse of <code><a href="../reference/q_label.html">q_label()</a></code>.</strong> The label format holds two integer-percent digits, so <code>q_label(1)</code> gives <code>"q100x0"</code>, which <code><a href="../reference/q_value.html">q_value()</a></code> returns <code>NA</code> for. The round trip holds on <code>[0, 1)</code>.</li>

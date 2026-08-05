@@ -27,11 +27,11 @@ A \`csfmt_reporting_triangle_v3\` censored to \`as_of\`.
 
 ## See also
 
-Neither package vignette covers this function.
 [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-describes replay in prose and then calls
-[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
-which censors for you.
+calls this function directly in its validation stage, to rebuild what
+was known as of an earlier week.
+[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
+censors for you when you do not need the censored triangle itself.
 
 Other nowcast diagnostics:
 [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),

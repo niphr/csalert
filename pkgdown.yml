@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   nowcasting: nowcasting.html
   short_term_trend: short_term_trend.html
-last_built: 2026-08-04T18:18Z
+last_built: 2026-08-05T15:36Z
 urls:
   reference: https://niphr.github.io/csalert/reference
   article: https://niphr.github.io/csalert/articles

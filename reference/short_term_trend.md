@@ -144,8 +144,8 @@ P(increasing)), ready for the quantile collapse.
 which runs this function on one location and then on every Norwegian
 county.
 [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-names the ensemble method in its closing "Where next" list but does not
-demonstrate it.
+runs the ensemble method as the final stage of its pipeline, on the
+output of a nowcast.
 
 ## Examples
 

@@ -15,7 +15,7 @@ warning rather than aborting the sweep."><meta property="og:image" content="http
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,7 +26,7 @@ warning rather than aborting the sweep."><meta property="og:image" content="http
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle with csfmt_ensemble_v3</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
     <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -127,10 +127,10 @@ list order (the nowcast draws for week W depend only on `seed` and `W`).</p></dd
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p>Neither package vignette covers this function.
-  <code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code> reaches the same replay
-  through <code><a href="nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></code>, which wraps it and scores the
-  result. Use this function directly when you want the raw replayed quantiles.</p>
+    <div class="dont-index"><p><code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code> runs this
+  function in its validation stage. <code><a href="nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></code> wraps it
+  and scores the result; use this one directly when you want the raw replayed
+  quantiles.</p>
 <p>Other nowcast diagnostics:
 <code><a href="nowcast_censor.html">nowcast_censor()</a></code>,
 <code><a href="nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code>,

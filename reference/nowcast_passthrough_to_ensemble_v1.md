@@ -37,11 +37,11 @@ A \`csfmt_ensemble_v3\` with single-column draw matrices.
 
 ## See also
 
-Neither package vignette covers this engine;
 [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-runs
+races this engine against
 [`nowcast_quasipoisson_v1`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
-instead. The example below is this engine's only worked demonstration.
+on the same triangle, which is the clearest way to see what completion
+buys you over passing the observed counts through unchanged.
 
 Other nowcast engines:
 [`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)

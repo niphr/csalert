@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -18,7 +18,7 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle with csfmt_ensemble_v3</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
     <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -94,8 +94,9 @@ whether completion time is trending up or down.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>One row per series (and per period when stratified): identity columns
   + `period` + `n_settled`, `mean_delay`, `complete_by_md`, and
-  `pct_w1`..`pct_w&lt;max_delay&gt;` (the pooled % of cases reported after that many
-  weeks observed – the delay ECDF, no interpolation). Every one of these is
+  `pct_delay0`..`pct_delay&lt;max_delay-1&gt;` (the pooled % of cases reported by the
+  end of week reference + D – the delay ECDF, no interpolation). `pct_delay0`
+  is the reference week itself, NOT the week after. Every one of these is
   computed AFTER delays `&gt;= max_delay` have been discarded, so they describe
   the cases that arrive within the horizon, not all eventual cases.</p>
     </div>
@@ -105,9 +106,9 @@ whether completion time is trending up or down.</p></dd>
 
 <p>`complete_by_md` is the last cumulative fraction of a total that was itself
 summed over the truncated delay axis, so it equals 1 for every series and every
-period, and `pct_w&lt;max_delay&gt;` equals 100. It does NOT measure whether
+period, and `pct_delay&lt;max_delay-1&gt;` equals 100. It does NOT measure whether
 reporting continues past `max_delay`. To look for a tail, re-run with a larger
-`max_delay` and compare `mean_delay` and the `pct_wN` curve.</p>
+`max_delay` and compare `mean_delay` and the `pct_delayD` curve.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -134,14 +135,14 @@ reporting continues past `max_delay`. To look for a tail, re-run with a larger
 <span class="r-in"><span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># one pooled curve: pct_w1 is the share in after one week observed</span></span></span>
+<span class="r-in"><span><span class="co"># one pooled curve: pct_delay0 is the share in during the reference week itself</span></span></span>
 <span class="r-in"><span><span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    indicator_tag location_code    age    sex period n_settled mean_delay</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt;     &lt;int&gt;      &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x        nation  total  total    all        38       0.51</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_w1 pct_w2 pct_w3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1   58.8   89.9    100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_delay0 pct_delay1 pct_delay2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1       58.8       89.9        100</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># sliced by month, to expose drift in how fast reporting arrives</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span>, period <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></span>
@@ -150,11 +151,11 @@ reporting continues past `max_delay`. To look for a tail, re-run with a larger
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x        nation  total  total 2023-01         4       0.50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:             x        nation  total  total 2023-02         4       0.50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:             x        nation  total  total 2023-03         5       0.53</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_w1 pct_w2 pct_w3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1   59.3   91.0    100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:              1   60.2   90.0    100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:              1   58.5   88.4    100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_delay0 pct_delay1 pct_delay2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1       59.3       91.0        100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:              1       60.2       90.0        100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:              1       58.5       88.4        100</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

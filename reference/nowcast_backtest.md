@@ -67,12 +67,11 @@ A long data.table: \`reference\`, \`as_of\`, \`horizon\`,
 
 ## See also
 
-Neither package vignette covers this function.
 [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-reaches the same replay through
-[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
-which wraps it and scores the result. Use this function directly when
-you want the raw replayed quantiles.
+runs this function in its validation stage.
+[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
+wraps it and scores the result; use this one directly when you want the
+raw replayed quantiles.
 
 Other nowcast diagnostics:
 [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),

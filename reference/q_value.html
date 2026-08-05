@@ -11,7 +11,7 @@ match returns `NA` rather than erroring."><meta property="og:image" content="htt
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,7 @@ match returns `NA` rather than erroring."><meta property="og:image" content="htt
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle with csfmt_ensemble_v3</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
     <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -88,9 +88,10 @@ rounds anything finer (`0.0125` becomes `"q01x2"`, which reads back as
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p>[q_label] writes these labels. Neither package vignette calls this
-  function by name. It is how generic tooling recovers the probability behind a
-  `_qNNxN` column.</p>
+    <div class="dont-index"><p>[q_label] writes these labels.
+  <code><a href="../articles/nowcasting.html">vignette("nowcasting", package = "csalert")</a></code> calls this function in its
+  naming-grammar section. It is how generic tooling recovers the probability
+  behind a `_qNNxN` column.</p>
 <p>Other naming grammar functions:
 <code><a href="csfmt_interpret.html">csfmt_interpret()</a></code>,
 <code><a href="csfmt_parse.html">csfmt_parse()</a></code>,

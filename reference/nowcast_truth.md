@@ -1,9 +1,13 @@
 # The settled (eventually-observed) total per reference week
 
-Sums each reference week's counts across all delays up to \`max_delay\`
-– the quantity a nowcast is trying to predict – and keeps only weeks old
-enough that this total is settled (at least \`max_delay\` weeks before
-the triangle's as-of).
+Sums each reference week's counts across delays \`0\` to \`max_delay -
+1\` – the quantity a nowcast is trying to predict – and keeps only weeks
+old enough that this total is settled, meaning at least \`max_delay -
+1\` weeks before the triangle's as-of. Both bounds are one lower than
+they may read: \`max_delay = 3\` sums delays 0, 1 and 2, and the newest
+settled reference week is 2 weeks before as-of, not 3. Anything reported
+at a delay of \`max_delay\` or more falls outside this total, so it is a
+horizon-capped truth, not the eventual one.
 
 ## Usage
 
@@ -27,11 +31,11 @@ A data.table \`reference\`, \`truth\`.
 
 ## See also
 
-Neither package vignette covers this function.
 [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-scores a nowcast against settled truth through
-[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
-which calls this function for you.
+calls this function directly in its validation stage to obtain settled
+truth.
+[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
+calls it for you when you only want the scores.
 
 Other nowcast diagnostics:
 [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),

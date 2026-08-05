@@ -5,6 +5,23 @@ This vignette shows how to compute short-term trend signals using
 Two scenarios are covered: a single location (Norway) and multiple
 locations (Norwegian counties).
 
+Both scenarios run the
+[`cstidy::csfmt_rts_data_v1`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html)
+method, which fits a quasi-Poisson log-link model over a moving window
+and returns a factor status column, following Benedetti (2019).
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+also has a `csfmt_ensemble_v3` method for draw-parallel input: a
+closed-form OLS slope applied down every Monte-Carlo draw, which
+propagates a nowcast’s uncertainty into the trend instead of discarding
+it. The two are different estimators on different inputs. For the
+ensemble method, and for the nowcast that feeds it, see
+[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md).
+
+The data used below are reported counts, not nowcasts.
+`remove_last_isoyearweeks` trims the most recent weeks precisely because
+those counts are still arriving; a nowcast is the alternative to
+trimming them.
+
 ``` r
 library(ggplot2)
 library(data.table)

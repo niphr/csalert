@@ -41,20 +41,21 @@ reporting_completion_v1(
 
 One row per series (and per period when stratified): identity columns +
 \`period\` + \`n_settled\`, \`mean_delay\`, \`complete_by_md\`, and
-\`pct_w1\`..\`pct_w\<max_delay\>\` (the pooled % of cases reported after
-that many weeks observed – the delay ECDF, no interpolation). Every one
-of these is computed AFTER delays \`\>= max_delay\` have been discarded,
-so they describe the cases that arrive within the horizon, not all
-eventual cases.
+\`pct_delay0\`..\`pct_delay\<max_delay-1\>\` (the pooled % of cases
+reported by the end of week reference + D – the delay ECDF, no
+interpolation). \`pct_delay0\` is the reference week itself, NOT the
+week after. Every one of these is computed AFTER delays \`\>=
+max_delay\` have been discarded, so they describe the cases that arrive
+within the horizon, not all eventual cases.
 
 ## complete_by_md is always 1
 
 \`complete_by_md\` is the last cumulative fraction of a total that was
 itself summed over the truncated delay axis, so it equals 1 for every
-series and every period, and \`pct_w\<max_delay\>\` equals 100. It does
-NOT measure whether reporting continues past \`max_delay\`. To look for
-a tail, re-run with a larger \`max_delay\` and compare \`mean_delay\`
-and the \`pct_wN\` curve.
+series and every period, and \`pct_delay\<max_delay-1\>\` equals 100. It
+does NOT measure whether reporting continues past \`max_delay\`. To look
+for a tail, re-run with a larger \`max_delay\` and compare
+\`mean_delay\` and the \`pct_delayD\` curve.
 
 ## See also
 
@@ -82,14 +83,14 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# one pooled curve: pct_w1 is the share in after one week observed
+# one pooled curve: pct_delay0 is the share in during the reference week itself
 reporting_completion_v1(tri, max_delay = 3)
 #>    indicator_tag location_code    age    sex period n_settled mean_delay
 #>           <char>        <char> <char> <char> <char>     <int>      <num>
 #> 1:             x        nation  total  total    all        38       0.51
-#>    complete_by_md pct_w1 pct_w2 pct_w3
-#>             <num>  <num>  <num>  <num>
-#> 1:              1   58.8   89.9    100
+#>    complete_by_md pct_delay0 pct_delay1 pct_delay2
+#>             <num>      <num>      <num>      <num>
+#> 1:              1       58.8       89.9        100
 
 # sliced by month, to expose drift in how fast reporting arrives
 head(reporting_completion_v1(tri, max_delay = 3, period = "month"), 3)
@@ -98,9 +99,9 @@ head(reporting_completion_v1(tri, max_delay = 3, period = "month"), 3)
 #> 1:             x        nation  total  total 2023-01         4       0.50
 #> 2:             x        nation  total  total 2023-02         4       0.50
 #> 3:             x        nation  total  total 2023-03         5       0.53
-#>    complete_by_md pct_w1 pct_w2 pct_w3
-#>             <num>  <num>  <num>  <num>
-#> 1:              1   59.3   91.0    100
-#> 2:              1   60.2   90.0    100
-#> 3:              1   58.5   88.4    100
+#>    complete_by_md pct_delay0 pct_delay1 pct_delay2
+#>             <num>      <num>      <num>      <num>
+#> 1:              1       59.3       91.0        100
+#> 2:              1       60.2       90.0        100
+#> 3:              1       58.5       88.4        100
 ```

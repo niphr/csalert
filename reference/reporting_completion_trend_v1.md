@@ -62,13 +62,13 @@ reporting_completion_trend_v1(tri, max_delay = 3, n_months = 6)
 #> 5:         x        n  total  total 2023-07         4          1              1
 #> 6:         x        n  total  total 2023-08         5          1              1
 #> 7:         x        n  total  total 2023-09         4          1              1
-#>    pct_w1 pct_w2 pct_w3  scope
-#>     <num>  <num>  <num> <char>
-#> 1:   33.3   66.7    100   year
-#> 2:   33.3   66.7    100  month
-#> 3:   33.3   66.7    100  month
-#> 4:   33.3   66.7    100  month
-#> 5:   33.3   66.7    100  month
-#> 6:   33.3   66.7    100  month
-#> 7:   33.3   66.7    100  month
+#>    pct_delay0 pct_delay1 pct_delay2  scope
+#>         <num>      <num>      <num> <char>
+#> 1:       33.3       66.7        100   year
+#> 2:       33.3       66.7        100  month
+#> 3:       33.3       66.7        100  month
+#> 4:       33.3       66.7        100  month
+#> 5:       33.3       66.7        100  month
+#> 6:       33.3       66.7        100  month
+#> 7:       33.3       66.7        100  month
 ```

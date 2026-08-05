@@ -30,11 +30,10 @@ on the 0.001 grid and strictly below 1.
 
 ## See also
 
-\[q_value\] reads these labels back, for \`p \< 1\`. Neither package
-vignette calls this function by name, but every \`\_qNNxN\` column
-printed in
+\[q_value\] reads these labels back, for \`p \< 1\`.
 [`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-was labelled by it.
+calls this function in its naming-grammar section, and every \`\_qNNxN\`
+column it prints was labelled by it.
 
 Other naming grammar functions:
 [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),
