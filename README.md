@@ -22,7 +22,7 @@ Monte-Carlo draws; rate, trend, MEM intensity and exceedance stages then run per
 `ens_collapse()` reduces the draws to quantiles at the end. Use it when the delay itself
 matters. Note the trend on this route is a rolling OLS slope over draws, not the
 Benedetti method. See
-[the nowcasting article](https://niphr.github.io/csalert/articles/nowcasting.html).
+[the pipeline article](https://niphr.github.io/csalert/articles/pipeline.html).
 
 ## Installation
 
@@ -67,5 +67,8 @@ res[, .(isoyearweek, hospitalization_with_covid19_as_primary_cause_trend0_41_sta
 
 Full documentation is at <https://niphr.github.io/csalert/>: the
 [function reference](https://niphr.github.io/csalert/reference/index.html), and two
-articles, [Short term trend](https://niphr.github.io/csalert/articles/short_term_trend.html)
-and [Nowcasting](https://niphr.github.io/csalert/articles/nowcasting.html).
+articles. Start with
+[Get started](https://niphr.github.io/csalert/articles/csalert.html), which says what
+the package is for and which half of it is current. Then read
+[The pipeline](https://niphr.github.io/csalert/articles/pipeline.html), which runs one
+series through every stage.

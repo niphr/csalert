@@ -31,9 +31,11 @@ gen_data_signal_detection_hlm <- function(seed = 4) {
 #'
 #' @param x Data object.
 #' @param ... Not in use.
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs the
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs the
 #'   ensemble method as stage 7 of its pipeline. The example below is the only
 #'   worked demonstration of the `csfmt_rts_data_v1` method, which is deprecated.
+#'   \code{vignette("csalert", package = "csalert")} explains which of the two
+#'   generations to use.
 #' @rdname signal_detection_hlm
 #' @export
 signal_detection_hlm <- function(
@@ -85,7 +87,7 @@ signal_detection_hlm <- function(
 #' }
 #' Migrating is therefore a rewrite of the call site, and the output is a
 #' different kind of quantity. See
-#' \code{vignette("nowcasting", package = "csalert")}, which runs the ensemble
+#' \code{vignette("pipeline", package = "csalert")}, which runs the ensemble
 #' method as stage 7 of its pipeline.
 #' @param value Character of name of value
 #' @param baseline_isoyears Number of years in the past you want to include as baseline

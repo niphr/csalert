@@ -32,7 +32,7 @@ q_value(c("q100x0", "not_a_label"))
 }
 \seealso{
 [q_label] writes these labels.
-  \code{vignette("nowcasting", package = "csalert")} calls this function in its
+  \code{vignette("pipeline", package = "csalert")} calls this function in its
   naming-grammar section. It is how generic tooling recovers the probability
   behind a `_qNNxN` column.
 

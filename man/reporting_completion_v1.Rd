@@ -69,7 +69,7 @@ reporting_completion_v1(tri, max_delay = 3)
 head(reporting_completion_v1(tri, max_delay = 3, period = "month"), 3)
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which runs this
+\code{vignette("pipeline", package = "csalert")}, which runs this
   function on its synthetic triangle.
 
 Other reporting completion functions: 

@@ -19,7 +19,7 @@ Compact one-line summary: number of rows, number of time series, and the names
 of the per-measure draw matrices.
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which prints an
+\code{vignette("pipeline", package = "csalert")}, which prints an
   ensemble with this method right after the nowcast step.
 
 Other ensemble format functions: 

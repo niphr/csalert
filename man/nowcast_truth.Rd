@@ -47,7 +47,7 @@ tail(truth, 3)
 c(reference_weeks = 40L, settled = nrow(truth))
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")} calls this
+\code{vignette("pipeline", package = "csalert")} calls this
   function directly in its validation stage to obtain settled truth.
   \code{\link{nowcast_evaluate_v1}} calls it for you when you only want the
   scores.

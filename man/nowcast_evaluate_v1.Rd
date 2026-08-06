@@ -62,7 +62,7 @@ nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which runs this
+\code{vignette("pipeline", package = "csalert")}, which runs this
   function on its synthetic triangle and reads the coverage and revision
   columns off the result.
 

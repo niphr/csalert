@@ -69,7 +69,7 @@ r[, .(
 )]
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which runs this
+\code{vignette("pipeline", package = "csalert")}, which runs this
   function as stage 4 of its pipeline, on a numerator and denominator that
   were nowcast together.
 

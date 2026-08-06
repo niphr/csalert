@@ -116,7 +116,7 @@
 #'   (`coverage_50`, `coverage_90`), the point-estimate revision (`median_signed`
 #'   bias, `median_abs`, `q05`/`q95` band, `p_gt_<t>` tails) and `method`.
 #' @family nowcast diagnostics
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs this
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
 #'   function on its synthetic triangle and reads the coverage and revision
 #'   columns off the result.
 #' @examples

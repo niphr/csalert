@@ -59,7 +59,7 @@ r[, .(
 setdiff(names(r), names(ens$data))
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which collapses a
+\code{vignette("pipeline", package = "csalert")}, which collapses a
   nowcast ensemble with this function and plots the resulting band.
 
 Other ensemble operations: 

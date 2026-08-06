@@ -94,7 +94,7 @@ in output, not only in the class they accept:
 }
 Migrating is therefore a rewrite of the call site, and the output is a
 different kind of quantity. See
-\code{vignette("nowcasting", package = "csalert")}, which runs the ensemble
+\code{vignette("pipeline", package = "csalert")}, which runs the ensemble
 method as stage 7 of its pipeline.
 }
 
@@ -130,7 +130,9 @@ print(res[, .(
 )])
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which runs the
+\code{vignette("pipeline", package = "csalert")}, which runs the
   ensemble method as stage 7 of its pipeline. The example below is the only
   worked demonstration of the `csfmt_rts_data_v1` method, which is deprecated.
+  \code{vignette("csalert", package = "csalert")} explains which of the two
+  generations to use.
 }

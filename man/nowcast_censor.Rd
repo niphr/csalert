@@ -41,7 +41,7 @@ c(now = attr(tri, "as_of"), then = attr(past, "as_of"))
 c(rows_now = nrow(tri), rows_then = nrow(past))
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")} calls this
+\code{vignette("pipeline", package = "csalert")} calls this
   function directly in its validation stage, to rebuild what was known as of an
   earlier week. \code{\link{nowcast_evaluate_v1}} censors for you when you do
   not need the censored triangle itself.

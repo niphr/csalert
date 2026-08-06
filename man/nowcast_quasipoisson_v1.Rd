@@ -79,7 +79,7 @@ tail(r[, .(
 )], 4)
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which runs this
+\code{vignette("pipeline", package = "csalert")}, which runs this
   engine on a synthetic triangle and then scores it.
 
 Other nowcast engines: 

@@ -12,7 +12,7 @@ template:
       cta:
         primary:
           text: "Get started"
-          href: "articles/short_term_trend.html"
+          href: "articles/csalert.html"
         secondary:
           text: "Browse the reference →"
           href: "reference/index.html"

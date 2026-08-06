@@ -105,7 +105,7 @@
 #' @param x A `csfmt_reporting_triangle_v3`.
 #' @param ... Passed to methods.
 #' @family nowcast engines
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs this
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
 #'   engine on a synthetic triangle and then scores it.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek

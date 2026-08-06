@@ -57,7 +57,7 @@ tail(r[, .(
 )], 3)
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")} races this engine
+\code{vignette("pipeline", package = "csalert")} races this engine
   against \code{\link{nowcast_quasipoisson_v1}} on the same triangle, which is
   the clearest way to see what completion buys you over passing the observed
   counts through unchanged.

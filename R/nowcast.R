@@ -21,7 +21,7 @@
 #'   way (its observed total is also surfaced as `<denom>_observed`).
 #' @returns A `csfmt_ensemble_v3` with single-column draw matrices.
 #' @family nowcast engines
-#' @seealso \code{vignette("nowcasting", package = "csalert")} races this engine
+#' @seealso \code{vignette("pipeline", package = "csalert")} races this engine
 #'   against \code{\link{nowcast_quasipoisson_v1}} on the same triangle, which is
 #'   the clearest way to see what completion buys you over passing the observed
 #'   counts through unchanged.

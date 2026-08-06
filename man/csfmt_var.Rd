@@ -40,7 +40,7 @@ csfmt_var("numerator", role = "nowcasted", q = 0.5)   # "numerator_nowcasted_q50
 csfmt_var("consults", denom = "population", per = 100) # a rate column name
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, whose closing
+\code{vignette("pipeline", package = "csalert")}, whose closing
   section builds a column name with this function and takes it apart again with
   \code{\link{csfmt_parse}}.
 

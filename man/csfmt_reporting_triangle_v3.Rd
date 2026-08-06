@@ -53,7 +53,7 @@ attr(tri, "as_of")
 head(tri, 3)
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which builds a
+\code{vignette("pipeline", package = "csalert")}, which builds a
   triangle with this constructor and takes it through the whole pipeline.
 
 Other reporting triangle functions: 

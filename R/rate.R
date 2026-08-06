@@ -19,7 +19,7 @@
 #' @param ... Passed to methods.
 #' @returns `x` with the rate measure added to `$draws`.
 #' @family ensemble operations
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs this
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
 #'   function as stage 4 of its pipeline, on a numerator and denominator that
 #'   were nowcast together.
 #' @examples

@@ -22,7 +22,7 @@
 #' @param as_of An ISO-week string; cells reported after it are dropped.
 #' @returns A `csfmt_reporting_triangle_v3` censored to `as_of`.
 #' @family nowcast diagnostics
-#' @seealso \code{vignette("nowcasting", package = "csalert")} calls this
+#' @seealso \code{vignette("pipeline", package = "csalert")} calls this
 #'   function directly in its validation stage, to rebuild what was known as of an
 #'   earlier week. \code{\link{nowcast_evaluate_v1}} censors for you when you do
 #'   not need the censored triangle itself.
@@ -79,7 +79,7 @@ nowcast_censor <- function(triangle, as_of) {
 #' @param max_delay Delay horizon in weeks.
 #' @returns A data.table `reference`, `truth`.
 #' @family nowcast diagnostics
-#' @seealso \code{vignette("nowcasting", package = "csalert")} calls this
+#' @seealso \code{vignette("pipeline", package = "csalert")} calls this
 #'   function directly in its validation stage to obtain settled truth.
 #'   \code{\link{nowcast_evaluate_v1}} calls it for you when you only want the
 #'   scores.
@@ -143,7 +143,7 @@ nowcast_truth <- function(triangle, max_delay) {
 #' @returns A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
 #'   `predicted`.
 #' @family nowcast diagnostics
-#' @seealso \code{vignette("nowcasting", package = "csalert")} runs this
+#' @seealso \code{vignette("pipeline", package = "csalert")} runs this
 #'   function in its validation stage. \code{\link{nowcast_evaluate_v1}} wraps it
 #'   and scores the result; use this one directly when you want the raw replayed
 #'   quantiles.

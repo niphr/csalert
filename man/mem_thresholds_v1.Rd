@@ -97,6 +97,6 @@ if (requireNamespace("mem", quietly = TRUE)) {
 }
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")}, which runs this
+\code{vignette("pipeline", package = "csalert")}, which runs this
   function as stage 6 of its pipeline, on a five-season synthetic series.
 }

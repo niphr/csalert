@@ -45,7 +45,7 @@ ens$data[]
 dim(ens$draws$numerator_nowcasted)
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")} is built on this
+\code{vignette("pipeline", package = "csalert")} is built on this
   format: its nowcast engine produces one and \code{\link{ens_collapse}}
   reduces it. The vignette never calls this constructor directly, because the
   engines build the ensemble for you; call it yourself only when you already

@@ -128,7 +128,7 @@ in output, not only in the class they accept:
     classification at all.
 }
 Migrating is therefore a rewrite of the call site, and the numbers will not
-match. See \code{vignette("nowcasting", package = "csalert")}, which runs the
+match. See \code{vignette("pipeline", package = "csalert")}, which runs the
 ensemble method as stage 5 of its pipeline.
 }
 
@@ -160,8 +160,10 @@ print(res[, .(
 )])
 }
 \seealso{
-\code{vignette("short_term_trend", package = "csalert")}, which runs
-  this function on one location and then on every Norwegian county.
-  \code{vignette("nowcasting", package = "csalert")} runs the ensemble method
-  as the final stage of its pipeline, on the output of a nowcast.
+\code{vignette("pipeline", package = "csalert")} runs the ensemble
+  method as stage 5 of its pipeline, on the output of a nowcast. No vignette
+  runs the deprecated `csfmt_rts_data_v1` method; the example below is its
+  only worked demonstration.
+  \code{vignette("csalert", package = "csalert")} explains which of the two
+  generations to use.
 }

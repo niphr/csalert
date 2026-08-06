@@ -31,7 +31,7 @@
 #' @returns Character vector of quantile labels.
 #' @family naming grammar functions
 #' @seealso [q_value] reads these labels back, for `p < 1`.
-#'   \code{vignette("nowcasting", package = "csalert")} calls this function in its
+#'   \code{vignette("pipeline", package = "csalert")} calls this function in its
 #'   naming-grammar section, and every `_qNNxN` column it prints was labelled by
 #'   it.
 #' @examples
@@ -72,7 +72,7 @@ q_label <- function(p) {
 #' @returns Numeric vector of probabilities; `NA` for an unparseable label.
 #' @family naming grammar functions
 #' @seealso [q_label] writes these labels.
-#'   \code{vignette("nowcasting", package = "csalert")} calls this function in its
+#'   \code{vignette("pipeline", package = "csalert")} calls this function in its
 #'   naming-grammar section. It is how generic tooling recovers the probability
 #'   behind a `_qNNxN` column.
 #' @examples
@@ -106,7 +106,7 @@ q_value <- function(label) {
 #' @param suffix Optional unit suffix (e.g. "_n").
 #' @returns Character scalar column name.
 #' @family naming grammar functions
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, whose closing
+#' @seealso \code{vignette("pipeline", package = "csalert")}, whose closing
 #'   section builds a column name with this function and takes it apart again with
 #'   \code{\link{csfmt_parse}}.
 #' @examples
@@ -185,7 +185,7 @@ csfmt_var <- function(
 #'   `role`, `q`, `denom`, `per`).
 #' @family naming grammar functions
 #' @seealso [csfmt_var] writes these names.
-#'   \code{vignette("nowcasting", package = "csalert")}, whose closing section
+#'   \code{vignette("pipeline", package = "csalert")}, whose closing section
 #'   parses a collapsed median column with this function.
 #' @examples
 #' csfmt_parse("numerator_nowcasted_q50x0")

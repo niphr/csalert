@@ -19,7 +19,7 @@
 #' @returns A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
 #'   `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
 #' @family ensemble operations
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which collapses a
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which collapses a
 #'   nowcast ensemble with this function and plots the resulting band.
 #' @examples
 #' d <- data.table::data.table(

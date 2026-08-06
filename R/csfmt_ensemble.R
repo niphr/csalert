@@ -71,7 +71,7 @@ set_time_series_id <- function(d, id_cols, sep = "") {
 #'   `data`'s input row order (they are reordered to match the canonical sort).
 #' @returns A `csfmt_ensemble_v3`.
 #' @family ensemble format functions
-#' @seealso \code{vignette("nowcasting", package = "csalert")} is built on this
+#' @seealso \code{vignette("pipeline", package = "csalert")} is built on this
 #'   format: its nowcast engine produces one and \code{\link{ens_collapse}}
 #'   reduces it. The vignette never calls this constructor directly, because the
 #'   engines build the ensemble for you; call it yourself only when you already
@@ -233,7 +233,7 @@ validate_ensemble <- function(ens) {
 #' @param ... Ignored (for S3 consistency).
 #' @returns `x`, invisibly.
 #' @family ensemble format functions
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which prints an
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which prints an
 #'   ensemble with this method right after the nowcast step.
 #' @export
 print.csfmt_ensemble_v3 <- function(x, ...) {

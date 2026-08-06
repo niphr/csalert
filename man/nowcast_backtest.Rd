@@ -80,7 +80,7 @@ bt <- nowcast_backtest(
 head(bt, 6)
 }
 \seealso{
-\code{vignette("nowcasting", package = "csalert")} runs this
+\code{vignette("pipeline", package = "csalert")} runs this
   function in its validation stage. \code{\link{nowcast_evaluate_v1}} wraps it
   and scores the result; use this one directly when you want the raw replayed
   quantiles.

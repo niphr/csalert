@@ -45,7 +45,7 @@ csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")
 }
 \seealso{
 [csfmt_var] writes these names.
-  \code{vignette("nowcasting", package = "csalert")}, whose closing section
+  \code{vignette("pipeline", package = "csalert")}, whose closing section
   parses a collapsed median column with this function.
 
 Other naming grammar functions: 

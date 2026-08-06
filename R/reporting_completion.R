@@ -46,7 +46,7 @@
 #' reporting continues past `max_delay`. To look for a tail, re-run with a larger
 #' `max_delay` and compare `mean_delay` and the `pct_delayD` curve.
 #' @family reporting completion functions
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which runs this
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
 #'   function on its synthetic triangle.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek
@@ -172,7 +172,7 @@ reporting_completion_v1 <- function(
 #'   Empty when no series has enough settled data.
 #' @family reporting completion functions
 #' @seealso Neither package vignette covers this function;
-#'   \code{vignette("nowcasting", package = "csalert")} runs
+#'   \code{vignette("pipeline", package = "csalert")} runs
 #'   \code{\link{reporting_completion_v1}}, which this one wraps.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)

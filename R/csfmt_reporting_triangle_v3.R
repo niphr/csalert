@@ -16,7 +16,7 @@
 #' @returns A validated `csfmt_reporting_triangle_v3` (a data.table with the
 #'   as-of boundary and column roles stored as attributes).
 #' @family reporting triangle functions
-#' @seealso \code{vignette("nowcasting", package = "csalert")}, which builds a
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which builds a
 #'   triangle with this constructor and takes it through the whole pipeline.
 #' @examples
 #' # 40 reference weeks, each reported over delays 0-2, then right-truncated at

@@ -15,9 +15,9 @@
 #' }
 #' @returns sts object with the alarms slot set to 0/1 if not-increasing/increasing.
 #' @seealso Neither package vignette covers this function. It is the
-#'   \code{surveillance::sts} form of the same trend method that
-#'   \code{vignette("short_term_trend", package = "csalert")} demonstrates through
-#'   \code{\link{short_term_trend}}.
+#'   \code{surveillance::sts} form of the deprecated `csfmt_rts_data_v1` trend
+#'   method of \code{\link{short_term_trend}}, whose help page carries the only
+#'   worked example of that method.
 #' @examples
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]

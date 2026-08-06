@@ -30,7 +30,7 @@
 #' character column and FAILS with
 #' `Error in cur - prv : non-numeric argument to binary operator`.
 #'
-#' Note that `vignette("nowcasting", package = "csalert")` builds its triangle
+#' Note that `vignette("pipeline", package = "csalert")` builds its triangle
 #' with `id_cols = c("indicator", "location", "age", "sex")`. Those names work
 #' for the nowcast pipeline itself, but a run-over-run comparison of the result
 #' needs `indicator_tag` and `location_code`.

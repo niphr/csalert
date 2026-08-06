@@ -34,7 +34,7 @@ q_value(q_label(1))
 }
 \seealso{
 [q_value] reads these labels back, for `p < 1`.
-  \code{vignette("nowcasting", package = "csalert")} calls this function in its
+  \code{vignette("pipeline", package = "csalert")} calls this function in its
   naming-grammar section, and every `_qNNxN` column it prints was labelled by
   it.
 
