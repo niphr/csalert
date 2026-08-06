@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,18 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.7" id="version-202687">Version 2026.8.7<a class="anchor" aria-label="anchor" href="#version-202687"></a></h2>
+<div class="section level3">
+<h3 id="bug-fix-2026-8-7">Bug fix<a class="anchor" aria-label="anchor" href="#bug-fix-2026-8-7"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> silently dropped every HLM alert transition.</strong> <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> writes naming-grammar role <code>"hlmstatus"</code>, but the function selected only <code>role == "status"</code> for its <code>$signal</code> table, so an escalation from normal to high never appeared in the week-over-week review. Demonstrated on a 380-week series: a real transition from 1 to 2 at week 2025-14 returned 0 rows before the fix and 1 after. HLM needs roughly five years of history before it produces a status at all, which is why a shorter test series shows nothing.</li>
+<li>The same filter had a second, opposite half. <code>$integrity</code> excluded <code>role != "status"</code>, so HLM status CODES were diffed as if they were continuous medians – an ordinal 1-to-2 step read as a numeric revision.</li>
+<li>Both halves are now driven by a new <code>status_roles</code> argument, defaulting to <code>c("status", "hlmstatus")</code>: the roles excluded from <code>$integrity</code> are exactly the roles whose transitions appear in <code>$signal</code>. Pass a different vector to narrow or widen it.</li>
+<li>
+<strong>This changes no legacy path.</strong> <code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> operates on collapsed ensemble output and its only callers are this package’s tests and the ensemble-first pipelines; nothing on the pre-ensemble <code>csfmt_rts_data_v1</code> route reaches it.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.6" id="version-202686">Version 2026.8.6<a class="anchor" aria-label="anchor" href="#version-202686"></a></h2>
 <div class="section level3">

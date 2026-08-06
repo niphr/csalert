@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,7 +57,13 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qc_week_over_week_v1</span><span class="op">(</span><span class="va">current</span>, <span class="va">previous</span>, <span class="va">max_delay</span>, tol <span class="op">=</span> <span class="fl">1e-06</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qc_week_over_week_v1</span><span class="op">(</span></span>
+<span>  <span class="va">current</span>,</span>
+<span>  <span class="va">previous</span>,</span>
+<span>  <span class="va">max_delay</span>,</span>
+<span>  tol <span class="op">=</span> <span class="fl">1e-06</span>,</span>
+<span>  status_roles <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"status"</span>, <span class="st">"hlmstatus"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -74,6 +80,16 @@
 
 <dt id="arg-tol">tol<a class="anchor" aria-label="anchor" href="#arg-tol"></a></dt>
 <dd><p>Tolerance for "unchanged" in the integrity check.</p></dd>
+
+
+<dt id="arg-status-roles">status_roles<a class="anchor" aria-label="anchor" href="#arg-status-roles"></a></dt>
+<dd><p>Naming-grammar roles treated as ORDINAL STATUS rather than
+as continuous medians: excluded from `$integrity`, and the only roles whose
+transitions appear in `$signal`. Defaults to both status-writing roles in the
+package – `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
+[signal_detection_hlm]. Before this argument existed only `"status"` was
+selected, so HLM alert transitions were silently dropped from `$signal` while
+HLM status columns were wrongly diffed as continuous values in `$integrity`.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -155,11 +171,10 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;      &lt;char&gt;                    &lt;char&gt; &lt;num&gt; &lt;num&gt;    &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x     2023-11 numerator_nowcasted_q50x0    31    46       15</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Status transitions on the frontier weeks. Empty here because these runs have</span></span></span>
-<span class="r-in"><span><span class="co"># no status column at all: only mem_thresholds_v1() writes role "status", and</span></span></span>
-<span class="r-in"><span><span class="co"># it was not run. NOTE signal_detection_hlm() does NOT qualify -- it writes</span></span></span>
-<span class="r-in"><span><span class="co"># role "hlmstatus", which this check does not select, so HLM transitions never</span></span></span>
-<span class="r-in"><span><span class="co"># appear here.</span></span></span>
+<span class="r-in"><span><span class="co"># Status transitions on the frontier weeks. Empty here because these runs</span></span></span>
+<span class="r-in"><span><span class="co"># carry no status column at all: mem_thresholds_v1() writes role "status" and</span></span></span>
+<span class="r-in"><span><span class="co"># signal_detection_hlm() writes role "hlmstatus", and neither was run. Both</span></span></span>
+<span class="r-in"><span><span class="co"># roles are selected by default -- see `status_roles`.</span></span></span>
 <span class="r-in"><span><span class="va">qc</span><span class="op">$</span><span class="va">signal</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Empty data.table (0 rows and 5 cols): indicator_tag,isoyearweek,column,prv,cur</span>
 </code></pre></div>
