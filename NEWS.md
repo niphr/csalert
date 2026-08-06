@@ -1,4 +1,4 @@
-# Version 2026.8.8
+# Version 2026.8.7
 
 ## Corrections
 
@@ -36,12 +36,27 @@
   wording changed. Without it a sentence counter runs straight through the
   boundary between one field and the next, and reports one very long sentence.
 
+
+* **New `vignette("csalert")`, the get-started page.** It is an orientation and
+  runs no analysis. It covers what the package is for, which of the two
+  generations is current, where the `csfmt_rts_data_*` classes live, and what
+  cannot be done yet. pkgdown promotes a vignette named after the package to "Get started" in
+  the navbar, which is where the site's primary call to action now points.
+* **`vignette("nowcasting")` is now `vignette("pipeline")`**, retitled to "The
+  pipeline: from incomplete counts to published numbers". Its content, numbers
+  and statistical claims are unchanged; the opening paragraphs were rewritten in
+  plainer language. The 23 `@seealso` cross-references in `R/` were updated with
+  it, so no help page points at a vignette that no longer exists.
+* **`vignette("short_term_trend")` is deleted.** It taught
+  `short_term_trend.csfmt_rts_data_v1`, which is deprecated, so it was teaching
+  new readers the route they should not take. The only worked example of that
+  method is now the one on `?short_term_trend`. Its county-map demonstration was
+  not ported.
+
 ## No behaviour change
 
 * This release changes prose only. No exported function, argument, default or
   return value moved.
-
-# Version 2026.8.7
 
 ## Bug fix
 
@@ -65,24 +80,6 @@
   ensemble output. Its only callers are this package's tests and the
   ensemble-first pipelines. Nothing on the pre-ensemble `csfmt_rts_data_v1` route
   reaches it.
-
-## Documentation
-
-* **New `vignette("csalert")`, the get-started page.** It is an orientation and
-  runs no analysis. It covers what the package is for, which of the two
-  generations is current, where the `csfmt_rts_data_*` classes live, and what
-  cannot be done yet. pkgdown promotes a vignette named after the package to "Get started" in
-  the navbar, which is where the site's primary call to action now points.
-* **`vignette("nowcasting")` is now `vignette("pipeline")`**, retitled to "The
-  pipeline: from incomplete counts to published numbers". Its content, numbers
-  and statistical claims are unchanged; the opening paragraphs were rewritten in
-  plainer language. The 23 `@seealso` cross-references in `R/` were updated with
-  it, so no help page points at a vignette that no longer exists.
-* **`vignette("short_term_trend")` is deleted.** It taught
-  `short_term_trend.csfmt_rts_data_v1`, which is deprecated, so it was teaching
-  new readers the route they should not take. The only worked example of that
-  method is now the one on `?short_term_trend`. Its county-map demonstration was
-  not ported.
 
 # Version 2026.8.6
 
