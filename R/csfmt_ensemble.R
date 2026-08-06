@@ -74,7 +74,7 @@ set_time_series_id <- function(d, id_cols, sep = "") {
 #' @seealso \code{vignette("pipeline", package = "csalert")} is built on this
 #'   format: its nowcast engine produces one and \code{\link{ens_collapse}}
 #'   reduces it. The vignette never calls this constructor directly, because the
-#'   engines build the ensemble for you; call it yourself only when you already
+#'   engines build the ensemble for you. Call it yourself only when you already
 #'   hold draws from somewhere else.
 #' @examples
 #' d <- data.table::data.table(
@@ -152,10 +152,14 @@ csfmt_ensemble_v3 <- function(
 #'
 #' @section What it does NOT check:
 #' The constructor [csfmt_ensemble_v3] establishes more than this function
-#' verifies. It does NOT check the sort order, the key, that
-#' `time_series_internal_id` is a dense 1..n within each series, that
-#' `time_series_label` is present, or that a draw matrix's rows still correspond
-#' to the same weeks as `$data`. Only the row COUNT is compared, so permuting the
+#' verifies. It does NOT check the sort order or the key. It also does NOT check:
+#' \itemize{
+#'   \item that `time_series_internal_id` is a dense 1..n within each series;
+#'   \item that `time_series_label` is present;
+#'   \item that a draw matrix's rows still correspond to the same weeks as
+#'     `$data`.
+#' }
+#' Only the row COUNT is compared, so permuting the
 #' rows of `$data` or of a draw matrix passes.
 #'
 #' So this is not a safety net for hand-edited objects. If you have edited `$data`

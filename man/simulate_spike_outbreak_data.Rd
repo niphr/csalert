@@ -21,8 +21,9 @@ columns describing the outbreaks (e.g. \code{sp_outbreak}, \code{sp_outbreak_n})
 }
 \description{
 Adds spiked outbreaks to a simulated baseline time series, following Noufaily
-et al. (2019). The method is similar to \code{\link{simulate_seasonal_outbreak_data}},
-but the outbreaks are shorter in duration and are added only within the last
+et al. (2019). The method is similar to
+\code{\link{simulate_seasonal_outbreak_data}}. The outbreaks are shorter in
+duration, and are added only within the last
 year of data (the prediction period). A spiked outbreak can start at any week
 during that period.
 }

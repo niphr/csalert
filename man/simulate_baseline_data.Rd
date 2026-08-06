@@ -30,17 +30,17 @@ Date is in the format of 'yyyy-mm-dd'.}
 
 \item{weekly_pattern_n}{Number of weekly patterns. For no specific weekly pattern, weekly_pattern_n = 0. Weekly_pattern_n = 1 represents one weekly peak.}
 
-\item{alpha}{The parameter is used to specify the baseline frequencies of reports}
+\item{alpha}{The parameter is used to specify the baseline frequencies of reports.}
 
-\item{beta}{The parameter is used to specify to specify linear trend}
+\item{beta}{The parameter is used to specify to specify linear trend.}
 
-\item{gamma_1}{The parameter is used to specify the seasonal pattern}
+\item{gamma_1}{The parameter is used to specify the seasonal pattern.}
 
-\item{gamma_2}{The parameter is used to specify the seasonal pattern}
+\item{gamma_2}{The parameter is used to specify the seasonal pattern.}
 
-\item{gamma_3}{The parameter is used to specify day-of-the week pattern}
+\item{gamma_3}{The parameter is used to specify day-of-the week pattern.}
 
-\item{gamma_4}{The parameter is used to specify day-of-the week pattern}
+\item{gamma_4}{The parameter is used to specify day-of-the week pattern.}
 
 \item{phi}{Dispersion parameter. If phi =0, a Poisson model is used to simulate baseline data.}
 

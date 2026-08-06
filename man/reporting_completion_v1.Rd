@@ -20,18 +20,19 @@ reporting_completion_v1(
 weeks (drift-aware). `NULL` uses all settled weeks. Ignored for the shape of
 `period` stratification, which slices time itself.}
 
-\item{period}{Time stratification of the settled weeks, by the calendar year /
-month of each week's Thursday: `"all"` (one pooled curve, default),
-`"year"`, or `"month"` (one row per period). Use `"year"`/`"month"` to see
-whether completion time is trending up or down.}
+\item{period}{Time stratification of the settled weeks, by the calendar year
+or month of each week's Thursday. Choose `"all"` (one pooled curve,
+default), `"year"`, or `"month"` (one row per period). Use `"year"` or
+`"month"` to see whether completion time is trending up or down.}
 }
 \value{
-One row per series (and per period when stratified): identity columns
-  + `period` + `n_settled`, `mean_delay`, `complete_by_md`, and
-  `pct_delay0`..`pct_delay<max_delay-1>` (the pooled \% of cases reported by the
-  end of week reference + D -- the delay ECDF, no interpolation). `pct_delay0`
+One row per series, and per period when stratified. The columns are
+  identity columns + `period` + `n_settled`, `mean_delay`, `complete_by_md`,
+  and `pct_delay0`..`pct_delay<max_delay-1>`. Each `pct_delayD` is the pooled
+  \% of cases reported by the end of week reference + D -- the delay ECDF, no
+  interpolation. `pct_delay0`
   is the reference week itself, NOT the week after. Every one of these is
-  computed AFTER delays `>= max_delay` have been discarded, so they describe
+  computed AFTER delays `>= max_delay` are discarded. They describe
   the cases that arrive within the horizon, not all eventual cases.
 }
 \description{
@@ -40,7 +41,7 @@ Empirical reporting-completion summary from a reporting triangle
 \section{complete_by_md is always 1}{
 
 `complete_by_md` is the last cumulative fraction of a total that was itself
-summed over the truncated delay axis, so it equals 1 for every series and every
+summed over the truncated delay axis. So it equals 1 for every series and every
 period, and `pct_delay<max_delay-1>` equals 100. It does NOT measure whether
 reporting continues past `max_delay`. To look for a tail, re-run with a larger
 `max_delay` and compare `mean_delay` and the `pct_delayD` curve.
@@ -72,7 +73,7 @@ head(reporting_completion_v1(tri, max_delay = 3, period = "month"), 3)
 \code{vignette("pipeline", package = "csalert")}, which runs this
   function on its synthetic triangle.
 
-Other reporting completion functions: 
-\code{\link{reporting_completion_trend_v1}()}
+Other reporting completion functions:
+\code{\link[=reporting_completion_trend_v1]{reporting_completion_trend_v1()}}
 }
 \concept{reporting completion functions}

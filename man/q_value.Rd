@@ -36,10 +36,10 @@ q_value(c("q100x0", "not_a_label"))
   naming-grammar section. It is how generic tooling recovers the probability
   behind a `_qNNxN` column.
 
-Other naming grammar functions: 
-\code{\link{csfmt_interpret}()},
-\code{\link{csfmt_parse}()},
-\code{\link{csfmt_var}()},
-\code{\link{q_label}()}
+Other naming grammar functions:
+\code{\link[=csfmt_interpret]{csfmt_interpret()}},
+\code{\link[=csfmt_parse]{csfmt_parse()}},
+\code{\link[=csfmt_var]{csfmt_var()}},
+\code{\link[=q_label]{q_label()}}
 }
 \concept{naming grammar functions}

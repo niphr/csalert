@@ -15,8 +15,8 @@ nowcast_censor(triangle, as_of)
 A `csfmt_reporting_triangle_v3` censored to `as_of`.
 }
 \description{
-Keeps only cells reported on or before `as_of` and rebuilds the triangle, so
-its as-of boundary and delay structure are exactly what an engine would have
+Keeps only cells reported on or before `as_of` and rebuilds the triangle. Its
+as-of boundary and delay structure are then exactly what an engine would have
 seen at that week. The basis for replay-based backtesting.
 }
 \examples{
@@ -46,9 +46,9 @@ c(rows_now = nrow(tri), rows_then = nrow(past))
   earlier week. \code{\link{nowcast_evaluate_v1}} censors for you when you do
   not need the censored triangle itself.
 
-Other nowcast diagnostics: 
-\code{\link{nowcast_backtest}()},
-\code{\link{nowcast_evaluate_v1}()},
-\code{\link{nowcast_truth}()}
+Other nowcast diagnostics:
+\code{\link[=nowcast_backtest]{nowcast_backtest()}},
+\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}},
+\code{\link[=nowcast_truth]{nowcast_truth()}}
 }
 \concept{nowcast diagnostics}

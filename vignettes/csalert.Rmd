@@ -44,7 +44,7 @@ Uncertainty travels as those columns, not as a summary.
 
 One rule follows, and it is the most useful thing to know about the package:
 
-> **Every analytical stage takes the ensemble and returns the ensemble.**
+> **Every analytical stage takes the ensemble and returns the ensemble**.
 > `ens_collapse()` is **terminal**. A collapsed table is output, never input.
 
 Collapsing reduces the simulations to quantiles. Quantiles are not simulations,

@@ -24,9 +24,9 @@ Learns a per-group interval-scaling correction from past nowcasts scored
 against settled truth. See [nowcast_apply_calibration_v1] to use it.
 }
 \details{
-This is an empirical rescaling, not split conformal: it takes the ordinary
-type-7 quantile of the scaled residuals rather than the conformal order
-statistic, and it summarises both tails with one symmetric distance from the
+This is an empirical rescaling, not split conformal. It takes the ordinary
+type-7 quantile of the scaled residuals, rather than the conformal order
+statistic. It summarises both tails with one symmetric distance from the
 median. It therefore carries NO finite-sample coverage guarantee. Read
 `coverage_raw` as "what this engine did on these replayed weeks", not as a
 property of the engine.
@@ -65,8 +65,8 @@ nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay = 3))
 Neither package vignette covers calibration. The example below is its
   only worked demonstration.
 
-Other nowcast calibration functions: 
-\code{\link{nowcast_apply_calibration_v1}()},
-\code{\link{print.nowcast_calibration}()}
+Other nowcast calibration functions:
+\code{\link[=nowcast_apply_calibration_v1]{nowcast_apply_calibration_v1()}},
+\code{\link[=print.nowcast_calibration]{print.nowcast_calibration()}}
 }
 \concept{nowcast calibration functions}

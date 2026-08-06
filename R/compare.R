@@ -22,9 +22,10 @@
 #' runs on schema names such as `location_code` and `indicator_tag`.
 #'
 #' A non-schema identity column is a silent trap. `location` and `indicator` are
-#' NOT in the schema (`location_code` and `indicator_tag` are), so they are read
-#' as value columns; their character values are then stacked with the numeric
-#' measures and `cur`/`prv` come back as character for every row. This function
+#' NOT in the schema, but `location_code` and `indicator_tag` are. So `location`
+#' and `indicator` are read as value columns. Their character values are then
+#' stacked with the numeric measures, and `cur`/`prv` come back as character for
+#' every row. This function
 #' still returns a table, so the damage is easy to miss. But
 #' \code{\link{qc_week_over_week_v1}} then evaluates `abs(cur - prv)` on that
 #' character column and FAILS with
@@ -116,9 +117,10 @@ compare_results <- function(current, previous) {
 #'   as continuous medians: excluded from `$integrity`, and the only roles whose
 #'   transitions appear in `$signal`. Defaults to both status-writing roles in the
 #'   package -- `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
-#'   [signal_detection_hlm]. Before this argument existed only `"status"` was
-#'   selected, so HLM alert transitions were silently dropped from `$signal` while
-#'   HLM status columns were wrongly diffed as continuous values in `$integrity`.
+#'   [signal_detection_hlm]. Before this argument existed, only `"status"` was
+#'   selected. HLM alert transitions were then silently dropped from `$signal`,
+#'   and HLM status columns were wrongly diffed as continuous values in
+#'   `$integrity`.
 #' @param tol Tolerance for "unchanged" in the integrity check.
 #' @returns `list(integrity = <A>, signal = <B>)`.
 #' @seealso Neither package vignette covers run-over-run comparison.

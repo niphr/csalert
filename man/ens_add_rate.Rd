@@ -24,9 +24,10 @@ ens_add_rate(x, ...)
 `x` with the rate measure added to `$draws`.
 }
 \description{
-An ensemble operation (`ens_` family): dispatches on the ensemble class, so
+An ensemble operation (`ens_` family). It dispatches on the ensemble class, so
 the class -- not a name prefix on the caller -- carries the "operates on an
-ensemble" meaning, matching [nowcast_quasipoisson_v1()] / [short_term_trend()].
+ensemble" meaning. That matches [nowcast_quasipoisson_v1()] and
+[short_term_trend()].
 }
 \examples{
 d <- data.table::data.table(
@@ -73,7 +74,7 @@ r[, .(
   function as stage 4 of its pipeline, on a numerator and denominator that
   were nowcast together.
 
-Other ensemble operations: 
-\code{\link{ens_collapse}()}
+Other ensemble operations:
+\code{\link[=ens_collapse]{ens_collapse()}}
 }
 \concept{ensemble operations}

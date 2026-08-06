@@ -61,8 +61,8 @@ width(adj)
 Neither package vignette covers calibration. The example below is its
   only worked demonstration.
 
-Other nowcast calibration functions: 
-\code{\link{nowcast_estimate_calibration_v1}()},
-\code{\link{print.nowcast_calibration}()}
+Other nowcast calibration functions:
+\code{\link[=nowcast_estimate_calibration_v1]{nowcast_estimate_calibration_v1()}},
+\code{\link[=print.nowcast_calibration]{print.nowcast_calibration()}}
 }
 \concept{nowcast calibration functions}

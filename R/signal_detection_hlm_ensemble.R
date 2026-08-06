@@ -12,18 +12,24 @@
 #' @param measure The `$draws` measure to detect signals on.
 #' @param baseline_isoyears Years of history used for the baseline.
 #' @returns The `csfmt_ensemble_v3` with a per-draw exceedance column added to
-#'   `$draws` for `measure` (1 where the draw exceeds its HLM baseline threshold,
-#'   else 0), so the exceedance probability falls out of the quantile collapse.
-#'   Weeks without a full baseline are NA.
+#'   `$draws` for `measure`. The column is 1 where the draw exceeds its HLM
+#'   baseline threshold and 0 otherwise, so the exceedance probability falls out
+#'   of the quantile collapse. Weeks without a full baseline are NA.
 #' @export
-signal_detection_hlm.csfmt_ensemble_v3 <- function(x, measure, baseline_isoyears = 5, ...) {
+signal_detection_hlm.csfmt_ensemble_v3 <- function(
+  x,
+  measure,
+  baseline_isoyears = 5,
+  ...
+) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
-  if (!measure %in% names(x$draws))
+  if (!measure %in% names(x$draws)) {
     stop(sprintf("measure '%s' not in $draws", measure))
+  }
 
   Y <- x$draws[[measure]]
   d <- data.table::data.table(
-    point          = matrixStats::rowMedians(Y, na.rm = TRUE),
+    point = matrixStats::rowMedians(Y, na.rm = TRUE),
     time_series_id = x$data$time_series_id
   )
 
@@ -31,16 +37,20 @@ signal_detection_hlm.csfmt_ensemble_v3 <- function(x, measure, baseline_isoyears
   baseline <- data.table::CJ(weeks = -1:1, years = seq_len(baseline_isoyears))
   baseline[, lag := years * 52 + weeks]
   lagcols <- paste0(".bl", seq_len(nrow(baseline)))
-  for (i in seq_len(nrow(baseline)))
-    d[, (lagcols[i]) := data.table::shift(point, n = baseline$lag[i]), by = time_series_id]
+  for (i in seq_len(nrow(baseline))) {
+    d[,
+      (lagcols[i]) := data.table::shift(point, n = baseline$lag[i]),
+      by = time_series_id
+    ]
+  }
 
   bmat <- as.matrix(d[, lagcols, with = FALSE])
-  bmean <- row_mean(bmat)                       # NA if any baseline week missing
-  bsd   <- row_sd(bmat)
-  thr   <- stats::qnorm(0.995, bmean, bsd)
+  bmean <- row_mean(bmat) # NA if any baseline week missing
+  bsd <- row_sd(bmat)
+  thr <- stats::qnorm(0.995, bmean, bsd)
 
   x$data[, hlm_threshold := thr]
-  code <- 1L + (Y >= thr)                        # 1 null, 2 high; NA where no baseline
+  code <- 1L + (Y >= thr) # 1 null, 2 high; NA where no baseline
   code <- matrix(as.integer(code), nrow = nrow(Y), ncol = ncol(Y))
   attr(code, "levels") <- c("null", "high")
   x$draws[[csfmt_var(measure, role = "hlmstatus")]] <- code

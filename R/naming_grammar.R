@@ -178,7 +178,7 @@ csfmt_var <- function(
 #' }
 #'
 #' Treat it as reliable for a single-role name such as
-#' `numerator_nowcasted_q50x0`, and check the result whenever the measure or the
+#' `numerator_nowcasted_q50x0`. Check the result whenever the measure or the
 #' denominator itself ends in a role word.
 #' @param varname Character scalar column name.
 #' @returns Named list with the components that were present (e.g. `measure`,

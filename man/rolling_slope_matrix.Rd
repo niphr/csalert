@@ -38,6 +38,6 @@ round(rs$se[10, ], 2)
 \seealso{
 Neither package vignette covers this function. It is the numeric
   kernel behind the ensemble method of \code{\link{short_term_trend}}, which
-  is the function you normally want; use this one when you have a bare
+  is the function you normally want. Use this one when you have a bare
   weeks x draws matrix and no ensemble.
 }

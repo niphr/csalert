@@ -44,10 +44,10 @@ csfmt_var("consults", denom = "population", per = 100) # a rate column name
   section builds a column name with this function and takes it apart again with
   \code{\link{csfmt_parse}}.
 
-Other naming grammar functions: 
-\code{\link{csfmt_interpret}()},
-\code{\link{csfmt_parse}()},
-\code{\link{q_label}()},
-\code{\link{q_value}()}
+Other naming grammar functions:
+\code{\link[=csfmt_interpret]{csfmt_interpret()}},
+\code{\link[=csfmt_parse]{csfmt_parse()}},
+\code{\link[=q_label]{q_label()}},
+\code{\link[=q_value]{q_value()}}
 }
 \concept{naming grammar functions}

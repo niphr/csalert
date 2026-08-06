@@ -87,7 +87,7 @@ csfmt_reporting_triangle_v3 <- function(
 #'   is a reference x delay count matrix (zeros filled within the observed region).
 #' @family reporting triangle functions
 #' @seealso Neither package vignette covers this function. It is the densification
-#'   step every nowcast engine runs first, so reach for it directly only when you
+#'   step every nowcast engine runs first. Reach for it directly only when you
 #'   want the raw reference x delay matrix rather than an ensemble.
 #' @examples
 #' w <- cstime::dates_by_isoyearweek$isoyearweek

@@ -37,9 +37,9 @@ Neither package vignette covers this function. It is called for you by
   call it directly only when you are keying a data.table those constructors
   never see.
 
-Other ensemble format functions: 
-\code{\link{csfmt_ensemble_v3}()},
-\code{\link{print.csfmt_ensemble_v3}()},
-\code{\link{validate_ensemble}()}
+Other ensemble format functions:
+\code{\link[=csfmt_ensemble_v3]{csfmt_ensemble_v3()}},
+\code{\link[=print.csfmt_ensemble_v3]{print.csfmt_ensemble_v3()}},
+\code{\link[=validate_ensemble]{validate_ensemble()}}
 }
 \concept{ensemble format functions}

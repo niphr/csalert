@@ -9,9 +9,10 @@
 
 #' Add a rate measure to an ensemble
 #'
-#' An ensemble operation (`ens_` family): dispatches on the ensemble class, so
+#' An ensemble operation (`ens_` family). It dispatches on the ensemble class, so
 #' the class -- not a name prefix on the caller -- carries the "operates on an
-#' ensemble" meaning, matching [nowcast_quasipoisson_v1()] / [short_term_trend()].
+#' ensemble" meaning. That matches [nowcast_quasipoisson_v1()] and
+#' [short_term_trend()].
 #' @param x A `csfmt_ensemble_v3`.
 #' @param numerator,denominator Measure names present in `$draws`.
 #' @param per Scaling factor (e.g. 100 for percent).

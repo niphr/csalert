@@ -15,8 +15,8 @@
 
 #' Censor a reporting triangle to what was known "as of" a past week
 #'
-#' Keeps only cells reported on or before `as_of` and rebuilds the triangle, so
-#' its as-of boundary and delay structure are exactly what an engine would have
+#' Keeps only cells reported on or before `as_of` and rebuilds the triangle. Its
+#' as-of boundary and delay structure are then exactly what an engine would have
 #' seen at that week. The basis for replay-based backtesting.
 #' @param triangle A `csfmt_reporting_triangle_v3`.
 #' @param as_of An ISO-week string; cells reported after it are dropped.
@@ -139,7 +139,7 @@ nowcast_truth <- function(triangle, max_delay) {
 #' @param measure Ensemble measure to score; default the numerator's nowcast.
 #' @param seed Optional integer base seed. Each as-of is seeded as
 #'   `seed + week-index`, so a given cell is reproducible regardless of the as-of
-#'   list order (the nowcast draws for week W depend only on `seed` and `W`).
+#'   list order. The nowcast draws for week W depend only on `seed` and `W`.
 #' @returns A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
 #'   `predicted`.
 #' @family nowcast diagnostics

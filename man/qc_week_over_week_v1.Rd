@@ -23,9 +23,10 @@ qc_week_over_week_v1(
 as continuous medians: excluded from `$integrity`, and the only roles whose
 transitions appear in `$signal`. Defaults to both status-writing roles in the
 package -- `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
-[signal_detection_hlm]. Before this argument existed only `"status"` was
-selected, so HLM alert transitions were silently dropped from `$signal` while
-HLM status columns were wrongly diffed as continuous values in `$integrity`.}
+[signal_detection_hlm]. Before this argument existed, only `"status"` was
+selected. HLM alert transitions were then silently dropped from `$signal`,
+and HLM status columns were wrongly diffed as continuous values in
+`$integrity`.}
 }
 \value{
 `list(integrity = <A>, signal = <B>)`.

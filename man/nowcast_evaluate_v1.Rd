@@ -24,8 +24,11 @@ them (each with its parameters baked in, e.g. via a closure).}
 
 \item{max_delay}{Delay horizon in weeks.}
 
-\item{as_of_weeks, horizons, probs, seed}{Passed to [nowcast_backtest]. `seed` is
-shared across methods, so the comparison is paired.}
+\item{as_of_weeks, horizons, probs, seed}{Passed to [nowcast_backtest]. Every
+method gets the same `seed`, so each one starts from the same RNG state on
+each as-of week. That pairs the comparison. It does not by itself give
+common random numbers, which would also need the methods to consume
+compatible variates.}
 
 \item{by}{Grouping for the evaluation summary (default "horizon").}
 
@@ -39,11 +42,13 @@ A data.table, one row per group x method: `n`, interval coverage
 }
 \description{
 Replays each method over the triangle (backtest) and scores it on interval
-coverage (are the intervals honest?) + point-estimate revision (how much will
-the number still move?), stacked into one per-horizon table with a `method`
-column. Pass a single method or a named list; a shared `seed` pairs them (common
-random numbers) so a head-to-head is apples-to-apples. Coverage is read straight
-off the interval quantiles, so this needs no `scoringutils`.
+coverage and point-estimate revision. Coverage asks whether the intervals are
+honest; revision asks how much the number will still move. The scores are
+stacked into one per-horizon table with a `method`
+column. Pass a single method or a named list. Every method replays the same
+as-of weeks from the same starting RNG state, so the comparison is paired.
+Coverage is read straight off the interval quantiles, so this needs no
+`scoringutils`.
 }
 \examples{
 # a small reporting triangle: 30 weeks, each reported over delays 0-2
@@ -57,7 +62,7 @@ tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age"
 # one method:
 nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3),
                     max_delay = 3, horizons = 0:2, seed = 1)
-# several methods, paired (common random numbers), stacked with a `method` column:
+# several methods, paired by as-of week, stacked with a `method` column:
 nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
 }
@@ -66,9 +71,9 @@ nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list
   function on its synthetic triangle and reads the coverage and revision
   columns off the result.
 
-Other nowcast diagnostics: 
-\code{\link{nowcast_backtest}()},
-\code{\link{nowcast_censor}()},
-\code{\link{nowcast_truth}()}
+Other nowcast diagnostics:
+\code{\link[=nowcast_backtest]{nowcast_backtest()}},
+\code{\link[=nowcast_censor]{nowcast_censor()}},
+\code{\link[=nowcast_truth]{nowcast_truth()}}
 }
 \concept{nowcast diagnostics}

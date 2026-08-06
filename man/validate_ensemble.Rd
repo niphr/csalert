@@ -21,10 +21,14 @@ that `$data` is a data.table and `$draws` a list, that `$data` has the
 \section{What it does NOT check}{
 
 The constructor [csfmt_ensemble_v3] establishes more than this function
-verifies. It does NOT check the sort order, the key, that
-`time_series_internal_id` is a dense 1..n within each series, that
-`time_series_label` is present, or that a draw matrix's rows still correspond
-to the same weeks as `$data`. Only the row COUNT is compared, so permuting the
+verifies. It does NOT check the sort order or the key. It also does NOT check:
+\itemize{
+  \item that `time_series_internal_id` is a dense 1..n within each series;
+  \item that `time_series_label` is present;
+  \item that a draw matrix's rows still correspond to the same weeks as
+    `$data`.
+}
+Only the row COUNT is compared, so permuting the
 rows of `$data` or of a draw matrix passes.
 
 So this is not a safety net for hand-edited objects. If you have edited `$data`
@@ -64,9 +68,9 @@ validate_ensemble(scrambled)
 Neither package vignette covers this function. [csfmt_ensemble_v3] and
   every ensemble stage call it on the way out, so you rarely call it yourself.
 
-Other ensemble format functions: 
-\code{\link{csfmt_ensemble_v3}()},
-\code{\link{print.csfmt_ensemble_v3}()},
-\code{\link{set_time_series_id}()}
+Other ensemble format functions:
+\code{\link[=csfmt_ensemble_v3]{csfmt_ensemble_v3()}},
+\code{\link[=print.csfmt_ensemble_v3]{print.csfmt_ensemble_v3()}},
+\code{\link[=set_time_series_id]{set_time_series_id()}}
 }
 \concept{ensemble format functions}

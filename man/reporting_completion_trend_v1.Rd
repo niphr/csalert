@@ -38,7 +38,7 @@ Neither package vignette covers this function;
   \code{vignette("pipeline", package = "csalert")} runs
   \code{\link{reporting_completion_v1}}, which this one wraps.
 
-Other reporting completion functions: 
-\code{\link{reporting_completion_v1}()}
+Other reporting completion functions:
+\code{\link[=reporting_completion_v1]{reporting_completion_v1()}}
 }
 \concept{reporting completion functions}

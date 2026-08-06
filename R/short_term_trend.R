@@ -427,12 +427,12 @@ short_term_trend_internal <- function(
 #' Determine the short term trend of a timeseries
 #'
 #' @description
-#' Fits a quasi-Poisson regression over a moving window of recent weeks and
+#' Fits a quasi-Poisson regression over a moving window of recent weeks. It
 #' classifies the short-term trend of the numerator (optionally per a
-#' denominator) as increasing or not, together with an estimated doubling time.
+#' denominator) as increasing or not, and estimates a doubling time.
 #' The method is based upon a published analytics strategy by Benedetti (2019)
 #' <doi:10.5588/pha.19.0002>.
-#' @param x Data object
+#' @param x Data object.
 #' @param ... Not in use.
 #' @seealso \code{vignette("pipeline", package = "csalert")} runs the ensemble
 #'   method as stage 5 of its pipeline, on the output of a nowcast. No vignette
@@ -459,7 +459,7 @@ short_term_trend <- function(
 #' and [ens_collapse] is terminal.
 #'
 #' It still works and emits no warning, so existing pipelines are undisturbed.
-#' New work should call `short_term_trend()` on the **ensemble**, before
+#' New work SHOULD call `short_term_trend()` on the **ensemble**, before
 #' `ens_collapse()`:
 #'
 #' \preformatted{
@@ -482,15 +482,15 @@ short_term_trend <- function(
 #' Migrating is therefore a rewrite of the call site, and the numbers will not
 #' match. See \code{vignette("pipeline", package = "csalert")}, which runs the
 #' ensemble method as stage 5 of its pipeline.
-#' @param numerator Character of name of numerator
-#' @param denominator Character of name of denominator (optional)
+#' @param numerator Character of name of numerator.
+#' @param denominator Character of name of denominator (optional).
 #' @param prX If using denominator, what scaling factor should be used for numerator/denominator?
-#' @param trend_isoyearweeks Same as trend_dates, but used if granularity_geo=='isoyearweek'
-#' @param remove_last_isoyearweeks Same as remove_last_dates, but used if granularity_geo=='isoyearweek'
-#' @param forecast_isoyearweeks Same as forecast_dates, but used if granularity_geo=='isoyearweek'
-#' @param numerator_naming_prefix "from_numerator", "generic", or a custom prefix
-#' @param denominator_naming_prefix "from_denominator", "generic", or a custom prefix
-#' @param statistics_naming_prefix "universal" (one variable for trend status, one variable for doubling dates), "from_numerator_and_prX" (If denominator is NULL, then one variable corresponding to numerator. If denominator exists, then one variable for each of the prXs)
+#' @param trend_isoyearweeks Same as trend_dates, but used if granularity_geo=='isoyearweek'.
+#' @param remove_last_isoyearweeks Same as remove_last_dates, but used if granularity_geo=='isoyearweek'.
+#' @param forecast_isoyearweeks Same as forecast_dates, but used if granularity_geo=='isoyearweek'.
+#' @param numerator_naming_prefix "from_numerator", "generic", or a custom prefix.
+#' @param denominator_naming_prefix "from_denominator", "generic", or a custom prefix.
+#' @param statistics_naming_prefix "universal" (one variable for trend status, one variable for doubling dates), "from_numerator_and_prX" (If denominator is NULL, then one variable corresponding to numerator. If denominator exists, then one variable for each of the prXs).
 #' @param remove_training_data Boolean. If TRUE, removes the training data (i.e. 1:(trend_dates-1) or 1:(trend_isoyearweeks-1)) from the returned dataset.
 #' @param include_decreasing If true, then *_trend*_status contains the levels c("training", "forecast", "decreasing", "null", "increasing"), otherwise the levels c("training", "forecast", "notincreasing", "increasing").
 #' @param alpha Significance level for change in trend.

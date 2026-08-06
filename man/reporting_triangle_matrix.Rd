@@ -53,10 +53,10 @@ tail(m[[1]]$mat, 3)
 }
 \seealso{
 Neither package vignette covers this function. It is the densification
-  step every nowcast engine runs first, so reach for it directly only when you
+  step every nowcast engine runs first. Reach for it directly only when you
   want the raw reference x delay matrix rather than an ensemble.
 
-Other reporting triangle functions: 
-\code{\link{csfmt_reporting_triangle_v3}()}
+Other reporting triangle functions:
+\code{\link[=csfmt_reporting_triangle_v3]{csfmt_reporting_triangle_v3()}}
 }
 \concept{reporting triangle functions}

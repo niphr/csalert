@@ -56,7 +56,7 @@ head(tri, 3)
 \code{vignette("pipeline", package = "csalert")}, which builds a
   triangle with this constructor and takes it through the whole pipeline.
 
-Other reporting triangle functions: 
-\code{\link{reporting_triangle_matrix}()}
+Other reporting triangle functions:
+\code{\link[=reporting_triangle_matrix]{reporting_triangle_matrix()}}
 }
 \concept{reporting triangle functions}

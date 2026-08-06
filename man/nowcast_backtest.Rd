@@ -33,7 +33,7 @@ after a `max_delay`-week burn-in, replayed as-of itself.}
 
 \item{seed}{Optional integer base seed. Each as-of is seeded as
 `seed + week-index`, so a given cell is reproducible regardless of the as-of
-list order (the nowcast draws for week W depend only on `seed` and `W`).}
+list order. The nowcast draws for week W depend only on `seed` and `W`.}
 }
 \value{
 A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
@@ -85,9 +85,9 @@ head(bt, 6)
   and scores the result; use this one directly when you want the raw replayed
   quantiles.
 
-Other nowcast diagnostics: 
-\code{\link{nowcast_censor}()},
-\code{\link{nowcast_evaluate_v1}()},
-\code{\link{nowcast_truth}()}
+Other nowcast diagnostics:
+\code{\link[=nowcast_censor]{nowcast_censor()}},
+\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}},
+\code{\link[=nowcast_truth]{nowcast_truth()}}
 }
 \concept{nowcast diagnostics}

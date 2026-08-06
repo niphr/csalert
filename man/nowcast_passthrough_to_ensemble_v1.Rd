@@ -19,13 +19,13 @@ A `csfmt_ensemble_v3` with single-column draw matrices.
 }
 \description{
 Collapse the triangle to the observed (reported-so-far) totals per reference
-week and wrap them as a degenerate single-draw ensemble. An indicator that
-should NOT be nowcast-completed (because reporting is effectively complete, or
-the analyst has chosen not to model the delay) then flows through the SAME
-rate/trend/MEM/collapse pipeline with its observed values unchanged. It emits
-the same `<measure>_nowcasted` columns as the modelling engines -- here equal to
-the observed value -- so all downstream code is identical; the single draw makes
-every collapsed quantile equal the observed point.
+week and wrap them as a degenerate single-draw ensemble. Some indicators
+SHOULD NOT be nowcast-completed, because reporting is effectively complete or
+the analyst chose not to model the delay. Such an indicator then flows through
+the SAME rate/trend/MEM/collapse pipeline, with its observed values unchanged.
+It emits the same `<measure>_nowcasted` columns as the modelling engines, here
+equal to the observed value. All downstream code is therefore identical. The
+single draw makes every collapsed quantile equal the observed point.
 }
 \examples{
 w <- cstime::dates_by_isoyearweek$isoyearweek
@@ -58,11 +58,11 @@ tail(r[, .(
 }
 \seealso{
 \code{vignette("pipeline", package = "csalert")} races this engine
-  against \code{\link{nowcast_quasipoisson_v1}} on the same triangle, which is
-  the clearest way to see what completion buys you over passing the observed
-  counts through unchanged.
+  against \code{\link{nowcast_quasipoisson_v1}} on the same triangle. That is
+  the clearest way to see what completion buys you over the observed counts
+  passed through unchanged.
 
-Other nowcast engines: 
-\code{\link{nowcast_quasipoisson_v1}()}
+Other nowcast engines:
+\code{\link[=nowcast_quasipoisson_v1]{nowcast_quasipoisson_v1()}}
 }
 \concept{nowcast engines}

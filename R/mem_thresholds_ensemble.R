@@ -135,8 +135,9 @@ mem_thresholds_v1 <- function(x, ...) {
 #'   every season (including excluded ones) from its remaining non-excluded prior
 #'   seasons; only the baseline they are fit on changes.
 #' @returns The `csfmt_ensemble_v3` with per-draw MEM intensity columns added to
-#'   `$draws` (the ordinal 1..5 status for `measure` and its threshold levels), so
-#'   the intensity level propagates through the later quantile collapse.
+#'   `$draws`. The added columns are the ordinal 1..5 status for `measure` and its
+#'   threshold levels, so the intensity level propagates through the later
+#'   quantile collapse.
 #' @export
 mem_thresholds_v1.csfmt_ensemble_v3 <- function(
   x,

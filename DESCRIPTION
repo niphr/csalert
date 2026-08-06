@@ -1,6 +1,6 @@
 Package: csalert
 Title: Alerts from Public Health Surveillance Data
-Version: 2026.8.7
+Version: 2026.8.8
 Authors@R: c(
   person(c("Beatriz","Valcarcel"), "Salamanca", email = "beva@fhi.no", role = c("aut")),
   person("Chi", "Zhang", email = "andreachizhang@yahoo.com", role = c("aut"), comment = c(ORCID = "0000-0003-0501-5909")),
@@ -31,7 +31,7 @@ Suggests: testthat,
     glue,
     csmaps,
     mem
-RoxygenNote: 7.3.3
 VignetteBuilder: knitr
 Remotes: niphr/cstidy
 Config/Needs/website: niphr/cstemplate
+Config/roxygen2/version: 8.0.0

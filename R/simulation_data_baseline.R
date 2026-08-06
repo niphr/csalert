@@ -1,4 +1,3 @@
-
 # gen_csfmt_rts_baseline_data <- function(start_date,
 #                                          end_date){
 #
@@ -20,25 +19,29 @@
 #   return(d)
 # }
 
-periodic_pattern <- function(n_p = 2,
-                             g1 = 0.8,
-                             g2 = 0.4,
-                             s = 29,
-                             p = 52*7,
-                             t = 1:nrow(d)){
-
+periodic_pattern <- function(
+  n_p = 2,
+  g1 = 0.8,
+  g2 = 0.4,
+  s = 29,
+  p = 52 * 7,
+  t = 1:nrow(d)
+) {
   d <- NULL
 
-        l <-  1:n_p
+  l <- 1:n_p
 
-        c <- rep(0, length(t))
+  c <- rep(0, length(t))
 
-        for(i in 1:length(t)){
+  for (i in 1:length(t)) {
+    c[i] <- sum(
+      g1 *
+        cos((2 * pi * l * (t[i] + s)) / (p)) +
+        g2 * sin((2 * pi * l * (t[i] + s)) / (p))
+    )
+  }
 
-            c[i] <- sum(g1*cos((2*pi*l*(t[i]+s))/(p))+g2*sin((2*pi*l*(t[i]+s))/(p)))
-        }
-
-        return(c)
+  return(c)
 }
 
 #' Simulate baseline surveillance data
@@ -60,12 +63,12 @@ periodic_pattern <- function(n_p = 2,
 #'
 #' @param weekly_pattern_n Number of weekly patterns. For no specific weekly pattern, weekly_pattern_n = 0. Weekly_pattern_n = 1 represents one weekly peak.
 #'
-#' @param alpha The parameter is used to specify the baseline frequencies of reports
-#' @param beta The parameter is used to specify to specify linear trend
-#' @param gamma_1 The parameter is used to specify the seasonal pattern
-#' @param gamma_2 The parameter is used to specify the seasonal pattern
-#' @param gamma_3 The parameter is used to specify day-of-the week pattern
-#' @param gamma_4 The parameter is used to specify day-of-the week pattern
+#' @param alpha The parameter is used to specify the baseline frequencies of reports.
+#' @param beta The parameter is used to specify to specify linear trend.
+#' @param gamma_1 The parameter is used to specify the seasonal pattern.
+#' @param gamma_2 The parameter is used to specify the seasonal pattern.
+#' @param gamma_3 The parameter is used to specify day-of-the week pattern.
+#' @param gamma_4 The parameter is used to specify day-of-the week pattern.
 #' @param phi Dispersion parameter. If phi =0, a Poisson model is used to simulate baseline data.
 #' @param shift_1 Horizontal shift parameter to help control over week/month peaks.
 #'
@@ -108,20 +111,20 @@ periodic_pattern <- function(n_p = 2,
 #' )
 #' print(baseline[, .(date, wday, mu, n)])
 
-
-simulate_baseline_data <-  function(start_date,
-                                    end_date,
-                                    seasonal_pattern_n,
-                                    weekly_pattern_n,
-                                    alpha,
-                                    beta,
-                                    gamma_1,
-                                    gamma_2,
-                                    gamma_3,
-                                    gamma_4,
-                                    phi,
-                                    shift_1){
-
+simulate_baseline_data <- function(
+  start_date,
+  end_date,
+  seasonal_pattern_n,
+  weekly_pattern_n,
+  alpha,
+  beta,
+  gamma_1,
+  gamma_2,
+  gamma_3,
+  gamma_4,
+  phi,
+  shift_1
+) {
   time <- NULL
   trend <- NULL
   seasonal_pattern <- NULL
@@ -134,65 +137,81 @@ simulate_baseline_data <-  function(start_date,
   end_date <- as.Date(end_date)
 
   d <- cstidy::csfmt_rts_data_v1(data.table(
-        location_code = "norge",
-        date = seq.Date(start_date,end_date,by="day"),
-        age = "total",
-        sex = "total",
-        border = 2020,
-        granularity_time="day"
+    location_code = "norge",
+    date = seq.Date(start_date, end_date, by = "day"),
+    age = "total",
+    sex = "total",
+    border = 2020,
+    granularity_time = "day"
   ))
 
-  d[, time:=1:.N]
-  d[, wday:=lubridate::wday(date)]
+  d[, time := 1:.N]
+  d[, wday := lubridate::wday(date)]
   t <- 1:nrow(d)
-  d[, phi:= phi]
+  d[, phi := phi]
 
-  if (seasonal_pattern_n == 0 & weekly_pattern_n == 0){
-
-            d[, mu := exp(alpha + (beta * time))]
-
+  if (seasonal_pattern_n == 0 & weekly_pattern_n == 0) {
+    d[, mu := exp(alpha + (beta * time))]
   } else {
+    if (seasonal_pattern_n == 0) {
+      wp_n <- weekly_pattern_n
 
-        if (seasonal_pattern_n == 0){
+      d[, trend := alpha + (beta * (time + shift_1))]
+      d[, seasonal_pattern := NA]
+      d[,
+        weekly_pattern := periodic_pattern(
+          wp_n,
+          gamma_3,
+          gamma_4,
+          shift_1,
+          7,
+          time
+        )
+      ]
 
-            wp_n = weekly_pattern_n
+      d[, mu := exp(trend + weekly_pattern)]
+    } else {
+      wp_n <- weekly_pattern_n
+      sp_n <- seasonal_pattern_n
 
-            d[, trend := alpha + (beta * (time + shift_1))]
-            d[, seasonal_pattern := NA]
-            d[, weekly_pattern := periodic_pattern(wp_n, gamma_3,gamma_4, shift_1,7,time)]
+      d[, trend := alpha + (beta * (time + shift_1))]
+      d[,
+        seasonal_pattern := periodic_pattern(
+          sp_n,
+          gamma_1,
+          gamma_2,
+          shift_1,
+          52 * 7,
+          t
+        )
+      ]
+      d[,
+        weekly_pattern := periodic_pattern(
+          wp_n,
+          gamma_3,
+          gamma_4,
+          shift_1,
+          7,
+          t
+        )
+      ]
 
-            d[, mu:= exp(trend + weekly_pattern)]
-
-        } else {
-            wp_n = weekly_pattern_n
-            sp_n = seasonal_pattern_n
-
-            d[, trend := alpha + (beta * (time + shift_1))]
-            d[, seasonal_pattern := periodic_pattern(sp_n,gamma_1,gamma_2,shift_1,52*7,t)]
-            d[, weekly_pattern := periodic_pattern(wp_n, gamma_3,gamma_4, shift_1,7,t)]
-
-            d[, mu:= exp(trend + seasonal_pattern + weekly_pattern)]
-
-            }
-
+      d[, mu := exp(trend + seasonal_pattern + weekly_pattern)]
+    }
   }
-
 
   mu <- d$mu
 
-  if (phi==1) {
-    d[, n := stats::rpois(.N, lambda=mu)]
+  if (phi == 1) {
+    d[, n := stats::rpois(.N, lambda = mu)]
   } else {
-    prob <- 1/phi
-    size <- mu/(phi-1)
-    d[, n := stats::rnbinom(.N,size=size,prob=prob)]
+    prob <- 1 / phi
+    size <- mu / (phi - 1)
+    d[, n := stats::rnbinom(.N, size = size, prob = prob)]
   }
-
 
   return(d)
 }
-
-
 
 
 #' Add seasonal outbreaks to simulated data
@@ -257,14 +276,14 @@ simulate_baseline_data <-  function(start_date,
 #' )
 #' print(d[, .(date, n, seasonal_outbreak, seasonal_outbreak_n)])
 
-
-simulate_seasonal_outbreak_data <-  function(data,
-                                             week_season_start = 40,
-                                             week_season_peak = 4,
-                                             week_season_end = 20,
-                                             n_season_outbreak = 1,
-                                             m=50){
-
+simulate_seasonal_outbreak_data <- function(
+  data,
+  week_season_start = 40,
+  week_season_peak = 4,
+  week_season_end = 20,
+  n_season_outbreak = 1,
+  m = 50
+) {
   mu <- NULL
   phi <- NULL
   weight <- NULL
@@ -279,76 +298,88 @@ simulate_seasonal_outbreak_data <-  function(data,
   d <- copy(data)
   N <- nrow(d)
 
-  d[, sd:= sqrt(mu*phi)]
+  d[, sd := sqrt(mu * phi)]
 
   ## wdays reweight ## should this be part of parameters?
-  d[wday==1, weight:=0.5]
-  d[wday==2, weight:=1]
-  d[wday==3, weight:=1]
-  d[wday==4, weight:=1]
-  d[wday==5, weight:=1]
-  d[wday==6, weight:=2]
-  d[wday==7, weight:=2]
-
+  d[wday == 1, weight := 0.5]
+  d[wday == 2, weight := 1]
+  d[wday == 3, weight := 1]
+  d[wday == 4, weight := 1]
+  d[wday == 5, weight := 1]
+  d[wday == 6, weight := 2]
+  d[wday == 7, weight := 2]
 
   ## select year were there is seasonal outbreak
 
   n_year <- length(unique(d$calyear))
-  years <- sort(unique(d$calyear))[1:(n_year-1)]
+  years <- sort(unique(d$calyear))[1:(n_year - 1)]
 
   # random sampling of numbers of years with seasonal outbreak
-  n_out <- sample(1:length(years),1)
-  years_out <- sort(sample(years,n_out,replace=F))
+  n_out <- sample(1:length(years), 1)
+  years_out <- sort(sample(years, n_out, replace = F))
 
   print(years_out)
 
   d[, seasonal_outbreak := 0]
-  d[, seasonal_outbreak_n:=0]
-  d[, seasonal_outbreak_n_rw:=0]
+  d[, seasonal_outbreak_n := 0]
+  d[, seasonal_outbreak_n_rw := 0]
 
   for (y in years_out) {
-
     # set.seed(y)
 
-    wtime <- c(paste(y,c(week_season_start:52),sep="-"), paste(y+1,stringr::str_pad(c(1:week_season_end),2,pad="0"),sep="-"))
+    wtime <- c(
+      paste(y, c(week_season_start:52), sep = "-"),
+      paste(
+        y + 1,
+        stringr::str_pad(c(1:week_season_end), 2, pad = "0"),
+        sep = "-"
+      )
+    )
     time <- d[isoyearweek %in% wtime]$time
 
     # probability of outbreak start around the peak of seasoanl
-    start_seasonal_outbreak <- sample(time, n_season_outbreak,replace = FALSE,prob=abs(stats::rnorm(length(time))))
+    start_seasonal_outbreak <- sample(
+      time,
+      n_season_outbreak,
+      replace = FALSE,
+      prob = abs(stats::rnorm(length(time)))
+    )
 
     # number of cases for outbreat
-      n_cases_outbreak <- rep(0, n_season_outbreak)
+    n_cases_outbreak <- rep(0, n_season_outbreak)
 
-      size_outbreak <- 1
-      sou=1
+    size_outbreak <- 1
+    sou <- 1
 
-      for (i in 1: n_season_outbreak) {
-          while(size_outbreak < 2){
-            set.seed(sou)
-            sd <- d[time == start_seasonal_outbreak[i]]$sd
-            size_outbreak=stats::rpois(1,sd*m*10)
-            sou=sou+1
-          }
-
-          n_cases_outbreak[i]  <- size_outbreak
-
-
-        # Cases are distributed from the start of outbreak using a log normal distribution
-
-        outbreak <- stats::rlnorm(n_cases_outbreak[i], meanlog = 0, sdlog = 0.5)
-
-        h <- graphics::hist(outbreak,breaks=seq(0,ceiling(max(outbreak)),0.1),plot=FALSE)
-
-        outbreak_n <- h$counts
-        duration <-start_seasonal_outbreak[i]:(start_seasonal_outbreak[i] + length(outbreak_n)-1)
-
-        d[time %in% duration, seasonal_outbreak_n := outbreak_n]
-        d[time %in% duration, seasonal_outbreak_n_rw := outbreak_n * weight]
-        d[time %in% duration, seasonal_outbreak:=1]
-
-
+    for (i in 1:n_season_outbreak) {
+      while (size_outbreak < 2) {
+        set.seed(sou)
+        sd <- d[time == start_seasonal_outbreak[i]]$sd
+        size_outbreak <- stats::rpois(1, sd * m * 10)
+        sou <- sou + 1
       }
 
+      n_cases_outbreak[i] <- size_outbreak
+
+      # Cases are distributed from the start of outbreak using a log normal distribution
+
+      outbreak <- stats::rlnorm(n_cases_outbreak[i], meanlog = 0, sdlog = 0.5)
+
+      h <- graphics::hist(
+        outbreak,
+        breaks = seq(0, ceiling(max(outbreak)), 0.1),
+        plot = FALSE
+      )
+
+      outbreak_n <- h$counts
+      duration <- start_seasonal_outbreak[i]:(start_seasonal_outbreak[i] +
+        length(outbreak_n) -
+        1)
+
+      d[time %in% duration, seasonal_outbreak_n := outbreak_n]
+      d[time %in% duration, seasonal_outbreak_n_rw := outbreak_n * weight]
+      d[time %in% duration, seasonal_outbreak := 1]
+    }
   }
 
   d[, n := n + seasonal_outbreak_n_rw]
@@ -356,13 +387,13 @@ simulate_seasonal_outbreak_data <-  function(data,
 }
 
 
-
 #' Add spiked outbreaks to simulated data
 #'
 #' @description
 #' Adds spiked outbreaks to a simulated baseline time series, following Noufaily
-#' et al. (2019). The method is similar to \code{\link{simulate_seasonal_outbreak_data}},
-#' but the outbreaks are shorter in duration and are added only within the last
+#' et al. (2019). The method is similar to
+#' \code{\link{simulate_seasonal_outbreak_data}}. The outbreaks are shorter in
+#' duration, and are added only within the last
 #' year of data (the prediction period). A spiked outbreak can start at any week
 #' during that period.
 #'
@@ -410,11 +441,7 @@ simulate_seasonal_outbreak_data <-  function(data,
 #' )
 #' print(d[, .(date, n, sp_outbreak, sp_outbreak_n)])
 
-
-simulate_spike_outbreak_data <-  function(data,
-                                          n_sp_outbreak = 1,
-                                          m){
-
+simulate_spike_outbreak_data <- function(data, n_sp_outbreak = 1, m) {
   mu <- NULL
   phi <- NULL
   weight <- NULL
@@ -427,78 +454,71 @@ simulate_spike_outbreak_data <-  function(data,
   d <- copy(data)
 
   N <- nrow(d)
-  d[, sd:= sqrt(mu*phi)]
+  d[, sd := sqrt(mu * phi)]
 
-  d[wday==1, weight:=0.5]
-  d[wday==2, weight:=1]
-  d[wday==3, weight:=1]
-  d[wday==4, weight:=1]
-  d[wday==5, weight:=1]
-  d[wday==6, weight:=2]
-  d[wday==7, weight:=2]
+  d[wday == 1, weight := 0.5]
+  d[wday == 2, weight := 1]
+  d[wday == 3, weight := 1]
+  d[wday == 4, weight := 1]
+  d[wday == 5, weight := 1]
+  d[wday == 6, weight := 2]
+  d[wday == 7, weight := 2]
 
+  wtime <- (nrow(d) - 49 * 7):nrow(d)
 
-    wtime <- (nrow(d) - 49*7) : nrow(d)
+  time <- d[time %in% wtime]$time
 
-    time <- d[time %in% wtime]$time
+  startoutbk <- sample(time, n_sp_outbreak, replace = FALSE)
 
-    startoutbk <- sample(time, n_sp_outbreak,replace = FALSE)
+  # OUTBREAK SIZE OF CASES
 
-    # OUTBREAK SIZE OF CASES
+  n_cases_outbreak <- rep(0, n_sp_outbreak)
+  soutbk <- 1
+  sou <- 1
 
-    n_cases_outbreak=rep(0,n_sp_outbreak)
-    soutbk=1
-    sou=1
+  d[, sp_outbreak_n := 0]
+  d[, sp_outbreak_n_rw := 0]
 
-    d[, sp_outbreak_n:=0]
-    d[, sp_outbreak_n_rw:=0]
-
-    for (i in 1:n_sp_outbreak) {
-
-        while(soutbk<2){
-          set.seed(sou)
-          sd <- d[time == startoutbk[i]]$sd
-          soutbk=stats::rpois(1,sd*m*10)
-          sou=sou+1
-        }
-
-        n_cases_outbreak[i]=soutbk
-
-
-        # Cases are distributed from the start of outbreak using a log normal distribution
-        outbreak <-stats::rlnorm(n_cases_outbreak[i], meanlog = 0, sdlog = 0.5)
-        h <- graphics::hist(outbreak,breaks=seq(0,ceiling(max(outbreak)),0.2),plot=FALSE)
-        outbreak_n <- h$counts
-        duration <-startoutbk[i]:(startoutbk[i]+length(outbreak_n)-1)
-
-        d[time %in% duration, sp_outbreak_n := outbreak_n]
-        d[time %in% duration, sp_outbreak_n_rw := outbreak_n * weight]
-        d[time %in% duration, sp_outbreak:=2]
-
-
+  for (i in 1:n_sp_outbreak) {
+    while (soutbk < 2) {
+      set.seed(sou)
+      sd <- d[time == startoutbk[i]]$sd
+      soutbk <- stats::rpois(1, sd * m * 10)
+      sou <- sou + 1
     }
 
-    d[is.na(sp_outbreak), sp_outbreak:=0]
-    d[is.na(sp_outbreak_n), sp_outbreak_n:=0]
-    d[is.na(sp_outbreak_n_rw), sp_outbreak_n_rw:=0]
+    n_cases_outbreak[i] <- soutbk
 
+    # Cases are distributed from the start of outbreak using a log normal distribution
+    outbreak <- stats::rlnorm(n_cases_outbreak[i], meanlog = 0, sdlog = 0.5)
+    h <- graphics::hist(
+      outbreak,
+      breaks = seq(0, ceiling(max(outbreak)), 0.2),
+      plot = FALSE
+    )
+    outbreak_n <- h$counts
+    duration <- startoutbk[i]:(startoutbk[i] + length(outbreak_n) - 1)
 
+    d[time %in% duration, sp_outbreak_n := outbreak_n]
+    d[time %in% duration, sp_outbreak_n_rw := outbreak_n * weight]
+    d[time %in% duration, sp_outbreak := 2]
+  }
 
-    d[, n := n + sp_outbreak_n]
+  d[is.na(sp_outbreak), sp_outbreak := 0]
+  d[is.na(sp_outbreak_n), sp_outbreak_n := 0]
+  d[is.na(sp_outbreak_n_rw), sp_outbreak_n_rw := 0]
 
+  d[, n := n + sp_outbreak_n]
 
-    return(d)
+  return(d)
 }
-
-
 
 
 #' Apply a public holiday effect to simulated data
 #'
 #' @description
-#' Multiplies the daily counts on public holidays by a fixed factor, so that
-#' simulated data can reflect the effect of holidays on a time series of daily
-#' counts.
+#' Multiplies the daily counts on public holidays by a fixed factor. Simulated
+#' data can then reflect the effect of holidays on a time series of daily counts.
 #'
 #' @param data
 #' A \code{csfmt_rts_data_v1} data object, typically the output of
@@ -541,11 +561,7 @@ simulate_spike_outbreak_data <-  function(data,
 #' d <- add_holiday_effect(baseline, holiday_data = holidays, holiday_effect = 2)
 #' print(d[holiday == TRUE, .(date, n, holiday)])
 
-
-add_holiday_effect <-  function(data,
-                                holiday_data,
-                                holiday_effect = 2){
-
+add_holiday_effect <- function(data, holiday_data, holiday_effect = 2) {
   holiday <- NULL
   is_holiday <- NULL
   n <- NULL
@@ -555,18 +571,14 @@ add_holiday_effect <-  function(data,
 
   d[
     holiday_data,
-    on=c("date"),
+    on = c("date"),
     holiday := is_holiday
   ]
 
-  d[holiday==T, n:= n*holiday_effect]
-
+  d[holiday == T, n := n * holiday_effect]
 
   return(d)
 }
-
-
-
 
 # run_simulation <- function(start_date,
 #                            end_date,

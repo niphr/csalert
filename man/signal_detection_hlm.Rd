@@ -30,36 +30,42 @@ signal_detection_hlm(x, ...)
 
 \item{...}{Not in use.}
 
-\item{value}{Character of name of value}
+\item{value}{Character of name of value.}
 
 \item{baseline_isoyears}{Years of history used for the baseline.}
 
-\item{remove_last_isoyearweeks}{Number of isoyearweeks you want to remove at the end (due to unreliable data)}
+\item{remove_last_isoyearweeks}{Number of isoyearweeks you want to remove at the end (due to unreliable data).}
 
-\item{forecast_isoyearweeks}{Number of isoyearweeks you want to forecast into the future}
+\item{forecast_isoyearweeks}{Number of isoyearweeks you want to forecast into the future.}
 
-\item{value_naming_prefix}{"from_numerator", "generic", or a custom prefix}
+\item{value_naming_prefix}{"from_numerator", "generic", or a custom prefix.}
 
 \item{remove_training_data}{Boolean. If TRUE, removes the training data (i.e. the early weeks that have no baseline) from the returned dataset.}
 
 \item{measure}{The `$draws` measure to detect signals on.}
 }
 \value{
-The original csfmt_rts_data_v1 dataset with extra columns. \code{*_status} is a factor with levels c("training", "forecast", "null", "high") flagging weeks above the baseline, \code{*_forecasted*} holds the observed value (or the baseline median for forecast weeks), and \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and upper (99.5\%) baseline prediction interval.
+The original csfmt_rts_data_v1 dataset with extra columns.
+  \code{*_status} is a factor with levels c("training", "forecast", "null",
+  "high"), flagging weeks above the baseline. \code{*_forecasted*} holds the
+  observed value, or the baseline median for forecast weeks.
+  \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and
+  upper (99.5\%) baseline prediction interval.
 
 The `csfmt_rts_data_v3` method always errors: see the section below.
 
 The `csfmt_ensemble_v3` with a per-draw exceedance column added to
-  `$draws` for `measure` (1 where the draw exceeds its HLM baseline threshold,
-  else 0), so the exceedance probability falls out of the quantile collapse.
-  Weeks without a full baseline are NA.
+  `$draws` for `measure`. The column is 1 where the draw exceeds its HLM
+  baseline threshold and 0 otherwise, so the exceedance probability falls out
+  of the quantile collapse. Weeks without a full baseline are NA.
 }
 \description{
 Flags weeks where the observed value is unusually high compared with a baseline
 built from the same weeks in previous years. For each week, a baseline mean and
-standard deviation are computed from the surrounding weeks
-(\code{week - 1}, \code{week}, \code{week + 1}) in each of the previous
-\code{baseline_isoyears} years. A week is flagged as \code{"high"} when its
+standard deviation are computed from the surrounding weeks in each of the
+previous \code{baseline_isoyears} years. The surrounding weeks are
+\code{week - 1}, \code{week} and \code{week + 1}.
+A week is flagged as \code{"high"} when its
 value exceeds the upper (99.5\%) baseline prediction interval.
 }
 \section{Deprecated (the csfmt_rts_data_v1 method)}{
@@ -71,7 +77,7 @@ analysis substrate: every stage takes the ensemble and returns the ensemble,
 and [ens_collapse] is terminal.
 
 It still works and emits no warning, so existing pipelines are undisturbed.
-New work should call `signal_detection_hlm()` on the **ensemble**, before
+New work SHOULD call `signal_detection_hlm()` on the **ensemble**, before
 `ens_collapse()`:
 
 \preformatted{

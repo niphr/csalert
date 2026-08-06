@@ -62,7 +62,7 @@ setdiff(names(r), names(ens$data))
 \code{vignette("pipeline", package = "csalert")}, which collapses a
   nowcast ensemble with this function and plots the resulting band.
 
-Other ensemble operations: 
-\code{\link{ens_add_rate}()}
+Other ensemble operations:
+\code{\link[=ens_add_rate]{ens_add_rate()}}
 }
 \concept{ensemble operations}

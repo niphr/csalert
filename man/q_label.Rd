@@ -38,10 +38,10 @@ q_value(q_label(1))
   naming-grammar section, and every `_qNNxN` column it prints was labelled by
   it.
 
-Other naming grammar functions: 
-\code{\link{csfmt_interpret}()},
-\code{\link{csfmt_parse}()},
-\code{\link{csfmt_var}()},
-\code{\link{q_value}()}
+Other naming grammar functions:
+\code{\link[=csfmt_interpret]{csfmt_interpret()}},
+\code{\link[=csfmt_parse]{csfmt_parse()}},
+\code{\link[=csfmt_var]{csfmt_var()}},
+\code{\link[=q_value]{q_value()}}
 }
 \concept{naming grammar functions}

@@ -1,6 +1,6 @@
 # nowcast_evaluate_v1: replay nowcast method(s) over a triangle and score each on
 # interval coverage + point-estimate revision, in ONE per-horizon table. Pass one
-# method or a named list; a shared seed pairs them (common random numbers).
+# method or a named list; a shared seed pairs them by as-of week.
 #
 # For each forecast (a reference week at a given horizon), joined to its settled
 # truth, we read off two scale-free things:
@@ -98,17 +98,22 @@
 #' Evaluate nowcast method(s): interval coverage + point-estimate revision
 #'
 #' Replays each method over the triangle (backtest) and scores it on interval
-#' coverage (are the intervals honest?) + point-estimate revision (how much will
-#' the number still move?), stacked into one per-horizon table with a `method`
-#' column. Pass a single method or a named list; a shared `seed` pairs them (common
-#' random numbers) so a head-to-head is apples-to-apples. Coverage is read straight
-#' off the interval quantiles, so this needs no `scoringutils`.
+#' coverage and point-estimate revision. Coverage asks whether the intervals are
+#' honest; revision asks how much the number will still move. The scores are
+#' stacked into one per-horizon table with a `method`
+#' column. Pass a single method or a named list. Every method replays the same
+#' as-of weeks from the same starting RNG state, so the comparison is paired.
+#' Coverage is read straight off the interval quantiles, so this needs no
+#' `scoringutils`.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param methods A method `f(triangle) -> csfmt_ensemble_v3`, or a NAMED list of
 #'   them (each with its parameters baked in, e.g. via a closure).
 #' @param max_delay Delay horizon in weeks.
-#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest]. `seed` is
-#'   shared across methods, so the comparison is paired.
+#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest]. Every
+#'   method gets the same `seed`, so each one starts from the same RNG state on
+#'   each as-of week. That pairs the comparison. It does not by itself give
+#'   common random numbers, which would also need the methods to consume
+#'   compatible variates.
 #' @param by Grouping for the evaluation summary (default "horizon").
 #' @param thresholds Absolute-revision cut-offs to report the exceedance
 #'   probability for (default 25\% and 50\%).
@@ -131,7 +136,7 @@
 #' # one method:
 #' nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3),
 #'                     max_delay = 3, horizons = 0:2, seed = 1)
-#' # several methods, paired (common random numbers), stacked with a `method` column:
+#' # several methods, paired by as-of week, stacked with a `method` column:
 #' nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
 #'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
 #' @export

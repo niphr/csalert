@@ -39,10 +39,10 @@ Neither package vignette covers this function. It is the dataset-wide
   form of \code{\link{csfmt_parse}}, and is what
   \code{\link{compare_results}} uses to find the value columns it should diff.
 
-Other naming grammar functions: 
-\code{\link{csfmt_parse}()},
-\code{\link{csfmt_var}()},
-\code{\link{q_label}()},
-\code{\link{q_value}()}
+Other naming grammar functions:
+\code{\link[=csfmt_parse]{csfmt_parse()}},
+\code{\link[=csfmt_var]{csfmt_var()}},
+\code{\link[=q_label]{q_label()}},
+\code{\link[=q_value]{q_value()}}
 }
 \concept{naming grammar functions}

@@ -22,9 +22,8 @@ count \code{n} multiplied by \code{holiday_effect} on flagged holidays, and a
 \code{holiday} column indicating those dates.
 }
 \description{
-Multiplies the daily counts on public holidays by a fixed factor, so that
-simulated data can reflect the effect of holidays on a time series of daily
-counts.
+Multiplies the daily counts on public holidays by a fixed factor. Simulated
+data can then reflect the effect of holidays on a time series of daily counts.
 }
 \examples{
 library(data.table)

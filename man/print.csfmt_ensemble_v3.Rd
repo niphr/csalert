@@ -22,9 +22,9 @@ of the per-measure draw matrices.
 \code{vignette("pipeline", package = "csalert")}, which prints an
   ensemble with this method right after the nowcast step.
 
-Other ensemble format functions: 
-\code{\link{csfmt_ensemble_v3}()},
-\code{\link{set_time_series_id}()},
-\code{\link{validate_ensemble}()}
+Other ensemble format functions:
+\code{\link[=csfmt_ensemble_v3]{csfmt_ensemble_v3()}},
+\code{\link[=set_time_series_id]{set_time_series_id()}},
+\code{\link[=validate_ensemble]{validate_ensemble()}}
 }
 \concept{ensemble format functions}

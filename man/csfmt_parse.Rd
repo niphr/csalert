@@ -32,7 +32,7 @@ csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")$denom
 }
 
 Treat it as reliable for a single-role name such as
-`numerator_nowcasted_q50x0`, and check the result whenever the measure or the
+`numerator_nowcasted_q50x0`. Check the result whenever the measure or the
 denominator itself ends in a role word.
 }
 
@@ -48,10 +48,10 @@ csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")
   \code{vignette("pipeline", package = "csalert")}, whose closing section
   parses a collapsed median column with this function.
 
-Other naming grammar functions: 
-\code{\link{csfmt_interpret}()},
-\code{\link{csfmt_var}()},
-\code{\link{q_label}()},
-\code{\link{q_value}()}
+Other naming grammar functions:
+\code{\link[=csfmt_interpret]{csfmt_interpret()}},
+\code{\link[=csfmt_var]{csfmt_var()}},
+\code{\link[=q_label]{q_label()}},
+\code{\link[=q_value]{q_value()}}
 }
 \concept{naming grammar functions}

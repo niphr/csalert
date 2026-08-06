@@ -21,7 +21,7 @@
 #' @returns List of matrices: `beta0`, `beta1`, `se`.
 #' @seealso Neither package vignette covers this function. It is the numeric
 #'   kernel behind the ensemble method of \code{\link{short_term_trend}}, which
-#'   is the function you normally want; use this one when you have a bare
+#'   is the function you normally want. Use this one when you have a bare
 #'   weeks x draws matrix and no ensemble.
 #' @examples
 #' # 10 weeks x 4 draws, all rising at a true slope of 2 per week
@@ -73,15 +73,16 @@ rolling_slope_matrix <- function(Y, width) {
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
 #' @param propagate_slope_error Logical. If `TRUE`, add the OLS slope's own
-#'   sampling error to each draw (`beta1 + se * t_(width-2)`) before forming the
-#'   growth rate, so the trend interval reflects the uncertainty of the slope
-#'   estimate and not only the uncertainty of the level. Defaults to `FALSE`,
-#'   which keeps the published numbers unchanged. Note the degrees of freedom
-#'   are `trend_isoyearweeks - 2`: at the default width of 3 that is 1, a Cauchy,
-#'   so widen the window before enabling this.
+#'   sampling error to each draw (`beta1 + se * t_(width-2)`) before the growth
+#'   rate is formed. The trend interval then reflects the uncertainty of the
+#'   slope estimate, and not only the uncertainty of the level. Defaults to
+#'   `FALSE`, which keeps the published numbers unchanged. Note the degrees of
+#'   freedom are `trend_isoyearweeks - 2`. At the default width of 3 that is 1, a
+#'   Cauchy, so widen the window before you enable this.
 #' @param n_sim Integer. Draw-axis width used for the slope-error perturbation
-#'   when the incoming ensemble is degenerate (a single passthrough draw, which
-#'   has no draw axis to carry the uncertainty). Ignored when the ensemble
+#'   when the incoming ensemble is degenerate. A degenerate ensemble holds a
+#'   single passthrough draw, so it has no draw axis to carry the uncertainty.
+#'   Ignored when the ensemble
 #'   already has draws, and when `propagate_slope_error` is `FALSE`.
 #' @returns The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
 #'   to `$draws` for `measure` (the rolling slope/level and a P(increasing)),

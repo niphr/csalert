@@ -24,9 +24,10 @@ gen_data_signal_detection_hlm <- function(seed = 4) {
 #' @description
 #' Flags weeks where the observed value is unusually high compared with a baseline
 #' built from the same weeks in previous years. For each week, a baseline mean and
-#' standard deviation are computed from the surrounding weeks
-#' (\code{week - 1}, \code{week}, \code{week + 1}) in each of the previous
-#' \code{baseline_isoyears} years. A week is flagged as \code{"high"} when its
+#' standard deviation are computed from the surrounding weeks in each of the
+#' previous \code{baseline_isoyears} years. The surrounding weeks are
+#' \code{week - 1}, \code{week} and \code{week + 1}.
+#' A week is flagged as \code{"high"} when its
 #' value exceeds the upper (99.5\%) baseline prediction interval.
 #'
 #' @param x Data object.
@@ -64,7 +65,7 @@ signal_detection_hlm <- function(
 #' and [ens_collapse] is terminal.
 #'
 #' It still works and emits no warning, so existing pipelines are undisturbed.
-#' New work should call `signal_detection_hlm()` on the **ensemble**, before
+#' New work SHOULD call `signal_detection_hlm()` on the **ensemble**, before
 #' `ens_collapse()`:
 #'
 #' \preformatted{
@@ -89,14 +90,19 @@ signal_detection_hlm <- function(
 #' different kind of quantity. See
 #' \code{vignette("pipeline", package = "csalert")}, which runs the ensemble
 #' method as stage 7 of its pipeline.
-#' @param value Character of name of value
-#' @param baseline_isoyears Number of years in the past you want to include as baseline
-#' @param remove_last_isoyearweeks Number of isoyearweeks you want to remove at the end (due to unreliable data)
-#' @param forecast_isoyearweeks Number of isoyearweeks you want to forecast into the future
-#' @param value_naming_prefix "from_numerator", "generic", or a custom prefix
+#' @param value Character of name of value.
+#' @param baseline_isoyears Number of years in the past you want to include as baseline.
+#' @param remove_last_isoyearweeks Number of isoyearweeks you want to remove at the end (due to unreliable data).
+#' @param forecast_isoyearweeks Number of isoyearweeks you want to forecast into the future.
+#' @param value_naming_prefix "from_numerator", "generic", or a custom prefix.
 #' @param remove_training_data Boolean. If TRUE, removes the training data (i.e. the early weeks that have no baseline) from the returned dataset.
 #' @param ... Not in use.
-#' @returns The original csfmt_rts_data_v1 dataset with extra columns. \code{*_status} is a factor with levels c("training", "forecast", "null", "high") flagging weeks above the baseline, \code{*_forecasted*} holds the observed value (or the baseline median for forecast weeks), and \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and upper (99.5\%) baseline prediction interval.
+#' @returns The original csfmt_rts_data_v1 dataset with extra columns.
+#'   \code{*_status} is a factor with levels c("training", "forecast", "null",
+#'   "high"), flagging weeks above the baseline. \code{*_forecasted*} holds the
+#'   observed value, or the baseline median for forecast weeks.
+#'   \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and
+#'   upper (99.5\%) baseline prediction interval.
 #' @examples
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]

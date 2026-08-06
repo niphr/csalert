@@ -93,11 +93,12 @@
 
 #' Nowcast a reporting triangle into an ensemble (quasipoisson reporting regression)
 #'
-#' A discriminative (regression) nowcast engine: for each horizon it
-#' regresses the settled total on the counts reported so far
-#' (`total ~ n[delay 0] + n[delay 1] + ...`, quasipoisson with an identity link
-#' and R's default intercept) and completes the incomplete weeks by simulating
-#' from that fit -- parameter uncertainty plus a dispersion-matched negbin. There
+#' A discriminative (regression) nowcast engine. For each horizon it
+#' regresses the settled total on the counts reported so far:
+#' `total ~ n[delay 0] + n[delay 1] + ...`. The regression is quasipoisson with
+#' an identity link and R's default intercept. It then completes the incomplete
+#' weeks by simulation from that fit: parameter uncertainty plus a
+#' dispersion-matched negbin. There
 #' is no per-week magnitude parameter, so the recent weeks do not each carry their
 #' own noisy level. Whether the intervals it produces are calibrated for YOUR
 #' series is an empirical question; measure it with [nowcast_evaluate_v1]. Shares
@@ -148,9 +149,9 @@ nowcast_quasipoisson_v1 <- function(x, ...) UseMethod("nowcast_quasipoisson_v1")
 #' @param delay_window Train on only settled weeks within roughly this many weeks
 #'   (tracks a drifting regime). Default 26; `NULL` uses all settled weeks.
 #' @returns A `csfmt_ensemble_v3` with one row per reference week and an
-#'   `n_sim`-column draw matrix of the nowcasted total per week (settled weeks
+#'   `n_sim`-column draw matrix of the nowcasted total per week. Settled weeks are
 #'   degenerate at their observed total; incomplete weeks carry the regression's
-#'   parameter + dispersion uncertainty). A second measure is added when
+#'   parameter + dispersion uncertainty. A second measure is added when
 #'   `denominator_col` is given.
 #' @export
 nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3 <- function(

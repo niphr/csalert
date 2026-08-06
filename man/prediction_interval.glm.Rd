@@ -14,23 +14,24 @@
 )
 }
 \arguments{
-\item{object}{Object}
+\item{object}{Object.}
 
-\item{newdata}{New data}
+\item{newdata}{New data.}
 
-\item{alpha}{Two-sided alpha (e.g 0.05)}
+\item{alpha}{Two-sided alpha (e.g 0.05).}
 
-\item{z}{Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05)}
+\item{z}{Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05).}
 
-\item{skewness_transform}{"none", "1/2", "2/3"}
+\item{skewness_transform}{"none", "1/2", "2/3".}
 
-\item{...}{dots}
+\item{...}{dots.}
 }
 \value{
 A `data.table` with one row per row of `newdata` and the columns
-  `lower`, `point` and `upper`, giving the two-sided prediction interval and
-  the point estimate on the response scale. All three columns are `NA_real_`
-  if the underlying `stats::predict` call raises a warning or an error.
+  `lower`, `point` and `upper`. They give the two-sided prediction interval
+  and the point estimate on the response scale. All three columns are
+  `NA_real_` if the underlying `stats::predict` call raises a warning or an
+  error.
 }
 \description{
 Prediction thresholds

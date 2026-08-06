@@ -48,12 +48,12 @@ dim(ens$draws$numerator_nowcasted)
 \code{vignette("pipeline", package = "csalert")} is built on this
   format: its nowcast engine produces one and \code{\link{ens_collapse}}
   reduces it. The vignette never calls this constructor directly, because the
-  engines build the ensemble for you; call it yourself only when you already
+  engines build the ensemble for you. Call it yourself only when you already
   hold draws from somewhere else.
 
-Other ensemble format functions: 
-\code{\link{print.csfmt_ensemble_v3}()},
-\code{\link{set_time_series_id}()},
-\code{\link{validate_ensemble}()}
+Other ensemble format functions:
+\code{\link[=print.csfmt_ensemble_v3]{print.csfmt_ensemble_v3()}},
+\code{\link[=set_time_series_id]{set_time_series_id()}},
+\code{\link[=validate_ensemble]{validate_ensemble()}}
 }
 \concept{ensemble format functions}
