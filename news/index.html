@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.8</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,32 +51,28 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="2026.8.8" id="version-202688">Version 2026.8.8<a class="anchor" aria-label="anchor" href="#version-202688"></a></h2>
+<h2 class="pkg-version" data-toc-text="2026.8.7" id="version-202687">Version 2026.8.7<a class="anchor" aria-label="anchor" href="#version-202687"></a></h2>
 <div class="section level3">
-<h3 id="corrections-2026-8-8">Corrections<a class="anchor" aria-label="anchor" href="#corrections-2026-8-8"></a></h3>
+<h3 id="corrections-2026-8-7">Corrections<a class="anchor" aria-label="anchor" href="#corrections-2026-8-7"></a></h3>
 <ul><li>
 <strong><code><a href="../reference/nowcast_evaluate_v1.html">?nowcast_evaluate_v1</a></code> claimed common random numbers, and the code does not establish them.</strong> Every method starts from the same RNG state on each as-of week, which pairs the comparison. Common random numbers would also need the methods to consume compatible variates, and nothing enforces that. The documentation now states the mechanism and stops there. <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code> already said this. The roxygen contradicted it in three places, including a worked example.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="documentation-2026-8-8">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-8"></a></h3>
-<ul><li>
-<strong>Every prose file in the repository is swept to ASD-STE100 (Simplified Technical English).</strong> The sweep covers the roxygen blocks in <code>R/</code>, both vignettes, <code>README.md</code>, <code>index.md</code> and this file. The sweep changed no claim, number, hedge or scope qualifier, and no executable line. The one claim that did change is under Corrections above.</li>
-<li>
-<strong>Sentences over 25 words: 34 to 0 in roxygen, 80 to 0 in the vignettes.</strong> Counted per authored unit, outside fenced code and outside code-bearing roxygen tags. <code>README.md</code> went 3 to 0, <code>index.md</code> went 1 to 0, and this file went 45 to 0. Long sentences were split, not shortened, so every condition that made one true survives in the sentences that replaced it.</li>
-<li>
-<code>SHOULD</code> and <code>SHOULD NOT</code> are now capitalised in the five places that state an obligation. Three are in <code>R/</code> and two are in <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code>. A lowercase “should” reads as advice and gets treated as optional.</li>
-<li>
-<strong>The deprecation notes are unchanged in substance.</strong> They are on <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code> and <code><a href="../reference/signal_detection_hlm.html">?signal_detection_hlm</a></code>. Both still say the replacement is not a drop-in, that migration is a rewrite of the call site, and that the numbers will not match.</li>
-<li>One roxygen section gained a bulleted list, where three parallel conditions were buried in a single sentence. It is the “What it does NOT check” section on <code><a href="../reference/validate_ensemble.html">?validate_ensemble</a></code>. The three conditions are unchanged.</li>
-<li>31 <code>@param</code> descriptions gained the terminal full stop they were missing. No wording changed. Without it a sentence counter runs straight through the boundary between one field and the next, and reports one very long sentence.</li>
+<h3 id="documentation-2026-8-7">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-7"></a></h3>
+<ul><li><p><strong>Every prose file in the repository is swept to ASD-STE100 (Simplified Technical English).</strong> The sweep covers the roxygen blocks in <code>R/</code>, both vignettes, <code>README.md</code>, <code>index.md</code> and this file. The sweep changed no claim, number, hedge or scope qualifier, and no executable line. The one claim that did change is under Corrections above.</p></li>
+<li><p><strong>Sentences over 25 words: 34 to 0 in roxygen, 80 to 0 in the vignettes.</strong> Counted per authored unit, outside fenced code and outside code-bearing roxygen tags. <code>README.md</code> went 3 to 0, <code>index.md</code> went 1 to 0, and this file went 45 to 0. Long sentences were split, not shortened, so every condition that made one true survives in the sentences that replaced it.</p></li>
+<li><p><code>SHOULD</code> and <code>SHOULD NOT</code> are now capitalised in the five places that state an obligation. Three are in <code>R/</code> and two are in <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code>. A lowercase “should” reads as advice and gets treated as optional.</p></li>
+<li><p><strong>The deprecation notes are unchanged in substance.</strong> They are on <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code> and <code><a href="../reference/signal_detection_hlm.html">?signal_detection_hlm</a></code>. Both still say the replacement is not a drop-in, that migration is a rewrite of the call site, and that the numbers will not match.</p></li>
+<li><p>One roxygen section gained a bulleted list, where three parallel conditions were buried in a single sentence. It is the “What it does NOT check” section on <code><a href="../reference/validate_ensemble.html">?validate_ensemble</a></code>. The three conditions are unchanged.</p></li>
+<li><p>31 <code>@param</code> descriptions gained the terminal full stop they were missing. No wording changed. Without it a sentence counter runs straight through the boundary between one field and the next, and reports one very long sentence.</p></li>
+<li><p><strong>New <code><a href="../articles/csalert.html">vignette("csalert")</a></code>, the get-started page.</strong> It is an orientation and runs no analysis. It covers what the package is for, which of the two generations is current, where the <code>csfmt_rts_data_*</code> classes live, and what cannot be done yet. pkgdown promotes a vignette named after the package to “Get started” in the navbar, which is where the site’s primary call to action now points.</p></li>
+<li><p><strong><code>vignette("nowcasting")</code> is now <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code></strong>, retitled to “The pipeline: from incomplete counts to published numbers”. Its content, numbers and statistical claims are unchanged; the opening paragraphs were rewritten in plainer language. The 23 <code>@seealso</code> cross-references in <code>R/</code> were updated with it, so no help page points at a vignette that no longer exists.</p></li>
+<li><p><strong><code>vignette("short_term_trend")</code> is deleted.</strong> It taught <code>short_term_trend.csfmt_rts_data_v1</code>, which is deprecated, so it was teaching new readers the route they should not take. The only worked example of that method is now the one on <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code>. Its county-map demonstration was not ported.</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="no-behaviour-change-2026-8-8">No behaviour change<a class="anchor" aria-label="anchor" href="#no-behaviour-change-2026-8-8"></a></h3>
+<h3 id="no-behaviour-change-2026-8-7">No behaviour change<a class="anchor" aria-label="anchor" href="#no-behaviour-change-2026-8-7"></a></h3>
 <ul><li>This release changes prose only. No exported function, argument, default or return value moved.</li>
 </ul></div>
-</div>
-    <div class="section level2">
-<h2 class="pkg-version" data-toc-text="2026.8.7" id="version-202687">Version 2026.8.7<a class="anchor" aria-label="anchor" href="#version-202687"></a></h2>
 <div class="section level3">
 <h3 id="bug-fix-2026-8-7">Bug fix<a class="anchor" aria-label="anchor" href="#bug-fix-2026-8-7"></a></h3>
 <ul><li>
@@ -85,15 +81,6 @@
 <li>Both halves are now driven by a new <code>status_roles</code> argument, which defaults to <code>c("status", "hlmstatus")</code>. The roles excluded from <code>$integrity</code> are exactly the roles whose transitions appear in <code>$signal</code>. Pass a different vector to narrow or widen it.</li>
 <li>
 <strong>This changes no legacy path.</strong> <code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> operates on collapsed ensemble output. Its only callers are this package’s tests and the ensemble-first pipelines. Nothing on the pre-ensemble <code>csfmt_rts_data_v1</code> route reaches it.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="documentation-2026-8-7">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-7"></a></h3>
-<ul><li>
-<strong>New <code><a href="../articles/csalert.html">vignette("csalert")</a></code>, the get-started page.</strong> It is an orientation and runs no analysis. It covers what the package is for, which of the two generations is current, where the <code>csfmt_rts_data_*</code> classes live, and what cannot be done yet. pkgdown promotes a vignette named after the package to “Get started” in the navbar, which is where the site’s primary call to action now points.</li>
-<li>
-<strong><code>vignette("nowcasting")</code> is now <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code></strong>, retitled to “The pipeline: from incomplete counts to published numbers”. Its content, numbers and statistical claims are unchanged; the opening paragraphs were rewritten in plainer language. The 23 <code>@seealso</code> cross-references in <code>R/</code> were updated with it, so no help page points at a vignette that no longer exists.</li>
-<li>
-<strong><code>vignette("short_term_trend")</code> is deleted.</strong> It taught <code>short_term_trend.csfmt_rts_data_v1</code>, which is deprecated, so it was teaching new readers the route they should not take. The only worked example of that method is now the one on <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code>. Its county-map demonstration was not ported.</li>
 </ul></div>
 </div>
     <div class="section level2">

@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2026.8.8
+## Version 2026.8.7
 
 ### Corrections
 
@@ -22,38 +22,65 @@
   sweep changed no claim, number, hedge or scope qualifier, and no
   executable line. The one claim that did change is under Corrections
   above.
+
 - **Sentences over 25 words: 34 to 0 in roxygen, 80 to 0 in the
   vignettes.** Counted per authored unit, outside fenced code and
   outside code-bearing roxygen tags. `README.md` went 3 to 0, `index.md`
   went 1 to 0, and this file went 45 to 0. Long sentences were split,
   not shortened, so every condition that made one true survives in the
   sentences that replaced it.
+
 - `SHOULD` and `SHOULD NOT` are now capitalised in the five places that
   state an obligation. Three are in `R/` and two are in
   [`vignette("pipeline")`](https://niphr.github.io/csalert/articles/pipeline.md).
   A lowercase “should” reads as advice and gets treated as optional.
+
 - **The deprecation notes are unchanged in substance.** They are on
   [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
   and
   [`?signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md).
   Both still say the replacement is not a drop-in, that migration is a
   rewrite of the call site, and that the numbers will not match.
+
 - One roxygen section gained a bulleted list, where three parallel
   conditions were buried in a single sentence. It is the “What it does
   NOT check” section on
   [`?validate_ensemble`](https://niphr.github.io/csalert/reference/validate_ensemble.md).
   The three conditions are unchanged.
+
 - 31 `@param` descriptions gained the terminal full stop they were
   missing. No wording changed. Without it a sentence counter runs
   straight through the boundary between one field and the next, and
   reports one very long sentence.
 
+- **New
+  [`vignette("csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
+  the get-started page.** It is an orientation and runs no analysis. It
+  covers what the package is for, which of the two generations is
+  current, where the `csfmt_rts_data_*` classes live, and what cannot be
+  done yet. pkgdown promotes a vignette named after the package to “Get
+  started” in the navbar, which is where the site’s primary call to
+  action now points.
+
+- **`vignette("nowcasting")` is now
+  [`vignette("pipeline")`](https://niphr.github.io/csalert/articles/pipeline.md)**,
+  retitled to “The pipeline: from incomplete counts to published
+  numbers”. Its content, numbers and statistical claims are unchanged;
+  the opening paragraphs were rewritten in plainer language. The 23
+  `@seealso` cross-references in `R/` were updated with it, so no help
+  page points at a vignette that no longer exists.
+
+- **`vignette("short_term_trend")` is deleted.** It taught
+  `short_term_trend.csfmt_rts_data_v1`, which is deprecated, so it was
+  teaching new readers the route they should not take. The only worked
+  example of that method is now the one on
+  [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
+  Its county-map demonstration was not ported.
+
 ### No behaviour change
 
 - This release changes prose only. No exported function, argument,
   default or return value moved.
-
-## Version 2026.8.7
 
 ### Bug fix
 
@@ -79,30 +106,6 @@
   operates on collapsed ensemble output. Its only callers are this
   package’s tests and the ensemble-first pipelines. Nothing on the
   pre-ensemble `csfmt_rts_data_v1` route reaches it.
-
-### Documentation
-
-- **New
-  [`vignette("csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
-  the get-started page.** It is an orientation and runs no analysis. It
-  covers what the package is for, which of the two generations is
-  current, where the `csfmt_rts_data_*` classes live, and what cannot be
-  done yet. pkgdown promotes a vignette named after the package to “Get
-  started” in the navbar, which is where the site’s primary call to
-  action now points.
-- **`vignette("nowcasting")` is now
-  [`vignette("pipeline")`](https://niphr.github.io/csalert/articles/pipeline.md)**,
-  retitled to “The pipeline: from incomplete counts to published
-  numbers”. Its content, numbers and statistical claims are unchanged;
-  the opening paragraphs were rewritten in plainer language. The 23
-  `@seealso` cross-references in `R/` were updated with it, so no help
-  page points at a vignette that no longer exists.
-- **`vignette("short_term_trend")` is deleted.** It taught
-  `short_term_trend.csfmt_rts_data_v1`, which is deprecated, so it was
-  teaching new readers the route they should not take. The only worked
-  example of that method is now the one on
-  [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
-  Its county-map demonstration was not ported.
 
 ## Version 2026.8.6
 
