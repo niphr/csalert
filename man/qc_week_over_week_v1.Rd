@@ -4,7 +4,13 @@
 \alias{qc_week_over_week_v1}
 \title{Week-over-week QC: settled-data integrity (A) + frontier status signal (B)}
 \usage{
-qc_week_over_week_v1(current, previous, max_delay, tol = 1e-06)
+qc_week_over_week_v1(
+  current,
+  previous,
+  max_delay,
+  tol = 1e-06,
+  status_roles = c("status", "hlmstatus")
+)
 }
 \arguments{
 \item{current, previous}{Two runs' collapsed csfmt.}
@@ -12,6 +18,14 @@ qc_week_over_week_v1(current, previous, max_delay, tol = 1e-06)
 \item{max_delay}{Nowcast horizon (weeks); sets the settled/frontier boundary.}
 
 \item{tol}{Tolerance for "unchanged" in the integrity check.}
+
+\item{status_roles}{Naming-grammar roles treated as ORDINAL STATUS rather than
+as continuous medians: excluded from `$integrity`, and the only roles whose
+transitions appear in `$signal`. Defaults to both status-writing roles in the
+package -- `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
+[signal_detection_hlm]. Before this argument existed only `"status"` was
+selected, so HLM alert transitions were silently dropped from `$signal` while
+HLM status columns were wrongly diffed as continuous values in `$integrity`.}
 }
 \value{
 `list(integrity = <A>, signal = <B>)`.
@@ -54,11 +68,10 @@ qc <- qc_week_over_week_v1(cur, prv, max_delay = 3)
 # ideally empty; a row in it means history was rewritten.
 qc$integrity
 
-# Status transitions on the frontier weeks. Empty here because these runs have
-# no status column at all: only mem_thresholds_v1() writes role "status", and
-# it was not run. NOTE signal_detection_hlm() does NOT qualify -- it writes
-# role "hlmstatus", which this check does not select, so HLM transitions never
-# appear here.
+# Status transitions on the frontier weeks. Empty here because these runs
+# carry no status column at all: mem_thresholds_v1() writes role "status" and
+# signal_detection_hlm() writes role "hlmstatus", and neither was run. Both
+# roles are selected by default -- see `status_roles`.
 qc$signal
 }
 \seealso{

@@ -1,3 +1,27 @@
+# Version 2026.8.7
+
+## Bug fix
+
+* **`qc_week_over_week_v1()` silently dropped every HLM alert transition.**
+  `signal_detection_hlm()` writes naming-grammar role `"hlmstatus"`, but the
+  function selected only `role == "status"` for its `$signal` table, so an
+  escalation from normal to high never appeared in the week-over-week review.
+  Demonstrated on a 380-week series: a real transition from 1 to 2 at week
+  2025-14 returned 0 rows before the fix and 1 after. HLM needs roughly five
+  years of history before it produces a status at all, which is why a shorter
+  test series shows nothing.
+* The same filter had a second, opposite half. `$integrity` excluded
+  `role != "status"`, so HLM status CODES were diffed as if they were continuous
+  medians -- an ordinal 1-to-2 step read as a numeric revision.
+* Both halves are now driven by a new `status_roles` argument, defaulting to
+  `c("status", "hlmstatus")`: the roles excluded from `$integrity` are exactly
+  the roles whose transitions appear in `$signal`. Pass a different vector to
+  narrow or widen it.
+* **This changes no legacy path.** `qc_week_over_week_v1()` operates on collapsed
+  ensemble output and its only callers are this package's tests and the
+  ensemble-first pipelines; nothing on the pre-ensemble `csfmt_rts_data_v1` route
+  reaches it.
+
 # Version 2026.8.6
 
 ## Bug fix

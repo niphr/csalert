@@ -40,3 +40,36 @@ test_that("A flags an unexpected revision to a settled week", {
   expect_equal(qc$integrity$isoyearweek, w[2])
   expect_equal(qc$integrity$prv, 11); expect_equal(qc$integrity$cur, 99)
 })
+
+# signal_detection_hlm() writes role "hlmstatus", not "status". qc_week_over_week_v1()
+# used to select only role == "status", so a genuine HLM alert escalation never
+# reached $signal -- and, because the integrity filter was the complement, HLM
+# status codes were diffed in $integrity as if they were continuous medians.
+# Both halves are now driven by `status_roles`, which covers both roles.
+test_that("qc_week_over_week_v1 surfaces hlmstatus transitions, not just status", {
+  long_cols <- function(role, col) {
+    data.table::data.table(
+      indicator_tag = "x", isoyearweek = c("2024-10", "2024-11"),
+      column = col, role = role, q = 0.5, level = NA_character_,
+      prv = c(1, 1), cur = c(1, 2)
+    )
+  }
+  # drive the filters directly: one status row and one hlmstatus row, each a
+  # frontier transition from 1 to 2
+  fr <- rbind(
+    long_cols("status", "numerator_status_q50x0"),
+    long_cols("hlmstatus", "numerator_hlmstatus_q50x0")
+  )
+  default_roles <- c("status", "hlmstatus")
+  expect_equal(nrow(fr[role %in% default_roles]), 4L)     # both roles selected
+  expect_equal(nrow(fr[role == "status"]), 2L)            # the old behaviour
+  # and the integrity complement must exclude BOTH, not just "status"
+  expect_equal(nrow(fr[is.na(role) | !(role %in% default_roles)]), 0L)
+  expect_equal(nrow(fr[is.na(role) | role != "status"]), 2L)  # the old leak
+
+  # the default is both roles, and it is a real argument
+  expect_equal(
+    eval(formals(qc_week_over_week_v1)$status_roles),
+    c("status", "hlmstatus")
+  )
+})
