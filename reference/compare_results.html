@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,9 +81,10 @@
 anything outside the csfmt structural schema as a value column. Key the two
 runs on schema names such as `location_code` and `indicator_tag`.</p>
 <p>A non-schema identity column is a silent trap. `location` and `indicator` are
-NOT in the schema (`location_code` and `indicator_tag` are), so they are read
-as value columns; their character values are then stacked with the numeric
-measures and `cur`/`prv` come back as character for every row. This function
+NOT in the schema, but `location_code` and `indicator_tag` are. So `location`
+and `indicator` are read as value columns. Their character values are then
+stacked with the numeric measures, and `cur`/`prv` come back as character for
+every row. This function
 still returns a table, so the damage is easy to miss. But
 <code><a href="qc_week_over_week_v1.html">qc_week_over_week_v1</a></code> then evaluates `abs(cur - prv)` on that
 character column and FAILS with

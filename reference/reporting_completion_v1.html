@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,20 +84,21 @@ weeks (drift-aware). `NULL` uses all settled weeks. Ignored for the shape of
 
 
 <dt id="arg-period">period<a class="anchor" aria-label="anchor" href="#arg-period"></a></dt>
-<dd><p>Time stratification of the settled weeks, by the calendar year /
-month of each week's Thursday: `"all"` (one pooled curve, default),
-`"year"`, or `"month"` (one row per period). Use `"year"`/`"month"` to see
-whether completion time is trending up or down.</p></dd>
+<dd><p>Time stratification of the settled weeks, by the calendar year
+or month of each week's Thursday. Choose `"all"` (one pooled curve,
+default), `"year"`, or `"month"` (one row per period). Use `"year"` or
+`"month"` to see whether completion time is trending up or down.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>One row per series (and per period when stratified): identity columns
-  + `period` + `n_settled`, `mean_delay`, `complete_by_md`, and
-  `pct_delay0`..`pct_delay&lt;max_delay-1&gt;` (the pooled % of cases reported by the
-  end of week reference + D – the delay ECDF, no interpolation). `pct_delay0`
+    <p>One row per series, and per period when stratified. The columns are
+  identity columns + `period` + `n_settled`, `mean_delay`, `complete_by_md`,
+  and `pct_delay0`..`pct_delay&lt;max_delay-1&gt;`. Each `pct_delayD` is the pooled
+  % of cases reported by the end of week reference + D – the delay ECDF, no
+  interpolation. `pct_delay0`
   is the reference week itself, NOT the week after. Every one of these is
-  computed AFTER delays `&gt;= max_delay` have been discarded, so they describe
+  computed AFTER delays `&gt;= max_delay` are discarded. They describe
   the cases that arrive within the horizon, not all eventual cases.</p>
     </div>
     <div class="section level2">
@@ -105,7 +106,7 @@ whether completion time is trending up or down.</p></dd>
 
 
 <p>`complete_by_md` is the last cumulative fraction of a total that was itself
-summed over the truncated delay axis, so it equals 1 for every series and every
+summed over the truncated delay axis. So it equals 1 for every series and every
 period, and `pct_delay&lt;max_delay-1&gt;` equals 100. It does NOT measure whether
 reporting continues past `max_delay`. To look for a tail, re-run with a larger
 `max_delay` and compare `mean_delay` and the `pct_delayD` curve.</p>

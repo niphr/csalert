@@ -3,9 +3,10 @@
 Flags weeks where the observed value is unusually high compared with a
 baseline built from the same weeks in previous years. For each week, a
 baseline mean and standard deviation are computed from the surrounding
-weeks (`week - 1`, `week`, `week + 1`) in each of the previous
-`baseline_isoyears` years. A week is flagged as `"high"` when its value
-exceeds the upper (99.5%) baseline prediction interval.
+weeks in each of the previous `baseline_isoyears` years. The surrounding
+weeks are `week - 1`, `week` and `week + 1`. A week is flagged as
+`"high"` when its value exceeds the upper (99.5%) baseline prediction
+interval.
 
 ## Usage
 
@@ -43,7 +44,7 @@ signal_detection_hlm(x, measure, baseline_isoyears = 5, ...)
 
 - value:
 
-  Character of name of value
+  Character of name of value.
 
 - baseline_isoyears:
 
@@ -52,15 +53,15 @@ signal_detection_hlm(x, measure, baseline_isoyears = 5, ...)
 - remove_last_isoyearweeks:
 
   Number of isoyearweeks you want to remove at the end (due to
-  unreliable data)
+  unreliable data).
 
 - forecast_isoyearweeks:
 
-  Number of isoyearweeks you want to forecast into the future
+  Number of isoyearweeks you want to forecast into the future.
 
 - value_naming_prefix:
 
-  "from_numerator", "generic", or a custom prefix
+  "from_numerator", "generic", or a custom prefix.
 
 - remove_training_data:
 
@@ -74,18 +75,19 @@ signal_detection_hlm(x, measure, baseline_isoyears = 5, ...)
 ## Value
 
 The original csfmt_rts_data_v1 dataset with extra columns. `*_status` is
-a factor with levels c("training", "forecast", "null", "high") flagging
-weeks above the baseline, `*_forecasted*` holds the observed value (or
-the baseline median for forecast weeks), and `*_baseline_predinterval_*`
+a factor with levels c("training", "forecast", "null", "high"), flagging
+weeks above the baseline. `*_forecasted*` holds the observed value, or
+the baseline median for forecast weeks. `*_baseline_predinterval_*`
 holds the lower (0.5%), median (50%) and upper (99.5%) baseline
 prediction interval.
 
 The \`csfmt_rts_data_v3\` method always errors: see the section below.
 
 The \`csfmt_ensemble_v3\` with a per-draw exceedance column added to
-\`\$draws\` for \`measure\` (1 where the draw exceeds its HLM baseline
-threshold, else 0), so the exceedance probability falls out of the
-quantile collapse. Weeks without a full baseline are NA.
+\`\$draws\` for \`measure\`. The column is 1 where the draw exceeds its
+HLM baseline threshold and 0 otherwise, so the exceedance probability
+falls out of the quantile collapse. Weeks without a full baseline are
+NA.
 
 ## Deprecated (the csfmt_rts_data_v1 method)
 
@@ -96,7 +98,7 @@ read and wrote a \`cstidy\` table. The current architecture makes
 ensemble and returns the ensemble, and \[ens_collapse\] is terminal.
 
 It still works and emits no warning, so existing pipelines are
-undisturbed. New work should call \`signal_detection_hlm()\` on the
+undisturbed. New work SHOULD call \`signal_detection_hlm()\` on the
 \*\*ensemble\*\*, before \`ens_collapse()\`:
 
     ens <- nowcast_quasipoisson_v1(triangle, max_delay = 5)

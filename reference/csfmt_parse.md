@@ -33,8 +33,8 @@ the package's own rate name it gets the denominator wrong:
     #> "denominator"          # the denominator's own "_nowcasted" was eaten as the role
 
 Treat it as reliable for a single-role name such as
-\`numerator_nowcasted_q50x0\`, and check the result whenever the measure
-or the denominator itself ends in a role word.
+\`numerator_nowcasted_q50x0\`. Check the result whenever the measure or
+the denominator itself ends in a role word.
 
 ## See also
 

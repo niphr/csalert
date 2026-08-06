@@ -9,7 +9,7 @@ against settled truth. See [nowcast_apply_calibration_v1] to use it."><meta prop
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,9 +90,9 @@ the `by` column(s), `quantile_level`, `predicted`.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This is an empirical rescaling, not split conformal: it takes the ordinary
-type-7 quantile of the scaled residuals rather than the conformal order
-statistic, and it summarises both tails with one symmetric distance from the
+    <p>This is an empirical rescaling, not split conformal. It takes the ordinary
+type-7 quantile of the scaled residuals, rather than the conformal order
+statistic. It summarises both tails with one symmetric distance from the
 median. It therefore carries NO finite-sample coverage guarantee. Read
 `coverage_raw` as "what this engine did on these replayed weeks", not as a
 property of the engine.</p>

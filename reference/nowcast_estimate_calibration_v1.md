@@ -34,12 +34,12 @@ A \`nowcast_calibration\`: per-group raw coverage + scale \`factor\`.
 
 ## Details
 
-This is an empirical rescaling, not split conformal: it takes the
-ordinary type-7 quantile of the scaled residuals rather than the
-conformal order statistic, and it summarises both tails with one
-symmetric distance from the median. It therefore carries NO
-finite-sample coverage guarantee. Read \`coverage_raw\` as "what this
-engine did on these replayed weeks", not as a property of the engine.
+This is an empirical rescaling, not split conformal. It takes the
+ordinary type-7 quantile of the scaled residuals, rather than the
+conformal order statistic. It summarises both tails with one symmetric
+distance from the median. It therefore carries NO finite-sample coverage
+guarantee. Read \`coverage_raw\` as "what this engine did on these
+replayed weeks", not as a property of the engine.
 
 ## See also
 

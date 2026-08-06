@@ -37,7 +37,7 @@ observed region).
 ## See also
 
 Neither package vignette covers this function. It is the densification
-step every nowcast engine runs first, so reach for it directly only when
+step every nowcast engine runs first. Reach for it directly only when
 you want the raw reference x delay matrix rather than an ensemble.
 
 Other reporting triangle functions:

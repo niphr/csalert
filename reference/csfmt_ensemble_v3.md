@@ -38,7 +38,7 @@ A \`csfmt_ensemble_v3\`.
 is built on this format: its nowcast engine produces one and
 [`ens_collapse`](https://niphr.github.io/csalert/reference/ens_collapse.md)
 reduces it. The vignette never calls this constructor directly, because
-the engines build the ensemble for you; call it yourself only when you
+the engines build the ensemble for you. Call it yourself only when you
 already hold draws from somewhere else.
 
 Other ensemble format functions:

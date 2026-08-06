@@ -2,8 +2,8 @@
 
 Adds spiked outbreaks to a simulated baseline time series, following
 Noufaily et al. (2019). The method is similar to
-[`simulate_seasonal_outbreak_data`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md),
-but the outbreaks are shorter in duration and are added only within the
+[`simulate_seasonal_outbreak_data`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md).
+The outbreaks are shorter in duration, and are added only within the
 last year of data (the prediction period). A spiked outbreak can start
 at any week during that period.
 

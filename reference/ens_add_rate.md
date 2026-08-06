@@ -1,9 +1,9 @@
 # Add a rate measure to an ensemble
 
-An ensemble operation (\`ens\_\` family): dispatches on the ensemble
+An ensemble operation (\`ens\_\` family). It dispatches on the ensemble
 class, so the class – not a name prefix on the caller – carries the
-"operates on an ensemble" meaning, matching
-\[nowcast_quasipoisson_v1()\] / \[short_term_trend()\].
+"operates on an ensemble" meaning. That matches
+\[nowcast_quasipoisson_v1()\] and \[short_term_trend()\].
 
 ## Usage
 

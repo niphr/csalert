@@ -13,7 +13,7 @@ that `$data` is a data.table and `$draws` a list, that `$data` has the
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,10 +86,11 @@ that `$data` is a data.table and `$draws` a list, that `$data` has the
 
 
 <p>The constructor [csfmt_ensemble_v3] establishes more than this function
-verifies. It does NOT check the sort order, the key, that
-`time_series_internal_id` is a dense 1..n within each series, that
-`time_series_label` is present, or that a draw matrix's rows still correspond
-to the same weeks as `$data`. Only the row COUNT is compared, so permuting the
+verifies. It does NOT check the sort order or the key. It also does NOT check:</p><ul><li><p>that `time_series_internal_id` is a dense 1..n within each series;</p></li>
+<li><p>that `time_series_label` is present;</p></li>
+<li><p>that a draw matrix's rows still correspond to the same weeks as
+    `$data`.</p></li>
+</ul><p>Only the row COUNT is compared, so permuting the
 rows of `$data` or of a draw matrix passes.</p>
 <p>So this is not a safety net for hand-edited objects. If you have edited `$data`
 or `$draws` yourself, rebuild with [csfmt_ensemble_v3] rather than relying on

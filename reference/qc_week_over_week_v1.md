@@ -36,9 +36,9 @@ qc_week_over_week_v1(
   whose transitions appear in \`\$signal\`. Defaults to both
   status-writing roles in the package – \`"status"\` from
   \[mem_thresholds_v1\] and \`"hlmstatus"\` from
-  \[signal_detection_hlm\]. Before this argument existed only
-  \`"status"\` was selected, so HLM alert transitions were silently
-  dropped from \`\$signal\` while HLM status columns were wrongly diffed
+  \[signal_detection_hlm\]. Before this argument existed, only
+  \`"status"\` was selected. HLM alert transitions were then silently
+  dropped from \`\$signal\`, and HLM status columns were wrongly diffed
   as continuous values in \`\$integrity\`.
 
 ## Value

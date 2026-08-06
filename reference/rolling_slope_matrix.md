@@ -30,7 +30,7 @@ List of matrices: \`beta0\`, \`beta1\`, \`se\`.
 Neither package vignette covers this function. It is the numeric kernel
 behind the ensemble method of
 [`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md),
-which is the function you normally want; use this one when you have a
+which is the function you normally want. Use this one when you have a
 bare weeks x draws matrix and no ensemble.
 
 ## Examples

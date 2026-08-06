@@ -28,11 +28,11 @@ column. Key the two runs on schema names such as \`location_code\` and
 \`indicator_tag\`.
 
 A non-schema identity column is a silent trap. \`location\` and
-\`indicator\` are NOT in the schema (\`location_code\` and
-\`indicator_tag\` are), so they are read as value columns; their
-character values are then stacked with the numeric measures and
-\`cur\`/\`prv\` come back as character for every row. This function
-still returns a table, so the damage is easy to miss. But
+\`indicator\` are NOT in the schema, but \`location_code\` and
+\`indicator_tag\` are. So \`location\` and \`indicator\` are read as
+value columns. Their character values are then stacked with the numeric
+measures, and \`cur\`/\`prv\` come back as character for every row. This
+function still returns a table, so the damage is easy to miss. But
 [`qc_week_over_week_v1`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
 then evaluates \`abs(cur - prv)\` on that character column and FAILS
 with \`Error in cur - prv : non-numeric argument to binary operator\`.

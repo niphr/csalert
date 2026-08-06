@@ -12,26 +12,26 @@ prediction_interval(object, newdata, alpha = 0.05, z = NULL, ...)
 
 - object:
 
-  Object
+  Object.
 
 - newdata:
 
-  New data
+  New data.
 
 - alpha:
 
-  Two-sided alpha (e.g 0.05)
+  Two-sided alpha (e.g 0.05).
 
 - z:
 
-  Similar to `alpha` (e.g. z=1.96 is the same as alpha=0.05)
+  Similar to `alpha` (e.g. z=1.96 is the same as alpha=0.05).
 
 - ...:
 
-  dots
+  dots.
 
 ## Value
 
 A \`data.table\` with one row per row of \`newdata\` and the columns
-\`lower\`, \`point\` and \`upper\`, giving the two-sided prediction
+\`lower\`, \`point\` and \`upper\`. They give the two-sided prediction
 interval and the point estimate on the response scale.

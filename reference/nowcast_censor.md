@@ -1,8 +1,8 @@
 # Censor a reporting triangle to what was known "as of" a past week
 
 Keeps only cells reported on or before \`as_of\` and rebuilds the
-triangle, so its as-of boundary and delay structure are exactly what an
-engine would have seen at that week. The basis for replay-based
+triangle. Its as-of boundary and delay structure are then exactly what
+an engine would have seen at that week. The basis for replay-based
 backtesting.
 
 ## Usage

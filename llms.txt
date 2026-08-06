@@ -6,7 +6,7 @@ Features
 
 Late reports make the newest weeks look lower than they will end up. An
 engine fills those weeks in and hands back draws rather than a single
-number, so the uncertainty travels onward instead of being thrown away
+number. The uncertainty then travels onward instead of being thrown away
 at the first step.
 
 02

@@ -57,8 +57,8 @@ nowcast_backtest(
 
   Optional integer base seed. Each as-of is seeded as \`seed +
   week-index\`, so a given cell is reproducible regardless of the as-of
-  list order (the nowcast draws for week W depend only on \`seed\` and
-  \`W\`).
+  list order. The nowcast draws for week W depend only on \`seed\` and
+  \`W\`.
 
 ## Value
 

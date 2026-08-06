@@ -50,27 +50,27 @@ simulate_baseline_data(
 
 - alpha:
 
-  The parameter is used to specify the baseline frequencies of reports
+  The parameter is used to specify the baseline frequencies of reports.
 
 - beta:
 
-  The parameter is used to specify to specify linear trend
+  The parameter is used to specify to specify linear trend.
 
 - gamma_1:
 
-  The parameter is used to specify the seasonal pattern
+  The parameter is used to specify the seasonal pattern.
 
 - gamma_2:
 
-  The parameter is used to specify the seasonal pattern
+  The parameter is used to specify the seasonal pattern.
 
 - gamma_3:
 
-  The parameter is used to specify day-of-the week pattern
+  The parameter is used to specify day-of-the week pattern.
 
 - gamma_4:
 
-  The parameter is used to specify day-of-the week pattern
+  The parameter is used to specify day-of-the week pattern.
 
 - phi:
 

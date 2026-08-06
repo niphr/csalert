@@ -25,12 +25,18 @@ validate_ensemble(ens)
 ## What it does NOT check
 
 The constructor \[csfmt_ensemble_v3\] establishes more than this
-function verifies. It does NOT check the sort order, the key, that
-\`time_series_internal_id\` is a dense 1..n within each series, that
-\`time_series_label\` is present, or that a draw matrix's rows still
-correspond to the same weeks as \`\$data\`. Only the row COUNT is
-compared, so permuting the rows of \`\$data\` or of a draw matrix
-passes.
+function verifies. It does NOT check the sort order or the key. It also
+does NOT check:
+
+- that \`time_series_internal_id\` is a dense 1..n within each series;
+
+- that \`time_series_label\` is present;
+
+- that a draw matrix's rows still correspond to the same weeks as
+  \`\$data\`.
+
+Only the row COUNT is compared, so permuting the rows of \`\$data\` or
+of a draw matrix passes.
 
 So this is not a safety net for hand-edited objects. If you have edited
 \`\$data\` or \`\$draws\` yourself, rebuild with \[csfmt_ensemble_v3\]

@@ -1,7 +1,7 @@
 # Apply a public holiday effect to simulated data
 
-Multiplies the daily counts on public holidays by a fixed factor, so
-that simulated data can reflect the effect of holidays on a time series
+Multiplies the daily counts on public holidays by a fixed factor.
+Simulated data can then reflect the effect of holidays on a time series
 of daily counts.
 
 ## Usage

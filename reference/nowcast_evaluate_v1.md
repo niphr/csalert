@@ -1,12 +1,13 @@
 # Evaluate nowcast method(s): interval coverage + point-estimate revision
 
 Replays each method over the triangle (backtest) and scores it on
-interval coverage (are the intervals honest?) + point-estimate revision
-(how much will the number still move?), stacked into one per-horizon
-table with a \`method\` column. Pass a single method or a named list; a
-shared \`seed\` pairs them (common random numbers) so a head-to-head is
-apples-to-apples. Coverage is read straight off the interval quantiles,
-so this needs no \`scoringutils\`.
+interval coverage and point-estimate revision. Coverage asks whether the
+intervals are honest; revision asks how much the number will still move.
+The scores are stacked into one per-horizon table with a \`method\`
+column. Pass a single method or a named list. Every method replays the
+same as-of weeks from the same starting RNG state, so the comparison is
+paired. Coverage is read straight off the interval quantiles, so this
+needs no \`scoringutils\`.
 
 ## Usage
 
@@ -41,8 +42,11 @@ nowcast_evaluate_v1(
 
 - as_of_weeks, horizons, probs, seed:
 
-  Passed to \[nowcast_backtest\]. \`seed\` is shared across methods, so
-  the comparison is paired.
+  Passed to \[nowcast_backtest\]. Every method gets the same \`seed\`,
+  so each one starts from the same RNG state on each as-of week. That
+  pairs the comparison. It does not by itself give common random
+  numbers, which would also need the methods to consume compatible
+  variates.
 
 - by:
 
@@ -95,7 +99,7 @@ nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_d
 #> 1:  0.0000       0       0 method
 #> 2: -0.3333       1       0 method
 #> 3: -0.6667       1       1 method
-# several methods, paired (common random numbers), stacked with a `method` column:
+# several methods, paired by as-of week, stacked with a `method` column:
 nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
 #>    horizon     n coverage_50 coverage_90 median_signed median_abs     q05

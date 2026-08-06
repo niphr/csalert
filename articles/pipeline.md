@@ -2,7 +2,7 @@
 
 Surveillance counts arrive late. A case that belongs to week `W` may
 only be reported in week `W`, `W+1`, `W+2`, and so on. So the newest
-weeks always look lower than they will turn out to be, and anything you
+weeks always look lower than they will turn out to be. Anything you
 measure on them — a trend, an intensity level, an alert — inherits that
 dip.
 
@@ -28,7 +28,7 @@ Three shapes carry the run.
 That rule explains the shape of everything below.
 
 > **Every analytical stage takes a `csfmt_ensemble_v3` and returns a
-> `csfmt_ensemble_v3`.**
+> `csfmt_ensemble_v3`**.
 > [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
 > is **terminal**: it reduces the draws to quantiles, and a collapsed
 > table is output, never input.
@@ -45,12 +45,12 @@ So the canonical pipeline is a single chain through the ensemble:
 
 The bracketed stages are optional and order-flexible among themselves;
 each one adds draw columns and hands the ensemble on. What you cannot do
-is collapse and then carry on: a collapsed table holds quantiles, not
-draws, so feeding it back into
+is collapse and then carry on. A collapsed table holds quantiles, not
+draws. Feed it back into
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
-cannot recover a per-draw trend or a P(increasing). That is by design,
-not a gap — the draws are the uncertainty, and the collapse is where you
-spend them.
+and you cannot recover a per-draw trend or a P(increasing). That is by
+design, not a gap — the draws are the uncertainty, and the collapse is
+where you spend them.
 
 The series below is synthetic, and it runs the whole chain:
 
@@ -69,7 +69,7 @@ The series below is synthetic, and it runs the whole chain:
 8.  **Collapse** — quantiles, healed into
     [`cstidy::csfmt_rts_data_v3`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html).
 
-Stages 4 to 8 are the ensemble chain above. Stages 2 and 3 are not: they
+Stages 4 to 8 are the ensemble chain above. Stages 2 and 3 are not. They
 take the **triangle**, not the ensemble, because they ask about the
 reporting process rather than about the completed counts. Keep that
 split in mind. Anything that asks *how the data arrives* reads the
@@ -86,7 +86,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.8.7
+#> csalert 2026.8.8
 #> https://niphr.github.io/csalert/
 ```
 
@@ -95,9 +95,9 @@ library(csalert)
 Real surveillance data arrives with a delay: a case with reference week
 `W` may only be *reported* in week `W`, `W+1`, `W+2`, and so on. The
 generator below simulates a laboratory indicator from ISO week 2019-35
-to 2024-18 — five winter seasons, which is what stages 6 and 7 need —
-with a **reporting speed-up built in at the start of ISO year 2024**.
-Stage 3 recovers that change from the triangle alone.
+to 2024-18. That span is five winter seasons, which is what stages 6 and
+7 need. It has a **reporting speed-up built in at the start of ISO year
+2024**. Stage 3 recovers that change from the triangle alone.
 
 It emits a **numerator and a denominator**: tests taken, and how many
 were positive. Simulating positives as a binomial *conditional on the
@@ -109,7 +109,7 @@ the same triangle cell.
 [`set.seed()`](https://rdrr.io/r/base/Random.html) is called *inside*
 the generator, not beside it. A seed set outside a function that is
 called more than once leaves the second call running on a different
-stream, and the resulting Monte-Carlo noise reads as signal.
+stream. The resulting Monte-Carlo noise reads as signal.
 
 ``` r
 sim_reports <- function(first_ref = "2019-35",
@@ -194,18 +194,18 @@ max_delay <- 5L
 **Estimand.** For each reference week, the total that will have been
 reported at delays `0 .. max_delay - 1` — that is, by the end of ISO
 week `reference_week + max_delay - 1`. This is a horizon-capped total,
-**not** the eventual total: anything reported later than `max_delay - 1`
-weeks is outside the estimand and no amount of nowcasting recovers it.
+**not** the eventual total. Anything reported later than `max_delay - 1`
+weeks is outside the estimand, and no amount of nowcasting recovers it.
 Stage 3 is how you check that the horizon is wide enough for the
 difference to be small. For a settled week the quantity is already
-observed; for the most recent weeks it is not, and the nowcast is a
+observed. For the most recent weeks it is not, and the nowcast is a
 predictive distribution over it.
 
 [`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
 is a discriminative (regression) engine. For each number of weeks a
-reference week has been observed it fits, on the settled weeks, a
-quasipoisson regression with an identity link of the settled total on
-the counts reported so far:
+reference week has been observed, it fits one regression on the settled
+weeks. That regression is quasipoisson with an identity link, of the
+settled total on the counts reported so far:
 
     total ~ n[delay 0] + n[delay 1] + ... + n[delay h]
 
@@ -213,8 +213,8 @@ R’s default intercept is present in that formula and is fitted. There is
 no per-week magnitude parameter, so the recent weeks do not each carry
 their own noisy level. Draws combine the fit’s parameter uncertainty
 with a dispersion-matched negative binomial. `delay_window` (default 26
-weeks) restricts training to the settled weeks within roughly that span,
-so the partial-to-total mapping can follow a reporting regime that
+weeks) restricts training to the settled weeks within roughly that span.
+The partial-to-total mapping can then follow a reporting regime that
 changes — as this series’ does.
 
 `denominator_col` nowcasts a second measure alongside the numerator, on
@@ -277,23 +277,23 @@ ref_weeks <- q$isoyearweek
 
 ## 2. Validation: replay the method against the past
 
-This stage and the next take the **triangle**, not the ensemble: they
-ask how the data arrives, which is a property of the reporting process
-and is destroyed the moment the delay axis is collapsed into weekly
+This stage and the next take the **triangle**, not the ensemble. They
+ask how the data arrives. That is a property of the reporting process,
+and it is destroyed the moment the delay axis is collapsed into weekly
 totals.
 
-Because the triangle records *when* every count arrived, you can
-reconstruct what was known at any past week and replay the engine
-against it, without keeping a second dated extract.
+The triangle records *when* every count arrived. So you can reconstruct
+what was known at any past week and replay the engine against it,
+without a second dated extract.
 
 That reconstruction is exact only for an **append-only** reporting
 system: one where a count, once filed, keeps its original reporting week
 forever. Real systems also issue retrospective corrections, delete
-records and reclassify cases, and none of those leave a trace in the
-current triangle — a case reclassified last month looks as though it was
-always classified that way. Where such revisions matter, replay
-understates how much the published numbers actually moved, and a dated
-archive of extracts is the only way to measure it.
+records and reclassify cases. None of those leave a trace in the current
+triangle. A case reclassified last month looks as though it was always
+classified that way. Where such revisions matter, replay understates how
+much the published numbers actually moved. A dated archive of extracts
+is the only way to measure it.
 
 [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md)
 does the rewind. It returns a `csfmt_reporting_triangle_v3` with every
@@ -378,14 +378,14 @@ truth. It returns one row per group (default: per horizon) per method:
   a fraction of the truth. `median_signed` is the **median signed
   relative revision** across the replayed forecasts, not a mean, so it
   is not the bias in the usual expected-error sense. `p_gt_25` and
-  `p_gt_50` are **empirical exceedance proportions** — the share of
+  `p_gt_50` are **empirical exceedance proportions**: the share of
   replayed forecasts whose absolute relative revision exceeded 0.25 and
-  0.50 — not probabilities of anything.
+  0.50. They are not probabilities of anything.
 
 Passing a **named list** of methods replays every method over the same
 reference and as-of weeks, so the comparison is paired **by forecast
-unit**. `seed` makes each method’s own run reproducible; it does not by
-itself create common random numbers across methods, which would need the
+unit**. `seed` makes each method’s own run reproducible. It does not by
+itself create common random numbers across methods; that would need the
 algorithms to consume compatible variates. Here it cannot:
 [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
 draws no random numbers at all. Racing against it — it does no
@@ -418,26 +418,28 @@ ev[, .(method, horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
 ```
 
 Read that table as a measurement on **this** sample and no further. Each
-row rests on 26 to 29 scored weeks of one synthetic series, which is far
-too few to characterise either engine: a coverage estimate from 26
+row rests on 26 to 29 scored weeks of one synthetic series. That is far
+too few to characterise either engine. A coverage estimate from 26
 scored weeks has a standard error of roughly 0.06 at 0.9 and 0.10 at
-0.5, before any dependence between overlapping windows is allowed for.
+0.5. That is before any dependence between overlapping windows is
+allowed for.
 
 What the comparison does show is the *shape* of the problem. What
 construction guarantees for the passthrough is only this: each of its
-forecasts is **no greater** than the settled truth, because a count that
-is still arriving cannot exceed its own total. Every individual revision
-is therefore zero or negative. That alone does not force a strictly
-negative *median* at a given horizon — if more than half the weeks were
-already complete, the median would be exactly zero — and it does not
-order the horizons. The negative `median_signed` at all four horizons,
-and horizon 0 being the worst, are findings on this sample, not
-consequences of the construction.
+forecasts is **no greater** than the settled truth. A count that is
+still arriving cannot exceed its own total. Every individual revision is
+therefore zero or negative.
+
+That alone does not force a strictly negative *median* at a given
+horizon. If more than half the weeks were already complete, the median
+would be exactly zero. It also does not order the horizons. The negative
+`median_signed` at all four horizons, and horizon 0 being the worst, are
+findings on this sample, not consequences of the construction.
 
 Its `coverage_50` and `coverage_90` are equal because a single draw
-gives it no interval at all — the “interval” is a point, so it covers
-the truth only when the republished count already equals it, which at
-horizon 3 happens on the weeks where nothing arrived at delay 4.
+gives it no interval at all. The “interval” is a point. It covers the
+truth only when the republished count already equals it. At horizon 3
+that happens on the weeks where nothing arrived at delay 4.
 
 ### The engine’s horizon-0 row is worth stopping on
 
@@ -445,9 +447,9 @@ The quasipoisson engine’s horizon-0 coverage is well below nominal, and
 its `median_signed` is *positive* — it is over-completing. That is not a
 random dip. The replay window above ends at the as-of week, so it
 straddles the reporting speed-up this series has at the start of ISO
-2024, and the engine trains on the 26 preceding settled weeks. Learn the
-completion factors of a slow regime, apply them to partial counts from a
-fast one, and you scale up counts that were already nearly complete.
+2024. The engine trains on the 26 preceding settled weeks. Learn the
+completion factors of a slow regime, then apply them to partial counts
+from a fast one. You scale up counts that were already nearly complete.
 
 The contrast is visible if the replay is restricted to as-of weeks that
 sit entirely inside the slow regime:
@@ -469,12 +471,12 @@ nowcast_evaluate_v1(tri, method_qp, max_delay = max_delay,
 ```
 
 Horizon 0 recovers, and the bias changes sign. Read that as a
-demonstration of the mechanism, not as a measured effect size: the two
+demonstration of the mechanism, not as a measured effect size. The two
 windows also differ in which weeks and which part of the season they
-cover, and 26 to 30 scored weeks cannot separate those from the regime
-change. The general lesson is the one `delay_window` exists for — **a
-nowcast engine is only as current as the reporting behaviour it was
-trained on**, and stage 3 is how you find out when that behaviour moved.
+cover. A sample of 26 to 30 scored weeks cannot separate those from the
+regime change. The general lesson is the one `delay_window` exists for:
+**a nowcast engine is only as current as the reporting behaviour it was
+trained on**. Stage 3 is how you find out when that behaviour moved.
 
 [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
 reports the same per-horizon coverage alongside an interval-scaling
@@ -487,7 +489,7 @@ no finite-sample coverage guarantee.
 ### What `pct_delayD` counts
 
 **`pct_delay0` is the share of a reference week’s cases that were
-reported during that same ISO week.** Delay 0 is the reference week
+reported during that same ISO week**. Delay 0 is the reference week
 itself, not the week after it. In general:
 
 > `pct_delayD` is the pooled share of a reference week’s cases reported
@@ -501,8 +503,9 @@ Each is the delay ECDF read at one delay, with no interpolation.
 cases all arrive at delay 0 has `mean_delay` 0, not 1.
 
 A triangle with a known answer settles it. Below, each reference week
-generates exactly 50 at delay 0, 30 at delay 1 and 20 at delay 2,
-right-truncated at the newest reporting week the way real data is:
+generates exactly 50 at delay 0, 30 at delay 1 and 20 at delay 2. The
+result is right-truncated at the newest reporting week, the way real
+data is:
 
 ``` r
 i <- match("2023-01", weeks)
@@ -528,13 +531,13 @@ arrived in the reference week itself. `pct_delay1` is 80 — cumulative
 through delay 1. `mean_delay` is `0*0.50 + 1*0.30 + 2*0.20 = 0.70`.
 
 **Coming from an older script?** These columns used to be named
-`pct_w1`, `pct_w2`, …, counting weeks-observed from 1, so no number in a
-column name ever equalled the delay it stood for. Your `pct_w1` is now
-`pct_delay0`, `pct_w2` is `pct_delay1`, and so on. The old names are
+`pct_w1`, `pct_w2`, …, which counted weeks-observed from 1. So no number
+in a column name ever equalled the delay it stood for. Your `pct_w1` is
+now `pct_delay0`, `pct_w2` is `pct_delay1`, and so on. The old names are
 gone rather than redefined, so old code errors on a missing column
 instead of quietly returning a different week.
 
-`n_settled` is 28, not 30. Age eligibility is the first filter: a
+`n_settled` is 28, not 30. Age eligibility is the first filter. A
 reference week is eligible once
 `as_of_week - reference_week >= max_delay - 1`, which excludes the two
 most recent of those 30. A second filter then drops any eligible week
@@ -552,8 +555,8 @@ c(age_eligible = sum(age >= max_delay - 1L), reported = completion$n_settled)
 
 They agree only because this series has no zero-count weeks. On an
 indicator with quiet weeks — a rare pathogen, a small stratum —
-`n_settled` will be the smaller of the two, and a period slice with
-fewer than three surviving weeks is dropped from the output entirely.
+`n_settled` will be the smaller of the two. A period slice with fewer
+than three surviving weeks is dropped from the output entirely.
 
 ### A worked reference week
 
@@ -581,14 +584,14 @@ For a case whose reference week is 2023-07:
 | `pct_delay2` | end of ISO week 2023-09 | Sunday 2023-03-05 |
 
 So `pct_delay0` is a statement about the seven days from Monday
-2023-02-13, and `pct_delay1` about the **14** days from that same Monday
-— not the seven days of week 2023-08 on their own. The columns are
+2023-02-13. `pct_delay1` is about the **14** days from that same Monday,
+not the seven days of week 2023-08 on their own. The columns are
 cumulative.
 
 ### Which day of the week you run it on
 
-**The day of the week does not change the delay arithmetic at all.**
-Delay is computed from the two ISO-week labels only, so every day of a
+**The day of the week does not change the delay arithmetic at all**.
+Delay is computed from the two ISO-week labels only. So every day of a
 week carries the same label and lands in the same delay bucket:
 
 ``` r
@@ -611,23 +614,28 @@ Both runs put a report filed that week at delay 0 for reference week
 reads the system clock: the as-of boundary comes from the newest
 reporting week *present in the data*.
 
-That last phrase carries a condition worth stating. `as_of` is
-`max(reporting_week)`, so a Monday and a Friday run see the same
-`as_of = "2023-07"` **only if the Monday extract already contains at
-least one report filed in week 2023-07**. If it contains none — a
-plausible Monday morning on a slow indicator — `as_of` silently falls
-back to `"2023-06"`, every week’s age shifts by one, and one more
-reference week is treated as settled. That is a different analysis, not
-a smaller one, and nothing in the output announces it.
+The phrase *present in the data* carries a condition worth stating.
+`as_of` is `max(reporting_week)`. A Monday run and a Friday run
+therefore agree on `as_of = "2023-07"` under one condition. **The Monday
+extract must already contain at least one report filed in week
+2023-07**.
+
+If it contains none — a plausible Monday morning on a slow indicator —
+`as_of` silently falls back to `"2023-06"`. Every week’s age shifts by
+one, and one more reference week is treated as settled. That is a
+different analysis, not a smaller one, and nothing in the output
+announces it.
 
 What the day *does* change is **how much of the current week’s reporting
-has landed**. On Monday almost none of it has; in this illustration all
-of it is in by Sunday, which assumes the extract is taken after the week
-closes and that the system files everything within the week it belongs
-to. Neither is guaranteed in general. In a Monday extract every cell
-whose reporting week is the current week is still filling — the delay-0
-cell of the current reference week most visibly, but also the delay-1
-cell of last week, the delay-2 cell of the week before, and so on.
+has landed**. On Monday almost none of it has landed. In this
+illustration all of it is in by Sunday. That assumes the extract is
+taken after the week closes, and that the system files everything within
+the week it belongs to. Neither is guaranteed in general.
+
+In a Monday extract every cell whose reporting week is the current week
+is still filling. That is the delay-0 cell of the current reference week
+most visibly. The same holds for the delay-1 cell of last week, the
+delay-2 cell of the week before, and so on.
 
 That matters for the completion table in one narrow place, and it is
 worth being precise about which. Thin the current week’s reports down to
@@ -664,13 +672,13 @@ rbind(
 
 The pooled curve barely moves, and `n_settled` is identical, because the
 current reference week is never in the settled set. For any `max_delay`
-of 2 or more its age is 0, which is below the `max_delay - 1` threshold,
-so it contributes nothing to `pct_delayD` whichever day you run on. (A
+of 2 or more its age is 0, which is below the `max_delay - 1` threshold.
+So it contributes nothing to `pct_delayD` whichever day you run on. (A
 `max_delay` of 1 leaves a single delay bucket, no completion to measure,
-and no useful summary; use 2 or more.)
+and no useful summary; use 2 or more).
 
 At most **one** reference week can have its settled total affected: the
-newest settled one, whose last delay cell — delay `max_delay - 1` — is
+newest settled one. Its last delay cell — delay `max_delay - 1` — is
 still being reported during the current week. Every older week finished
 reporting earlier; every newer week is not settled. Count the weeks that
 actually moved, rather than assuming it is one:
@@ -692,8 +700,8 @@ cmp[truth_sunday != truth_monday]
 
 On this series, none did — and the reason is worth seeing, because it
 bounds the whole effect. The only cell at risk is the delay-4 numerator
-of the newest settled week, and in the fast 2024 regime delay 4 carries
-1% of a week’s tests:
+of the newest settled week. In the fast 2024 regime, delay 4 carries 1%
+of a week’s tests:
 
 ``` r
 newest_settled <- weeks[match(attr(tri, "as_of"), weeks) - (max_delay - 1L)]
@@ -707,26 +715,26 @@ triangle_long[isoyearweek_reference == newest_settled &
 
 Five tests, none of them positive. Thinning zero positives leaves zero,
 so the numerator’s settled total cannot move. **The weekday effect is
-bounded by the mass sitting in the last delay bucket** — widen
+bounded by the mass sitting in the last delay bucket**. Widen
 `max_delay` past where reporting actually finishes and that bucket
-empties, which is why it vanishes here and did not vanish on a series
-with a heavier tail.
+empties. That is why the effect vanishes here, and why it did not vanish
+on a series with a heavier tail.
 
 **None of this generalises, and the two reasons it vanishes here are
-both about scale.** The at-risk cell is one week’s last delay bucket,
-diluted into a pool of 241 settled weeks; and that bucket is nearly
-empty because `max_delay` is wide enough. Shrink the series, shrink the
+both about scale**. The at-risk cell is one week’s last delay bucket,
+diluted into a pool of 241 settled weeks. That bucket is also nearly
+empty, because `max_delay` is wide enough. Shrink the series, shrink the
 horizon, or give the indicator a heavier reporting tail, and the same
-mechanism becomes material — a period slice with the minimum three
+mechanism becomes material. A period slice with the minimum three
 qualifying weeks gives that one cell a third of the weight.
 
-The general statement is the conditional one: a mid-week extract
+The general statement is the conditional one. A mid-week extract
 undercounts the newest settled week’s total by whatever share of its
 last delay bucket has not arrived. That total is what
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
-scores a backtest against, so run the backtest off an end-of-week
-extract, or measure the gap on your own series rather than assuming it
-is as small as it is here.
+scores a backtest against. So run the backtest off an end-of-week
+extract. The alternative is to measure the gap on your own series,
+rather than assuming it is as small as it is here.
 
 ### “As of today”, for the weeks on screen
 
@@ -766,10 +774,11 @@ how you see a reporting system speeding up or slowing down. One pooled
 curve cannot: it averages the regimes together and describes neither.
 
 “Qualifying” is load-bearing. A period slice needs at least three
-settled weeks with a non-zero within-horizon total, or it is dropped
-from the result with no warning and no placeholder row. A year at the
-edge of the series — the one your data starts or ends in — is the usual
-casualty, so a missing year means too few weeks, never zero delay.
+settled weeks with a non-zero within-horizon total. A slice below that
+is dropped from the result, with no warning and no placeholder row. A
+year at the edge of the series — the one your data starts or ends in —
+is the usual casualty. A missing year means too few weeks, never zero
+delay.
 
 ``` r
 reporting_completion_v1(tri, max_delay = max_delay, period = "year")[
@@ -786,14 +795,14 @@ reporting_completion_v1(tri, max_delay = max_delay, period = "year")[
 
 That is the change built into `sim_reports()`, recovered from the
 triangle. Five consecutive ISO years sit within a couple of points of
-each other — `pct_delay0` around 43 to 45, `mean_delay` around 0.95 —
-and then 2024 steps to about 69% and 0.45. A flat run followed by a step
-is what a genuine regime change looks like; a single year out of line
-with its neighbours is usually noise.
+each other — `pct_delay0` around 43 to 45, `mean_delay` around 0.95.
+Then 2024 steps to about 69% and 0.45. A flat run followed by a step is
+what a genuine regime change looks like. A single year out of line with
+its neighbours is usually noise.
 
-The pooled row from the previous table reports `pct_delay0` of 47.3,
-which is close to the five slow years only because they outnumber the
-fast one five to one. It is not a compromise between the regimes; it is
+The pooled row from the previous table reports `pct_delay0` of 47.3.
+That is close to the five slow years only because they outnumber the
+fast one five to one. It is not a compromise between the regimes. It is
 the old regime with a little contamination, and it will drift year by
 year as 2024 accumulates weeks.
 
@@ -907,34 +916,36 @@ per
 #> 3:      month    55                 TRUE               TRUE
 ```
 
-**The diagnostic that does work is the `max_delay` sweep itself.** Read
-the `sens` table above down its rows: `mean_delay` rises from 0.38 at
+**The diagnostic that does work is the `max_delay` sweep itself**. Read
+the `sens` table above down its rows. `mean_delay` rises from 0.38 at
 `max_delay` 2 to 0.88 at 5, then moves only to 0.89 at 8. `pct_delay0`
 falls from 61.8 to 47.3 and then drifts to 46.8. That flattening is what
 *supports* `max_delay <- 5L` here — it is a sensitivity analysis, not a
-proof. A `mean_delay` that kept climbing would be clear evidence the
-tail was still being cut off; a plateau is weaker evidence in the other
+proof.
+
+A `mean_delay` that kept climbing would be clear evidence the tail was
+still being cut off. A plateau is weaker evidence in the other
 direction, because a genuinely sparse tail and a shifting settled-week
 composition both flatten the curve too.
 
 Two cautions on reading that sweep:
 
 - The short horizons are not merely imprecise, they are biased
-  optimistic. `pct_delay0` at `max_delay` 2 reads 61.8% because it is
-  conditioning on the cases that arrived within two weeks — a smaller
-  denominator, so a larger share.
+  optimistic. `pct_delay0` at `max_delay` 2 reads 61.8% because it
+  conditions on the cases that arrived within two weeks. That is a
+  smaller denominator, so a larger share.
 - Not all of the residual movement past 5 is about the tail. `n_settled`
   falls from 244 to 238 across those rows, because a longer horizon
-  settles fewer weeks, and the weeks it drops are the newest — which on
-  this series are the fast-reporting ones. That pulls the pooled
-  `pct_delay0` down slightly on composition alone. Compare rows at equal
-  `n_settled`, or read `period = "year"` instead, before calling a small
-  drift a tail.
+  settles fewer weeks. The weeks it drops are the newest, which on this
+  series are the fast-reporting ones. That pulls the pooled `pct_delay0`
+  down slightly on composition alone. Compare rows at equal `n_settled`,
+  or read `period = "year"` instead, before calling a small drift a
+  tail.
 
-`sim_reports()` emits no delay beyond 4, so on *this* triangle a horizon
-of 5 truncates nothing and the flattening really is exact — but only
+`sim_reports()` emits no delay beyond 4. So on *this* triangle a horizon
+of 5 truncates nothing, and the flattening really is exact — but only
 because we can read the generator. On a real series that check is
-unavailable: widen until `mean_delay` stops moving, then treat the
+unavailable. Widen until `mean_delay` stops moving, then treat the
 remaining tail as bounded by what a still-wider horizon would have
 shown, not as zero.
 
@@ -943,9 +954,9 @@ shown, not as zero.
 From here on every stage takes the ensemble and returns the ensemble.
 
 **Estimand.** The percentage of tests that were positive, per reference
-week — computed **per draw**, so it carries the uncertainty of both the
-numerator and the denominator. Collapsing first and dividing the medians
-would throw that away and give a ratio no draw ever produced.
+week. It is computed **per draw**, so it carries the uncertainty of both
+the numerator and the denominator. Collapsing first and dividing the
+medians would throw that away and give a ratio no draw ever produced.
 
 Because draws are index-aligned across measures (column `j` is the same
 Monte-Carlo world for every measure), the division is element-wise:
@@ -989,10 +1000,11 @@ tail(qr[, .(isoyearweek,
 ```
 
 Two guards are worth knowing about. A denominator of zero gives `NA`,
-not a fabricated 0% that would read as a real drop. And because the
-numerator is a subset of the denominator, the rate is capped at `per`; a
-draw that violated that would warn rather than silently exceed 100%. No
-warning appeared above, so no draw did — but the numerator and
+not a fabricated 0% that would read as a real drop. The numerator is a
+subset of the denominator, so the rate is capped at `per`. A draw that
+violated that cap would warn rather than silently exceed 100%.
+
+No warning appeared above, so no draw did. But the numerator and
 denominator here are nowcast **independently**, and nothing in the
 engine enforces coherence between them. On a series where the two are
 close, expect that warning.
@@ -1006,9 +1018,9 @@ numbers in the window, not an estimate of a latent growth parameter.
 Read per draw, it inherits exactly the uncertainty the nowcast put into
 those six numbers, and no other.
 
-Running the trend on the nowcast rather than on the reported counts is
-the point of the pipeline: the reported counts turn down at the
-right-hand edge simply because the reports have not arrived, and a trend
+Run the trend on the nowcast rather than on the reported counts. That is
+the point of the pipeline. The reported counts turn down at the
+right-hand edge simply because the reports have not arrived. A trend
 fitted to them reports a fall that is an artefact of reporting.
 
 The method returns a slope, a growth rate and the fraction of draws
@@ -1019,7 +1031,7 @@ on that fraction yourself. (The
 method of
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 does return a status factor — a different estimator, discussed at the
-end of this section.)
+end of this section).
 
 The ensemble method fits, independently down every draw column, a
 closed-form OLS straight line through that draw’s last
@@ -1071,12 +1083,13 @@ tail(trend, 10)
 
 The last four rows are the nowcast weeks. Their point estimates are
 negative and their 5-95% bands sit entirely below zero, with
-`p_increasing` at 0 — the series is on the spring side of its winter
+`p_increasing` at 0. The series is on the spring side of its winter
 peak, and the nowcast uncertainty is not wide enough to admit a rise.
+
 Note what that statement is and is not: it says the *completed* rate
 fell over each six-week window, given this nowcast. It does not say the
-fall will continue, and it is conditional on the nowcast being right
-about the four weeks that are still filling — which stage 2 measured as
+fall will continue. It is conditional on the nowcast being right about
+the four weeks that are still filling. Stage 2 measured those weeks as
 the engine’s weakest point.
 
 ### The settled weeks have no interval, and that is the right answer
@@ -1084,9 +1097,10 @@ the engine’s weakest point.
 Look at the rows above the nowcast weeks: `gr_lo` and `gr_hi` equal
 `gr`, and `p_increasing` is exactly 0 or 1. That is not a display
 artefact and it is not a defect. Those windows lie entirely inside the
-settled weeks, where every draw of the numerator and of the denominator
-is the same observed total, so every draw of their ratio is too. The six
-rates are *known*, so their OLS slope is a known number, and the
+settled weeks. There every draw of the numerator and of the denominator
+is the same observed total, so every draw of their ratio is too.
+
+The six rates are *known*, so their OLS slope is a known number, and the
 descriptive estimand has nothing left to be uncertain about.
 `p_increasing` collapses to a **sign indicator** on that one number —
 which is what a share-of-draws becomes when all the draws agree. It is
@@ -1113,14 +1127,14 @@ has an argument that gives the settled weeks an interval. It is worth
 understanding what it actually does, because it is not “adding the
 uncertainty the default forgot”.
 
-`propagate_slope_error = TRUE` perturbs each draw’s slope by `se * t`,
-with `se` the OLS standard error of that window and `t` on
+`propagate_slope_error = TRUE` perturbs each draw’s slope by `se * t`.
+Here `se` is the OLS standard error of that window, and `t` is on
 `trend_isoyearweeks - 2` degrees of freedom. That quantity only means
 something if you stop asking the descriptive question and start asking a
-**model-based** one: *treat the six weekly counts as noisy observations
-around a latent straight line, and report uncertainty about that line’s
-slope.* Switching to that question buys an interval, and commits you to
-three assumptions:
+**model-based** one. The model-based question is this: *treat the six
+weekly counts as noisy observations around a latent straight line, and
+report uncertainty about that line’s slope*. Switching to that question
+buys an interval, and commits you to three assumptions:
 
 1.  the underlying weekly mean is **linear** across the window;
 2.  the deviations are **independent** across weeks;
@@ -1128,11 +1142,11 @@ three assumptions:
 
 None of the three holds for the series in this vignette. `sim_reports()`
 draws tests from a Poisson and positives from a binomial, both with a
-**sinusoidal** mean, so the window mean is curved rather than linear and
-the variance of the rate changes with the level and with the number of
-tests. So the interval below is a model-based perturbation under
-assumptions the data generator violates — informative about the
-sensitivity of the slope, not a valid confidence statement about it.
+**sinusoidal** mean. So the window mean is curved rather than linear,
+and the variance of the rate changes with the level and with the number
+of tests. The interval below is therefore a model-based perturbation,
+under assumptions the data generator violates. It is informative about
+the sensitivity of the slope, not a valid confidence statement about it.
 
 Use the default when you want to describe what the completed series did.
 Reach for this one only when a latent linear trend is genuinely the
@@ -1165,16 +1179,16 @@ c(degenerate_intervals_now = sum(trend2$gr_lo == trend2$gr_hi, na.rm = TRUE))
 #>                        0
 ```
 
-Every row now has an interval, and `p_increasing` moves off 0 and 1 —
-but note what that costs: the settled weeks, whose counts are known
-exactly, are now reported as uncertain. That is the change of estimand
-made visible, not new information.
+Every row now has an interval, and `p_increasing` moves off 0 and 1.
+Note what that costs: the settled weeks, whose counts are known exactly,
+are now reported as uncertain. That is the change of estimand made
+visible, not new information.
 
 One practical trap on top of the assumptions. The degrees of freedom are
 `trend_isoyearweeks - 2`, which is 4 at the width of 6 used here. At the
-function’s own default width of 3 it is 1 — a Cauchy — and the
-growth-rate quantiles then have no finite variance and very heavy tails.
-Widen the window before enabling this.
+function’s own default width of 3 it is 1 — a Cauchy. The growth-rate
+quantiles then have no finite variance and very heavy tails. Widen the
+window before you enable this.
 
 This ensemble method is not the same estimator as
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
@@ -1184,10 +1198,10 @@ That one fits a quasi-Poisson log-link model over a moving window and
 returns a factor status column (`increasing` / `notincreasing`),
 following Benedetti (2019); see
 [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
-The ensemble method here is an OLS slope, chosen because it is a fixed
-linear filter and so can be applied down 500 draw columns at once. **The
-`csfmt_rts_data_v1` method is the pre-ensemble architecture and is
-deprecated**; new work should run
+The ensemble method here is an OLS slope. It was chosen because it is a
+fixed linear filter, and so can be applied down 500 draw columns at
+once. **The `csfmt_rts_data_v1` method is the pre-ensemble architecture
+and is deprecated**. New work SHOULD run
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 on the ensemble, as above, before
 [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md).
@@ -1201,18 +1215,18 @@ ens <- ens_trend
 ## 6. MEM intensity thresholds
 
 **Estimand.** Which of five seasonal intensity levels this week’s rate
-falls in, where the thresholds come from the *same series’ own previous
-seasons* via the Moving Epidemic Method. Classification happens per
+falls in. The thresholds come from the *same series’ own previous
+seasons*, via the Moving Epidemic Method. Classification happens per
 draw, so the answer is a distribution over levels rather than one label.
 
-This is the first stage that needs **history**, and a lot of it:
+This is the first stage that needs **history**, and a lot of it.
 [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
-needs complete prior seasons to fit a season’s thresholds —
-`min_seasons` (default 2) is a hard floor, `prefer_seasons` (default 5)
-is the depth below which a fit is reported as provisional, and a season
-needs `min_weeks_per_season` (default 30) weeks to count as training at
-all. It is the reason this vignette’s series starts in 2019 rather than
-last year.
+needs complete prior seasons to fit a season’s thresholds. `min_seasons`
+(default 2) is a hard floor. `prefer_seasons` (default 5) is the depth
+below which a fit is reported as provisional. A season needs
+`min_weeks_per_season` (default 30) weeks to count as training at all.
+It is the reason this vignette’s series starts in 2019 rather than last
+year.
 
 ``` r
 ens <- mem_thresholds_v1(ens, measure = rate)
@@ -1226,7 +1240,7 @@ tail(ens$data[, .(isoyearweek, mem_n_seasons, mem_preepidemic,
 #> 3:     2024-18             4        17.05336   24.31637   27.181     28.55243
 ```
 
-The **message** is not noise to skip past: it says some seasons were fit
+The **message** is not noise to skip past. It says some seasons were fit
 on fewer than `prefer_seasons` training seasons, and `mem_n_seasons`
 records how many each one actually got. Thresholds fit on two seasons
 are worth much less than thresholds fit on five, and this is where you
@@ -1251,9 +1265,9 @@ tail(intensity, 6)
 #> 6:     2024-18        0.99  0.01      0     0        0
 ```
 
-Weeks whose season has no thresholds — the early seasons, which have no
-prior seasons to learn from — get `NA` for every draw and are not
-classified at all:
+Some weeks belong to a season with no thresholds — the early seasons,
+which have no prior seasons to learn from. Those weeks get `NA` for
+every draw and are not classified at all:
 
 ``` r
 status <- ens$draws[[csfmt_var(rate, role = "status")]]
@@ -1263,7 +1277,7 @@ c(weeks = nrow(status),
 #>                     245                     100
 ```
 
-A real influenza series would also want `exclude_seasons` to keep
+A real influenza series would also want `exclude_seasons`. It keeps
 anomalous seasons — a pandemic year, a season with a data gap — out of
 the training baseline. Thresholds are still estimated *for* an excluded
 season; only the baseline they are fit on changes.
@@ -1273,9 +1287,9 @@ season; only the baseline they are fit on changes.
 **Estimand.** Whether this week’s rate exceeds what the same calendar
 week has looked like in previous years — the historical-limits method.
 The baseline is the mean and standard deviation of the same week (plus
-or minus one) across `baseline_isoyears` prior years, and the threshold
-is its 99.5th percentile. Every draw is compared against that threshold,
-so the output is an exceedance *probability*, not a yes/no flag.
+or minus one) across `baseline_isoyears` prior years. The threshold is
+its 99.5th percentile. Every draw is compared against that threshold, so
+the output is an exceedance *probability*, not a yes/no flag.
 
 The default `baseline_isoyears = 5` needs five full years of history
 before the first week can be classified. This series is shorter than
@@ -1301,7 +1315,7 @@ tail(signal, 6)
 
 `p_high` is the share of draws above the threshold. It is a statement
 about *nowcast* uncertainty — how likely the completed rate exceeds the
-historical limit — and not a p-value, a posterior probability, or a
+historical limit. It is not a p-value, a posterior probability, or a
 false-alarm rate. The baseline itself is estimated from the point
 history with no uncertainty attached, so `hlm_threshold` is treated as
 known.
@@ -1339,10 +1353,10 @@ tail(final[, .(isoyearweek, isoyear, isoweek, season, seasonweek)], 3)
 #> 3:     2024-18    2024      18 2023/2024         36
 ```
 
-**This is where the pipeline ends.** `csfmt_rts_data_v3` is a
+**This is where the pipeline ends**. `csfmt_rts_data_v3` is a
 presentation and storage format: plots, tables, reports. It is not an
-analysis substrate, and there is no route back — the draws are gone, so
-a per-draw trend, a MEM class probability or an exceedance probability
+analysis substrate, and there is no route back. The draws are gone, so a
+per-draw trend, a MEM class probability or an exceedance probability
 computed after this point is not available. Everything that needs draws
 must happen before the collapse, which is why stages 4 to 7 are all
 upstream of it.
@@ -1378,7 +1392,7 @@ csfmt_parse("numerator_nowcasted_q50x0")
 is **not** the inverse of
 [`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md).
 It strips coordinates right to left and matches a role against a fixed
-vocabulary, so it cannot tell which of several role-looking segments was
+vocabulary. So it cannot tell which of several role-looking segments was
 the role. The package’s own rate name is a case where it gets the
 denominator wrong:
 
@@ -1393,16 +1407,16 @@ csfmt_parse(nm)$denom
 The denominator’s own `_nowcasted` was consumed as the role, so
 `"denominator"` comes back instead of `"denominator_nowcasted"`. Treat
 the parse as reliable for single-role names such as
-`numerator_nowcasted_q50x0`, and check the result when a measure or
+`numerator_nowcasted_q50x0`. Check the result when a measure or
 denominator itself ends in a role word.
 
 [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md) and
 [`q_value()`](https://niphr.github.io/csalert/reference/q_value.md) map
-a probability to and from its column label, and are likewise not a clean
-inverse pair:
+a probability to and from its column label. They are likewise not a
+clean inverse pair.
 [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md)
-holds one decimal-percent digit and exactly two integer-percent digits,
-so a finer probability is rounded and `p = 1` produces a three-digit
+holds one decimal-percent digit and exactly two integer-percent digits.
+So a finer probability is rounded, and `p = 1` produces a three-digit
 label that
 [`q_value()`](https://niphr.github.io/csalert/reference/q_value.md)
 cannot read back.
@@ -1420,10 +1434,10 @@ q_value(q_label(1))        # NA: three integer digits do not parse
 
 - Run the chain on several series at once. Every stage above is written
   over the `time_series_id` axis, so a triangle with many locations or
-  age groups flows through unchanged; the seam masking in the trend and
+  age groups flows through unchanged. The seam masking in the trend and
   the per-series MEM fits are already handled.
 - [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
-  substitutes for the engine at stage 1 when an indicator should not be
+  substitutes for the engine at stage 1 when an indicator SHOULD NOT be
   nowcast-completed. Everything downstream is identical, so an indicator
   can opt out of nowcasting without opting out of the pipeline.
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)

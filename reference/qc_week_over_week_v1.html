@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.8</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,9 +87,10 @@
 as continuous medians: excluded from `$integrity`, and the only roles whose
 transitions appear in `$signal`. Defaults to both status-writing roles in the
 package – `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
-[signal_detection_hlm]. Before this argument existed only `"status"` was
-selected, so HLM alert transitions were silently dropped from `$signal` while
-HLM status columns were wrongly diffed as continuous values in `$integrity`.</p></dd>
+[signal_detection_hlm]. Before this argument existed, only `"status"` was
+selected. HLM alert transitions were then silently dropped from `$signal`,
+and HLM status columns were wrongly diffed as continuous values in
+`$integrity`.</p></dd>
 
 </dl></div>
     <div class="section level2">

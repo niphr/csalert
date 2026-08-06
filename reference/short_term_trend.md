@@ -1,10 +1,10 @@
 # Determine the short term trend of a timeseries
 
-Fits a quasi-Poisson regression over a moving window of recent weeks and
+Fits a quasi-Poisson regression over a moving window of recent weeks. It
 classifies the short-term trend of the numerator (optionally per a
-denominator) as increasing or not, together with an estimated doubling
-time. The method is based upon a published analytics strategy by
-Benedetti (2019) \<doi:10.5588/pha.19.0002\>.
+denominator) as increasing or not, and estimates a doubling time. The
+method is based upon a published analytics strategy by Benedetti (2019)
+\<doi:10.5588/pha.19.0002\>.
 
 ## Usage
 
@@ -47,7 +47,7 @@ short_term_trend(
 
 - x:
 
-  Data object
+  Data object.
 
 - ...:
 
@@ -55,11 +55,11 @@ short_term_trend(
 
 - numerator:
 
-  Character of name of numerator
+  Character of name of numerator.
 
 - denominator:
 
-  Character of name of denominator (optional)
+  Character of name of denominator (optional).
 
 - prX:
 
@@ -72,26 +72,26 @@ short_term_trend(
 
 - remove_last_isoyearweeks:
 
-  Same as remove_last_dates, but used if granularity_geo=='isoyearweek'
+  Same as remove_last_dates, but used if granularity_geo=='isoyearweek'.
 
 - forecast_isoyearweeks:
 
-  Same as forecast_dates, but used if granularity_geo=='isoyearweek'
+  Same as forecast_dates, but used if granularity_geo=='isoyearweek'.
 
 - numerator_naming_prefix:
 
-  "from_numerator", "generic", or a custom prefix
+  "from_numerator", "generic", or a custom prefix.
 
 - denominator_naming_prefix:
 
-  "from_denominator", "generic", or a custom prefix
+  "from_denominator", "generic", or a custom prefix.
 
 - statistics_naming_prefix:
 
   "universal" (one variable for trend status, one variable for doubling
   dates), "from_numerator_and_prX" (If denominator is NULL, then one
   variable corresponding to numerator. If denominator exists, then one
-  variable for each of the prXs)
+  variable for each of the prXs).
 
 - remove_training_data:
 
@@ -115,19 +115,21 @@ short_term_trend(
 - propagate_slope_error:
 
   Logical. If \`TRUE\`, add the OLS slope's own sampling error to each
-  draw (\`beta1 + se \* t\_(width-2)\`) before forming the growth rate,
-  so the trend interval reflects the uncertainty of the slope estimate
-  and not only the uncertainty of the level. Defaults to \`FALSE\`,
-  which keeps the published numbers unchanged. Note the degrees of
-  freedom are \`trend_isoyearweeks - 2\`: at the default width of 3 that
-  is 1, a Cauchy, so widen the window before enabling this.
+  draw (\`beta1 + se \* t\_(width-2)\`) before the growth rate is
+  formed. The trend interval then reflects the uncertainty of the slope
+  estimate, and not only the uncertainty of the level. Defaults to
+  \`FALSE\`, which keeps the published numbers unchanged. Note the
+  degrees of freedom are \`trend_isoyearweeks - 2\`. At the default
+  width of 3 that is 1, a Cauchy, so widen the window before you enable
+  this.
 
 - n_sim:
 
   Integer. Draw-axis width used for the slope-error perturbation when
-  the incoming ensemble is degenerate (a single passthrough draw, which
-  has no draw axis to carry the uncertainty). Ignored when the ensemble
-  already has draws, and when \`propagate_slope_error\` is \`FALSE\`.
+  the incoming ensemble is degenerate. A degenerate ensemble holds a
+  single passthrough draw, so it has no draw axis to carry the
+  uncertainty. Ignored when the ensemble already has draws, and when
+  \`propagate_slope_error\` is \`FALSE\`.
 
 ## Value
 
@@ -152,7 +154,7 @@ wrote a \`cstidy\` table. The current architecture makes
 ensemble and returns the ensemble, and \[ens_collapse\] is terminal.
 
 It still works and emits no warning, so existing pipelines are
-undisturbed. New work should call \`short_term_trend()\` on the
+undisturbed. New work SHOULD call \`short_term_trend()\` on the
 \*\*ensemble\*\*, before \`ens_collapse()\`:
 
     ens <- nowcast_quasipoisson_v1(triangle, max_delay = 5)

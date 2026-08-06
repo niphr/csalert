@@ -37,7 +37,7 @@ One rule follows, and it is the most useful thing to know about the
 package:
 
 > **Every analytical stage takes the ensemble and returns the
-> ensemble.**
+> ensemble**.
 > [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
 > is **terminal**. A collapsed table is output, never input.
 

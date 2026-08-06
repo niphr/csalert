@@ -62,9 +62,9 @@ mem_thresholds_v1(
 ## Value
 
 The \`csfmt_ensemble_v3\` with per-draw MEM intensity columns added to
-\`\$draws\` (the ordinal 1..5 status for \`measure\` and its threshold
-levels), so the intensity level propagates through the later quantile
-collapse.
+\`\$draws\`. The added columns are the ordinal 1..5 status for
+\`measure\` and its threshold levels, so the intensity level propagates
+through the later quantile collapse.
 
 ## See also
 
