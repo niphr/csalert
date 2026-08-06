@@ -42,7 +42,7 @@ ens_add_rate(x, numerator, denominator, per = 100, name = NULL, ...)
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs this function as stage 4 of its pipeline, on a numerator and
 denominator that were nowcast together.
 

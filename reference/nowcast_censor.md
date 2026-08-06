@@ -27,7 +27,7 @@ A \`csfmt_reporting_triangle_v3\` censored to \`as_of\`.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 calls this function directly in its validation stage, to rebuild what
 was known as of an earlier week.
 [`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)

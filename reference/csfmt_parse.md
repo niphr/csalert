@@ -39,7 +39,7 @@ or the denominator itself ends in a role word.
 ## See also
 
 \[csfmt_var\] writes these names.
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 whose closing section parses a collapsed median column with this
 function.
 

@@ -64,7 +64,7 @@ added when \`denominator_col\` is given.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs this engine on a synthetic triangle and then scores it.
 
 Other nowcast engines:

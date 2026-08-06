@@ -35,12 +35,12 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/csalert.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
-    <li><a class="dropdown-item" href="articles/short_term_trend.html">Short term trend</a></li>
+<li><a class="dropdown-item" href="articles/pipeline.html">The pipeline: from incomplete counts to published numbers</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -82,7 +82,7 @@
     <div class="cs-rule"></div>
     <p class="cs-lede">Create alerts and detect trends in public-health surveillance data, built on a published analytics strategy (Benedetti, 2019).
 </p>
-    <p class="cs-cta"><a class="cs-btn" href="articles/short_term_trend.html">Get started</a> <a class="cs-btn-link" href="reference/index.html">Browse the reference →</a></p>
+    <p class="cs-cta"><a class="cs-btn" href="articles/csalert.html">Get started</a> <a class="cs-btn-link" href="reference/index.html">Browse the reference →</a></p>
   </div>
   <div class="cs-hero-art"><img src="logo.png" alt="csalert logo"></div>
 </div>
@@ -97,10 +97,10 @@ Features
 01
 </div>
 <h3>
-Short-term trend
+Complete the weeks still arriving
 </h3>
 <p>
-Fit a rolling regression over a configurable window of recent weeks to classify each period as increasing, not increasing, or decreasing, following the Benedetti (2019) analytics strategy.
+Late reports make the newest weeks look lower than they will end up. An engine fills those weeks in and hands back draws rather than a single number, so the uncertainty travels onward instead of being thrown away at the first step.
 </p>
 </div>
 <div class="cs-card">
@@ -108,10 +108,10 @@ Fit a rolling regression over a configurable window of recent weeks to classify 
 02
 </div>
 <h3>
-Baseline detection
+Trend, intensity and alerts, on the draws
 </h3>
 <p>
-Compare current counts against a historical baseline using a hierarchical log-linear model, with forecast values and prediction intervals returned as new columns alongside the original data.
+Recent slope and the probability of increase, five-level MEM intensity, and exceedance of a historical baseline each take the completed draws and return them. Reporting uncertainty reaches the trend and the alert instead of stopping at the nowcast.
 </p>
 </div>
 <div class="cs-card">
@@ -119,10 +119,10 @@ Compare current counts against a historical baseline using a hierarchical log-li
 03
 </div>
 <h3>
-Doubling days
+One table at the end
 </h3>
 <p>
-Both trend functions append a doubling-days column that estimates how many days at the current rate it would take for the count to double, giving an interpretable speed-of-change measure.
+When the analysis is finished, collapse the draws to quantiles. That step is terminal: it yields a tidy <code>csfmt_rts_data_v3</code> for tables, figures and storage, and nothing analytical runs on a collapsed table.
 </p>
 </div>
 </div>

@@ -32,7 +32,7 @@ the package itself uses is on the grid.
 ## See also
 
 \[q_label\] writes these labels.
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 calls this function in its naming-grammar section. It is how generic
 tooling recovers the probability behind a \`\_qNNxN\` column.
 

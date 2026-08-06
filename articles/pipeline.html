@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Nowcasting a reporting triangle: an end-to-end pipeline • csalert</title>
+<title>The pipeline: from incomplete counts to published numbers • csalert</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/Source_Sans_3-0.4.10/font.css" rel="stylesheet">
@@ -13,7 +13,7 @@
 <link href="../deps/Spectral-0.4.10/font.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Nowcasting a reporting triangle: an end-to-end pipeline">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="The pipeline: from incomplete counts to published numbers">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -32,12 +32,12 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../articles/csalert.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
-    <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
+<li><a class="dropdown-item" href="../articles/pipeline.html">The pipeline: from incomplete counts to published numbers</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -75,37 +75,47 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Nowcasting a reporting triangle: an end-to-end pipeline</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>The pipeline: from incomplete counts to published numbers</h1>
                         <h4 data-toc-skip class="author">Richard Aubrey
 White</h4>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/niphr/csalert/blob/main/vignettes/nowcasting.Rmd" class="external-link"><code>vignettes/nowcasting.Rmd</code></a></small>
-      <div class="d-none name"><code>nowcasting.Rmd</code></div>
+      <small class="dont-index">Source: <a href="https://github.com/niphr/csalert/blob/main/vignettes/pipeline.Rmd" class="external-link"><code>vignettes/pipeline.Rmd</code></a></small>
+      <div class="d-none name"><code>pipeline.Rmd</code></div>
     </div>
 
     
     
-<p><code>csalert</code> provides a small, draw-parallel surveillance
-engine built around three S3 formats:</p>
+<p>Surveillance counts arrive late. A case that belongs to week
+<code>W</code> may only be reported in week <code>W</code>,
+<code>W+1</code>, <code>W+2</code>, and so on. So the newest weeks
+always look lower than they will turn out to be, and anything you
+measure on them — a trend, an intensity level, an alert — inherits that
+dip.</p>
+<p>This vignette runs one series through the whole of
+<code>csalert</code>. It fills in the weeks that are still arriving,
+checks how far that filling can be trusted, and ends with numbers you
+could publish.</p>
+<p>Three shapes carry the run.</p>
 <ul>
 <li>
 <strong><code>csfmt_reporting_triangle_v3</code></strong> — the
-reference-week x reporting-week input (who was reported
-<em>when</em>).</li>
+input. One cell per reference week and reporting week, so it records
+what was reported <em>when</em>.</li>
 <li>
-<strong><code>csfmt_ensemble_v3</code></strong> — <code>$data</code>
-plus, per measure, a matrix of Monte-Carlo <code>$draws</code> (rows =
-weeks, columns = simulations). An analysis stage adds columns to the
-draws, so uncertainty propagates without a second pass.</li>
-<li>a <strong>quantile collapse</strong> of those draws (optionally
-<em>healed</em> into <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html" class="external-link">cstidy::csfmt_rts_data_v3</a></code> for the
-usual plots and tables).</li>
+<strong><code>csfmt_ensemble_v3</code></strong> — the working
+format. It holds <code>$data</code>, plus one matrix of Monte-Carlo
+<code>$draws</code> per measure (rows = weeks, columns = simulations).
+Each stage adds columns to the draws, so the uncertainty is carried
+forward rather than recomputed.</li>
+<li>a <strong>quantile collapse</strong> of those draws — the output,
+optionally <em>healed</em> into <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html" class="external-link">cstidy::csfmt_rts_data_v3</a></code>
+for the usual plots and tables.</li>
 </ul>
 <div class="section level2">
-<h2 id="the-ensemble-is-the-analysis-substrate">The ensemble is the analysis substrate<a class="anchor" aria-label="anchor" href="#the-ensemble-is-the-analysis-substrate"></a>
+<h2 id="one-rule-every-stage-takes-the-ensemble-and-returns-it">One rule: every stage takes the ensemble and returns it<a class="anchor" aria-label="anchor" href="#one-rule-every-stage-takes-the-ensemble-and-returns-it"></a>
 </h2>
-<p>One rule explains the shape of everything below.</p>
+<p>That rule explains the shape of everything below.</p>
 <blockquote>
 <p><strong>Every analytical stage takes a <code>csfmt_ensemble_v3</code>
 and returns a <code>csfmt_ensemble_v3</code>.</strong>
@@ -127,11 +137,11 @@ quantiles, not draws, so feeding it back into
 <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> cannot recover a per-draw trend or a
 P(increasing). That is by design, not a gap — the draws are the
 uncertainty, and the collapse is where you spend them.</p>
-<p>This vignette runs one synthetic series through the whole chain:</p>
+<p>The series below is synthetic, and it runs the whole chain:</p>
 <ol style="list-style-type: decimal">
 <li>
-<strong>Nowcast</strong> — complete the right-truncated recent
-weeks.</li>
+<strong>Nowcast</strong> — fill in the recent weeks that are still
+being reported.</li>
 <li>
 <strong>Validation</strong> — replay the method against what was
 known in the past.</li>
@@ -157,9 +167,9 @@ per draw.</li>
 <p>Stages 4 to 8 are the ensemble chain above. Stages 2 and 3 are not:
 they take the <strong>triangle</strong>, not the ensemble, because they
 ask about the reporting process rather than about the completed counts.
-That asymmetry is worth remembering — diagnostics of <em>how data
-arrives</em> read the triangle; analyses of <em>what the data says</em>
-read the ensemble.</p>
+Keep that split in mind. Anything that asks <em>how the data
+arrives</em> reads the triangle; anything that asks <em>what the data
+says</em> reads the ensemble.</p>
 <p>When you set up a <em>new</em> indicator, run stage 3 first: it is
 what supports the choice of <code>max_delay</code> that everything else
 then uses.</p>
@@ -332,7 +342,7 @@ one:</p>
 <span>        <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">show</span><span class="op">$</span><span class="va">numerator_nowcasted_q05x0</span>, <span class="fu"><a href="https://rdrr.io/r/base/rev.html" class="external-link">rev</a></span><span class="op">(</span><span class="va">show</span><span class="op">$</span><span class="va">numerator_nowcasted_q95x0</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>        col <span class="op">=</span> <span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/adjustcolor.html" class="external-link">adjustcolor</a></span><span class="op">(</span><span class="st">"steelblue"</span>, <span class="fl">0.25</span><span class="op">)</span>, border <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">xs</span>, <span class="va">show</span><span class="op">$</span><span class="va">numerator_nowcasted_q50x0</span>, lwd <span class="op">=</span> <span class="fl">2</span>, col <span class="op">=</span> <span class="st">"steelblue4"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="nowcasting_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="pipeline_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="672"></p>
 <p>Keep the reference weeks: the later stages index off them.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">weeks</span>     <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span>
@@ -1216,12 +1226,11 @@ heavy tails. Widen the window before enabling this.</p>
 <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code>. That one fits a quasi-Poisson
 log-link model over a moving window and returns a factor status column
 (<code>increasing</code> / <code>notincreasing</code>), following
-Benedetti (2019); see
-<code><a href="../articles/short_term_trend.html">vignette("short_term_trend", package = "csalert")</a></code>. The
-ensemble method here is an OLS slope, chosen because it is a fixed
-linear filter and so can be applied down 500 draw columns at once.
-<strong>The <code>csfmt_rts_data_v1</code> method is the pre-ensemble
-architecture and is deprecated</strong>; new work should run
+Benedetti (2019); see <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code>. The ensemble
+method here is an OLS slope, chosen because it is a fixed linear filter
+and so can be applied down 500 draw columns at once. <strong>The
+<code>csfmt_rts_data_v1</code> method is the pre-ensemble architecture
+and is deprecated</strong>; new work should run
 <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on the ensemble, as above, before
 <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code>.</p>
 <p>Carry the trend ensemble forward — the chain continues from here:</p>
@@ -1439,9 +1448,12 @@ and month slices into one table with a <code>scope</code> column.</li>
 <code><a href="../reference/nowcast_estimate_calibration_v1.html">nowcast_estimate_calibration_v1()</a></code> turns a long replay
 into a per-horizon interval-width scaling factor, as a diagnostic on an
 engine.</li>
-<li>For the quasi-Poisson trend estimator on <code>cstidy</code> data,
-including the county map example, see
-<code><a href="../articles/short_term_trend.html">vignette("short_term_trend", package = "csalert")</a></code>.</li>
+<li>The <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code> methods of
+<code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code>
+are the older generation and are deprecated. No vignette runs them;
+their help pages carry the only worked examples.
+<code><a href="../articles/csalert.html">vignette("csalert", package = "csalert")</a></code> explains what
+replaced them.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

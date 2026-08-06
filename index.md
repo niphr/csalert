@@ -2,24 +2,26 @@ Features
 
 01
 
-### Short-term trend
+### Complete the weeks still arriving
 
-Fit a rolling regression over a configurable window of recent weeks to
-classify each period as increasing, not increasing, or decreasing,
-following the Benedetti (2019) analytics strategy.
+Late reports make the newest weeks look lower than they will end up. An
+engine fills those weeks in and hands back draws rather than a single
+number, so the uncertainty travels onward instead of being thrown away
+at the first step.
 
 02
 
-### Baseline detection
+### Trend, intensity and alerts, on the draws
 
-Compare current counts against a historical baseline using a
-hierarchical log-linear model, with forecast values and prediction
-intervals returned as new columns alongside the original data.
+Recent slope and the probability of increase, five-level MEM intensity,
+and exceedance of a historical baseline each take the completed draws
+and return them. Reporting uncertainty reaches the trend and the alert
+instead of stopping at the nowcast.
 
 03
 
-### Doubling days
+### One table at the end
 
-Both trend functions append a doubling-days column that estimates how
-many days at the current rate it would take for the count to double,
-giving an interpretable speed-of-change measure.
+When the analysis is finished, collapse the draws to quantiles. That
+step is terminal: it yields a tidy `csfmt_rts_data_v3` for tables,
+figures and storage, and nothing analytical runs on a collapsed table.

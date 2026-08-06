@@ -40,7 +40,7 @@ boundary and column roles stored as attributes).
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which builds a triangle with this constructor and takes it through the
 whole pipeline.
 

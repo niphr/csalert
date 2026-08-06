@@ -35,7 +35,7 @@ month rows. Empty when no series has enough settled data.
 ## See also
 
 Neither package vignette covers this function;
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 runs
 [`reporting_completion_v1`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md),
 which this one wraps.

@@ -31,7 +31,7 @@ on the 0.001 grid and strictly below 1.
 ## See also
 
 \[q_value\] reads these labels back, for \`p \< 1\`.
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 calls this function in its naming-grammar section, and every \`\_qNNxN\`
 column it prints was labelled by it.
 

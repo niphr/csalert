@@ -26,7 +26,7 @@ print(x, ...)
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which prints an ensemble with this method right after the nowcast step.
 
 Other ensemble format functions:

@@ -174,7 +174,7 @@ interface and in output, not only in the class they accept:
 
 Migrating is therefore a rewrite of the call site, and the numbers will
 not match. See
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs the ensemble method as stage 5 of its pipeline.
 
 ## Why there is no csfmt_rts_data_v3 method
@@ -190,12 +190,12 @@ only to say so:
 
 ## See also
 
-[`vignette("short_term_trend", package = "csalert")`](https://niphr.github.io/csalert/articles/short_term_trend.md),
-which runs this function on one location and then on every Norwegian
-county.
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-runs the ensemble method as the final stage of its pipeline, on the
-output of a nowcast.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
+runs the ensemble method as stage 5 of its pipeline, on the output of a
+nowcast. No vignette runs the deprecated \`csfmt_rts_data_v1\` method;
+the example below is its only worked demonstration.
+[`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md)
+explains which of the two generations to use.
 
 ## Examples
 

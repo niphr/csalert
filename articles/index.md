@@ -2,7 +2,7 @@
 
 ### All vignettes
 
-- [Nowcasting a reporting triangle: an end-to-end
-  pipeline](https://niphr.github.io/csalert/articles/nowcasting.md):
-- [Short term
-  trend](https://niphr.github.io/csalert/articles/short_term_trend.md):
+- [Start here: what csalert does and which parts to
+  use](https://niphr.github.io/csalert/articles/csalert.md):
+- [The pipeline: from incomplete counts to published
+  numbers](https://niphr.github.io/csalert/articles/pipeline.md):

@@ -67,7 +67,7 @@ A long data.table: \`reference\`, \`as_of\`, \`horizon\`,
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 runs this function in its validation stage.
 [`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
 wraps it and scores the result; use this one directly when you want the

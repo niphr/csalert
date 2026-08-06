@@ -119,7 +119,7 @@ interface and in output, not only in the class they accept:
 
 Migrating is therefore a rewrite of the call site, and the output is a
 different kind of quantity. See
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs the ensemble method as stage 7 of its pipeline.
 
 ## Why there is no csfmt_rts_data_v3 method
@@ -135,10 +135,12 @@ exists only to say so:
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs the ensemble method as stage 7 of its pipeline. The example
 below is the only worked demonstration of the \`csfmt_rts_data_v1\`
 method, which is deprecated.
+[`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md)
+explains which of the two generations to use.
 
 ## Examples
 

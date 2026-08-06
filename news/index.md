@@ -28,6 +28,30 @@
   package’s tests and the ensemble-first pipelines; nothing on the
   pre-ensemble `csfmt_rts_data_v1` route reaches it.
 
+### Documentation
+
+- **New
+  [`vignette("csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
+  the get-started page.** It is an orientation and runs no analysis:
+  what the package is for, which of the two generations is current,
+  where the `csfmt_rts_data_*` classes live, and what cannot be done
+  yet. pkgdown promotes a vignette named after the package to “Get
+  started” in the navbar, which is where the site’s primary call to
+  action now points.
+- **`vignette("nowcasting")` is now
+  [`vignette("pipeline")`](https://niphr.github.io/csalert/articles/pipeline.md)**,
+  retitled to “The pipeline: from incomplete counts to published
+  numbers”. Its content, numbers and statistical claims are unchanged;
+  the opening paragraphs were rewritten in plainer language. The 23
+  `@seealso` cross-references in `R/` were updated with it, so no help
+  page points at a vignette that no longer exists.
+- **`vignette("short_term_trend")` is deleted.** It taught
+  `short_term_trend.csfmt_rts_data_v1`, which is deprecated, so it was
+  teaching new readers the route they should not take. The only worked
+  example of that method is now the one on
+  [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
+  Its county-map demonstration was not ported.
+
 ## Version 2026.8.6
 
 ### Bug fix
@@ -45,13 +69,12 @@
 
 ### Documentation
 
-- **[`vignette("nowcasting")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-  now runs the whole canonical chain** on one synthetic triangle with a
-  denominator: nowcast, replay validation, reporting completion, rate,
-  short-term trend, MEM intensity, HLM signal detection, and the
-  terminal collapse. It opens by stating the rule the architecture turns
-  on – every analytical stage takes a `csfmt_ensemble_v3` and returns
-  one, and
+- **`vignette("nowcasting")` now runs the whole canonical chain** on one
+  synthetic triangle with a denominator: nowcast, replay validation,
+  reporting completion, rate, short-term trend, MEM intensity, HLM
+  signal detection, and the terminal collapse. It opens by stating the
+  rule the architecture turns on – every analytical stage takes a
+  `csfmt_ensemble_v3` and returns one, and
   [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
   is terminal, so a collapsed table is output and never input.
   [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md),
@@ -100,15 +123,14 @@
 
 ### Documentation
 
-- **[`vignette("nowcasting")`](https://niphr.github.io/csalert/articles/nowcasting.md)
-  is now a four-stage end-to-end pipeline** on one seeded synthetic
-  triangle – nowcast, replay validation, reporting completion,
-  short-term trend – with every chunk executing under `R CMD check`. The
-  reporting-completion section answers the question the old text left
-  open: is the first completion column the reference week or the week
-  after? It walks a named ISO week day by day and shows that delay is
-  measured in whole ISO weeks, so a Monday run and a Friday run bucket
-  every report identically.
+- **`vignette("nowcasting")` is now a four-stage end-to-end pipeline**
+  on one seeded synthetic triangle – nowcast, replay validation,
+  reporting completion, short-term trend – with every chunk executing
+  under `R CMD check`. The reporting-completion section answers the
+  question the old text left open: is the first completion column the
+  reference week or the week after? It walks a named ISO week day by day
+  and shows that delay is measured in whole ISO weeks, so a Monday run
+  and a Friday run bucket every report identically.
 - **[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)’s
   description was off by one, in both bounds.** It said it summed “all
   delays up to `max_delay`” and kept weeks “at least `max_delay` weeks

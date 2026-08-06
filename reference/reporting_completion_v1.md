@@ -59,7 +59,7 @@ for a tail, re-run with a larger \`max_delay\` and compare
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs this function on its synthetic triangle.
 
 Other reporting completion functions:

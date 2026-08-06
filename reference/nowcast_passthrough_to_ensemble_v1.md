@@ -37,7 +37,7 @@ A \`csfmt_ensemble_v3\` with single-column draw matrices.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 races this engine against
 [`nowcast_quasipoisson_v1`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
 on the same triangle, which is the clearest way to see what completion

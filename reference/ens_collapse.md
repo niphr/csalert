@@ -44,7 +44,7 @@ draws.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which collapses a nowcast ensemble with this function and plots the
 resulting band.
 

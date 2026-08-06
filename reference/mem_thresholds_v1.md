@@ -68,7 +68,7 @@ collapse.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 which runs this function as stage 6 of its pipeline, on a five-season
 synthetic series.
 

@@ -15,11 +15,11 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/csalert.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/nowcasting.html">Nowcasting a reporting triangle: an end-to-end pipeline</a></li>
-    <li><a class="dropdown-item" href="../articles/short_term_trend.html">Short term trend</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/pipeline.html">The pipeline: from incomplete counts to published numbers</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item dropdown">
@@ -61,6 +61,15 @@
 <li>
 <strong>This changes no legacy path.</strong> <code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> operates on collapsed ensemble output and its only callers are this package’s tests and the ensemble-first pipelines; nothing on the pre-ensemble <code>csfmt_rts_data_v1</code> route reaches it.</li>
 </ul></div>
+<div class="section level3">
+<h3 id="documentation-2026-8-7">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-7"></a></h3>
+<ul><li>
+<strong>New <code><a href="../articles/csalert.html">vignette("csalert")</a></code>, the get-started page.</strong> It is an orientation and runs no analysis: what the package is for, which of the two generations is current, where the <code>csfmt_rts_data_*</code> classes live, and what cannot be done yet. pkgdown promotes a vignette named after the package to “Get started” in the navbar, which is where the site’s primary call to action now points.</li>
+<li>
+<strong><code>vignette("nowcasting")</code> is now <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code></strong>, retitled to “The pipeline: from incomplete counts to published numbers”. Its content, numbers and statistical claims are unchanged; the opening paragraphs were rewritten in plainer language. The 23 <code>@seealso</code> cross-references in <code>R/</code> were updated with it, so no help page points at a vignette that no longer exists.</li>
+<li>
+<strong><code>vignette("short_term_trend")</code> is deleted.</strong> It taught <code>short_term_trend.csfmt_rts_data_v1</code>, which is deprecated, so it was teaching new readers the route they should not take. The only worked example of that method is now the one on <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code>. Its county-map demonstration was not ported.</li>
+</ul></div>
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.6" id="version-202686">Version 2026.8.6<a class="anchor" aria-label="anchor" href="#version-202686"></a></h2>
@@ -72,7 +81,7 @@
 <div class="section level3">
 <h3 id="documentation-2026-8-6">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-6"></a></h3>
 <ul><li>
-<strong><code><a href="../articles/nowcasting.html">vignette("nowcasting")</a></code> now runs the whole canonical chain</strong> on one synthetic triangle with a denominator: nowcast, replay validation, reporting completion, rate, short-term trend, MEM intensity, HLM signal detection, and the terminal collapse. It opens by stating the rule the architecture turns on – every analytical stage takes a <code>csfmt_ensemble_v3</code> and returns one, and <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code> is terminal, so a collapsed table is output and never input. <code><a href="../reference/ens_add_rate.html">ens_add_rate()</a></code>, <code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> were previously named in prose but never run; production depends on all three.</li>
+<strong><code>vignette("nowcasting")</code> now runs the whole canonical chain</strong> on one synthetic triangle with a denominator: nowcast, replay validation, reporting completion, rate, short-term trend, MEM intensity, HLM signal detection, and the terminal collapse. It opens by stating the rule the architecture turns on – every analytical stage takes a <code>csfmt_ensemble_v3</code> and returns one, and <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code> is terminal, so a collapsed table is output and never input. <code><a href="../reference/ens_add_rate.html">ens_add_rate()</a></code>, <code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> were previously named in prose but never run; production depends on all three.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="deprecated-2026-8-6">Deprecated<a class="anchor" aria-label="anchor" href="#deprecated-2026-8-6"></a></h3>
@@ -93,7 +102,7 @@
 <div class="section level3">
 <h3 id="documentation-2026-8-5">Documentation<a class="anchor" aria-label="anchor" href="#documentation-2026-8-5"></a></h3>
 <ul><li>
-<strong><code><a href="../articles/nowcasting.html">vignette("nowcasting")</a></code> is now a four-stage end-to-end pipeline</strong> on one seeded synthetic triangle – nowcast, replay validation, reporting completion, short-term trend – with every chunk executing under <code>R CMD check</code>. The reporting-completion section answers the question the old text left open: is the first completion column the reference week or the week after? It walks a named ISO week day by day and shows that delay is measured in whole ISO weeks, so a Monday run and a Friday run bucket every report identically.</li>
+<strong><code>vignette("nowcasting")</code> is now a four-stage end-to-end pipeline</strong> on one seeded synthetic triangle – nowcast, replay validation, reporting completion, short-term trend – with every chunk executing under <code>R CMD check</code>. The reporting-completion section answers the question the old text left open: is the first completion column the reference week or the week after? It walks a named ISO week day by day and shows that delay is measured in whole ISO weeks, so a Monday run and a Friday run bucket every report identically.</li>
 <li>
 <strong><code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code>’s description was off by one, in both bounds.</strong> It said it summed “all delays up to <code>max_delay</code>” and kept weeks “at least <code>max_delay</code> weeks before” the as-of. The code sums delays <code>0 .. max_delay - 1</code> and keeps <code>age &gt;= max_delay - 1</code>. Measured: at <code>max_delay = 3</code> the newest settled reference week is 2 weeks before as-of, not 3. Corrected.</li>
 </ul></div>

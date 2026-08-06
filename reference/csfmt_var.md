@@ -54,7 +54,7 @@ Character scalar column name.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md),
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 whose closing section builds a column name with this function and takes
 it apart again with
 [`csfmt_parse`](https://niphr.github.io/csalert/reference/csfmt_parse.md).

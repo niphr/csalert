@@ -34,7 +34,7 @@ A \`csfmt_ensemble_v3\`.
 
 ## See also
 
-[`vignette("nowcasting", package = "csalert")`](https://niphr.github.io/csalert/articles/nowcasting.md)
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 is built on this format: its nowcast engine produces one and
 [`ens_collapse`](https://niphr.github.io/csalert/reference/ens_collapse.md)
 reduces it. The vignette never calls this constructor directly, because

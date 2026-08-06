@@ -1,21 +1,31 @@
-# Nowcasting a reporting triangle: an end-to-end pipeline
+# The pipeline: from incomplete counts to published numbers
 
-`csalert` provides a small, draw-parallel surveillance engine built
-around three S3 formats:
+Surveillance counts arrive late. A case that belongs to week `W` may
+only be reported in week `W`, `W+1`, `W+2`, and so on. So the newest
+weeks always look lower than they will turn out to be, and anything you
+measure on them — a trend, an intensity level, an alert — inherits that
+dip.
 
-- **`csfmt_reporting_triangle_v3`** — the reference-week x
-  reporting-week input (who was reported *when*).
-- **`csfmt_ensemble_v3`** — `$data` plus, per measure, a matrix of
-  Monte-Carlo `$draws` (rows = weeks, columns = simulations). An
-  analysis stage adds columns to the draws, so uncertainty propagates
-  without a second pass.
-- a **quantile collapse** of those draws (optionally *healed* into
+This vignette runs one series through the whole of `csalert`. It fills
+in the weeks that are still arriving, checks how far that filling can be
+trusted, and ends with numbers you could publish.
+
+Three shapes carry the run.
+
+- **`csfmt_reporting_triangle_v3`** — the input. One cell per reference
+  week and reporting week, so it records what was reported *when*.
+- **`csfmt_ensemble_v3`** — the working format. It holds `$data`, plus
+  one matrix of Monte-Carlo `$draws` per measure (rows = weeks, columns
+  = simulations). Each stage adds columns to the draws, so the
+  uncertainty is carried forward rather than recomputed.
+- a **quantile collapse** of those draws — the output, optionally
+  *healed* into
   [`cstidy::csfmt_rts_data_v3`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html)
-  for the usual plots and tables).
+  for the usual plots and tables.
 
-## The ensemble is the analysis substrate
+## One rule: every stage takes the ensemble and returns it
 
-One rule explains the shape of everything below.
+That rule explains the shape of everything below.
 
 > **Every analytical stage takes a `csfmt_ensemble_v3` and returns a
 > `csfmt_ensemble_v3`.**
@@ -42,9 +52,10 @@ cannot recover a per-draw trend or a P(increasing). That is by design,
 not a gap — the draws are the uncertainty, and the collapse is where you
 spend them.
 
-This vignette runs one synthetic series through the whole chain:
+The series below is synthetic, and it runs the whole chain:
 
-1.  **Nowcast** — complete the right-truncated recent weeks.
+1.  **Nowcast** — fill in the recent weeks that are still being
+    reported.
 2.  **Validation** — replay the method against what was known in the
     past.
 3.  **Reporting completion** — read the reporting delay off the triangle
@@ -60,9 +71,9 @@ This vignette runs one synthetic series through the whole chain:
 
 Stages 4 to 8 are the ensemble chain above. Stages 2 and 3 are not: they
 take the **triangle**, not the ensemble, because they ask about the
-reporting process rather than about the completed counts. That asymmetry
-is worth remembering — diagnostics of *how data arrives* read the
-triangle; analyses of *what the data says* read the ensemble.
+reporting process rather than about the completed counts. Keep that
+split in mind. Anything that asks *how the data arrives* reads the
+triangle; anything that asks *what the data says* reads the ensemble.
 
 When you set up a *new* indicator, run stage 3 first: it is what
 supports the choice of `max_delay` that everything else then uses.
@@ -255,7 +266,7 @@ polygon(c(xs, rev(xs)),
 lines(xs, show$numerator_nowcasted_q50x0, lwd = 2, col = "steelblue4")
 ```
 
-![](nowcasting_files/figure-html/unnamed-chunk-7-1.png)
+![](pipeline_files/figure-html/unnamed-chunk-7-1.png)
 
 Keep the reference weeks: the later stages index off them.
 
@@ -1172,7 +1183,7 @@ on a
 That one fits a quasi-Poisson log-link model over a moving window and
 returns a factor status column (`increasing` / `notincreasing`),
 following Benedetti (2019); see
-[`vignette("short_term_trend", package = "csalert")`](https://niphr.github.io/csalert/articles/short_term_trend.md).
+[`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
 The ensemble method here is an OLS slope, chosen because it is a fixed
 linear filter and so can be applied down 500 draw columns at once. **The
 `csfmt_rts_data_v1` method is the pre-ensemble architecture and is
@@ -1421,6 +1432,13 @@ q_value(q_label(1))        # NA: three integer digits do not parse
 - [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
   turns a long replay into a per-horizon interval-width scaling factor,
   as a diagnostic on an engine.
-- For the quasi-Poisson trend estimator on `cstidy` data, including the
-  county map example, see
-  [`vignette("short_term_trend", package = "csalert")`](https://niphr.github.io/csalert/articles/short_term_trend.md).
+- The
+  [`cstidy::csfmt_rts_data_v1`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html)
+  methods of
+  [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  and
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  are the older generation and are deprecated. No vignette runs them;
+  their help pages carry the only worked examples.
+  [`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md)
+  explains what replaced them.
