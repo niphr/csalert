@@ -14,3 +14,4 @@ dev
 ^index\.md$
 ^pkgdown$
 ^Rplots\.pdf$
+^CLAUDE\.md$
