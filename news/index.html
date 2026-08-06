@@ -53,6 +53,15 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.7" id="version-202687">Version 2026.8.7<a class="anchor" aria-label="anchor" href="#version-202687"></a></h2>
 <div class="section level3">
+<h3 id="licensing-2026-8-7">Licensing<a class="anchor" aria-label="anchor" href="#licensing-2026-8-7"></a></h3>
+<ul><li>The copyright holder is now <strong>Folkehelseinstituttet</strong>. It read “Core Surveillance”, which names the package family rather than a legal entity.</li>
+<li>
+<code>DESCRIPTION</code> <code>Authors@R</code> now declares that holder with <code>role = "cph"</code>. It declared no copyright holder at all, and neither did any other package in the fleet. Nothing in <code>R CMD check</code> reports that.</li>
+<li>The copyright year is now 2026. It read 2023.</li>
+<li>
+<code>CLAUDE.md</code> now carries a Licensing section, so the year gets checked rather than silently ageing.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="corrections-2026-8-7">Corrections<a class="anchor" aria-label="anchor" href="#corrections-2026-8-7"></a></h3>
 <ul><li>
 <strong><code><a href="../reference/nowcast_evaluate_v1.html">?nowcast_evaluate_v1</a></code> claimed common random numbers, and the code does not establish them.</strong> Every method starts from the same RNG state on each as-of week, which pairs the comparison. Common random numbers would also need the methods to consume compatible variates, and nothing enforces that. The documentation now states the mechanism and stops there. <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code> already said this. The roxygen contradicted it in three places, including a worked example.</li>
