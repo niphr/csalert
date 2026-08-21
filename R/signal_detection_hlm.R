@@ -149,7 +149,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   }
 
   x <- copy(x)
-  num_unique_ts <- cstidy::unique_time_series(x, set_time_series_id = TRUE) %>%
+  num_unique_ts <- cstidy::unique_time_series(x, set_time_series_id = TRUE) |>
     nrow()
 
   to_be_forecasted <- NULL
@@ -214,7 +214,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   baseline <- expand.grid(
     weeks = -1:1,
     years = 1:baseline_isoyears
-  ) %>%
+  ) |>
     setDT()
   baseline[, lag := years * 52 + weeks]
   baseline[, var := paste0("d", 1:.N)]

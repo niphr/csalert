@@ -1,11 +1,10 @@
 # test file for short term trend
 library(ggplot2)
 library(data.table)
-library(magrittr)
 
 # cstidy data ----
 
-cstidy::norway_covid19_icu_and_hospitalization %>% colnames()
+cstidy::norway_covid19_icu_and_hospitalization |> colnames()
 
 
 # original data:
@@ -157,10 +156,10 @@ d_msis <- cstidy::covid19_msis_cases_by_time_location
 colnames(d_msis)
 
 # show geogranularity and location code
-d_msis[, .(granularity_geo, location_code)] %>% unique
+d_msis[, .(granularity_geo, location_code)] |> unique()
 
 # granularity time is week, day
-d_msis[, .(granularity_time)] %>% unique
+d_msis[, .(granularity_time)] |> unique()
 
 
 # select one location

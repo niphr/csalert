@@ -39,7 +39,7 @@ short_term_trend_internal <- function(
   trend_variable <- NULL
 
   # check number of ts. can only process 1 for now
-  num_unique_ts <- cstidy::unique_time_series(x) %>%
+  num_unique_ts <- cstidy::unique_time_series(x) |>
     nrow()
   if (num_unique_ts > 1) {
     stop("There is more than 1 time series in this dataset")
@@ -542,7 +542,7 @@ short_term_trend.csfmt_rts_data_v1 <- function(
     statistics_naming_prefix %in% c("universal", "from_numerator_and_prX")
   )
 
-  num_unique_ts <- cstidy::unique_time_series(x, set_time_series_id = TRUE) %>%
+  num_unique_ts <- cstidy::unique_time_series(x, set_time_series_id = TRUE) |>
     nrow()
 
   if (num_unique_ts > 1) {

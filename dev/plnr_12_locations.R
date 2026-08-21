@@ -25,7 +25,7 @@ p$add_data(
   fn_name = "data_fn"
 )
 
-p$get_data() %>% names
+p$get_data() |> names()
 
 
 
@@ -33,8 +33,8 @@ p$get_data() %>% names
 
 # 2. add argset ----
 # check location codes
-location_codes <- p$get_data()$covid19_cases$location_code %>%
-  unique() %>%
+location_codes <- p$get_data()$covid19_cases$location_code |>
+  unique() |>
   print()
 
 p$add_argset_from_list(
@@ -99,7 +99,7 @@ p$run_one(2)
 # need to save it!!!!!
 res <- p$run_all_progress()
 
-res %>% length
+res |> length()
 
 res_county03 <- res[[1]]
 
@@ -112,7 +112,7 @@ plot(res_county03[, .(date, covid19_cases_testdate_n)])
 # find one week that each county is different? or not necessary
 # for demonstration purpose, just manually set it to increasing?
 res_unlisted <- rbindlist(res)
-res_unlisted %>% dim
+res_unlisted |> dim()
 
 # filter on one particular week
 # res_unlisted[date == '2021-09-12']

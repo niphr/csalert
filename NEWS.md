@@ -1,3 +1,16 @@
+# Version 2026.8.22
+
+- The package drops `magrittr`. Every `%>%` is now the base pipe `|>`, and
+  `magrittr` is gone from `DESCRIPTION`.
+- The rewrite is a relocation, not an edit. Each `%>%` call was transformed the
+  way R's parser transforms `|>`, and the resulting tree was required to match
+  the tree parsed from the rewritten file. A file whose trees disagreed was left
+  untouched and converted by hand instead.
+
+- The version runs one day ahead of the calendar on purpose. r-universe already
+  published today's number from a different commit, and one version must never
+  name two trees.
+
 # Version 2026.8.21
 
 - `R/globals.R` declares `"."`. `R CMD check` read data.table's `.()`, its alias

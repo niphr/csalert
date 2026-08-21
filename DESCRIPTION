@@ -1,6 +1,6 @@
 Package: csalert
 Title: Alerts from Public Health Surveillance Data
-Version: 2026.8.21
+Version: 2026.8.22
 Authors@R:
     c(
       person(
@@ -36,7 +36,6 @@ BugReports: https://github.com/niphr/csalert/issues
 Encoding: UTF-8
 LazyData: true
 Imports: data.table,
-    magrittr,
     ggplot2,
     glm2,
     cstidy (>= 2026.7.1),
