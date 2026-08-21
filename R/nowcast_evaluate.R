@@ -20,6 +20,8 @@
   by = "horizon",
   thresholds = c(0.25, 0.5)
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  hi50 <- hi90 <- in50 <- in90 <- lo50 <- lo90 <- med <- NULL
   bt <- data.table::as.data.table(backtest)
   if (!nrow(bt)) {
     stop("empty backtest: nothing to evaluate")
@@ -33,6 +35,8 @@
   # one row per forecast unit (reference x horizon x ...) with the quantiles needed
   unit <- intersect(c("reference", "as_of", "horizon"), names(d))
   qcol <- function(p, nm) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  quantile_level <- NULL
     x <- d[quantile_level == p, c(unit, "predicted"), with = FALSE]
     data.table::setnames(x, "predicted", nm)[]
   }
@@ -151,6 +155,8 @@ nowcast_evaluate_v1 <- function(
   thresholds = c(0.25, 0.5),
   seed = NULL
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  method <- NULL
   if (is.function(methods)) {
     methods <- list(method = methods)
   } # single -> one-element menu

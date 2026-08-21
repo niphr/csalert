@@ -22,6 +22,8 @@ signal_detection_hlm.csfmt_ensemble_v3 <- function(
   baseline_isoyears = 5,
   ...
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  hlm_threshold <- lag <- point <- time_series_id <- weeks <- years <- NULL
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!measure %in% names(x$draws)) {
     stop(sprintf("measure '%s' not in $draws", measure))

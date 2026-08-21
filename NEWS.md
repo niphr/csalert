@@ -1,3 +1,17 @@
+# Version 2026.8.23
+
+- The 51-name `utils::globalVariables()` list is gone. Each NSE column name is
+  now declared as `NULL` at the top of the one function that uses it: 18
+  declarations across 12 files. Only `.` stays package-wide, because it is read
+  as an undefined *function* and no local binding fixes that.
+- The old list was both too wide and too narrow. `level`, `method`, `period`,
+  `role` and `truth` are also formal arguments of other functions, so declaring
+  them package-wide suppressed the note for a genuine undefined variable
+  anywhere in the package. `coverage_raw` and `horizon` were declared and used
+  nowhere.
+- `R/csfmt_ensemble.R` already used this idiom at `set_time_series_id()`. The
+  package now uses it everywhere.
+
 # Version 2026.8.22
 
 - The package drops `magrittr`. Every `%>%` is now the base pipe `|>`, and

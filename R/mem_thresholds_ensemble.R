@@ -149,6 +149,8 @@ mem_thresholds_v1.csfmt_ensemble_v3 <- function(
   exclude_seasons = NULL,
   ...
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  .season <- isoyearweek <- mem_n_seasons <- seasonweek <- time_series_id <- NULL
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!requireNamespace("mem", quietly = TRUE)) {
     stop("mem_thresholds_v1 requires the 'mem' package")

@@ -40,6 +40,8 @@
 #' d[]
 #' @export
 set_time_series_id <- function(d, id_cols, sep = "") {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  time_series_id <- time_series_label <- NULL
   stopifnot(data.table::is.data.table(d), all(id_cols %in% names(d)))
   i.time_series_id <- i.time_series_label <- NULL
   u <- unique(d[, id_cols, with = FALSE])
@@ -104,6 +106,8 @@ csfmt_ensemble_v3 <- function(
   time_col = "isoyearweek",
   draws = list()
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  time_series_internal_id <- NULL
   stopifnot(
     data.table::is.data.table(data),
     all(id_cols %in% names(data)),

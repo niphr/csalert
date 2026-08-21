@@ -77,6 +77,8 @@ reporting_completion_v1 <- function(
   delay_window = NULL,
   period = c("all", "year", "month")
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  time_series_id <- NULL
   period <- match.arg(period)
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
   rts <- reporting_triangle_matrix(triangle, max_delay)
@@ -185,6 +187,8 @@ reporting_completion_v1 <- function(
 #' reporting_completion_trend_v1(tri, max_delay = 3, n_months = 6)
 #' @export
 reporting_completion_trend_v1 <- function(triangle, max_delay, n_months = 12L) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  period <- scope <- NULL
   by_year <- reporting_completion_v1(triangle, max_delay, period = "year")
   by_month <- reporting_completion_v1(triangle, max_delay, period = "month")
   if (nrow(by_year)) {

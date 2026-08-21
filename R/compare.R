@@ -74,6 +74,8 @@
 #' compare_results(cur, prv)[q == 0.5 & abs(cur - prv) > 0]
 #' @export
 compare_results <- function(current, previous) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  i.level <- i.q <- i.role <- NULL
   cur <- data.table::as.data.table(current)
   prv <- data.table::as.data.table(previous)
   interp <- csfmt_interpret(cur)
@@ -176,6 +178,8 @@ qc_week_over_week_v1 <- function(
   tol = 1e-6,
   status_roles = c("status", "hlmstatus")
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  abs_diff <- change <- cur <- from <- isoyearweek <- level <- prv <- role <- NULL
   long <- compare_results(current, previous)
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   latest_prev <- max(data.table::as.data.table(previous)$isoyearweek)

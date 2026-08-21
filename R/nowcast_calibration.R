@@ -83,6 +83,8 @@ nowcast_estimate_calibration_v1 <- function(
   level = 0.9,
   by = "horizon"
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  covered <- halfwidth <- hi <- lo <- med <- predicted <- quantile_level <- r <- NULL
   d <- merge(
     data.table::as.data.table(backtest),
     data.table::as.data.table(truth),
@@ -206,6 +208,8 @@ print.nowcast_calibration <- function(x, ...) {
 #' width(adj)
 #' @export
 nowcast_apply_calibration_v1 <- function(x, calibration) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  .med <- predicted <- quantile_level <- NULL
   stopifnot(inherits(calibration, "nowcast_calibration"))
   d <- data.table::as.data.table(data.table::copy(x))
   by <- calibration$by

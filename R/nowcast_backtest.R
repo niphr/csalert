@@ -190,6 +190,8 @@ nowcast_backtest <- function(
   measure = NULL,
   seed = NULL
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  .horizon <- NULL
   stopifnot(
     inherits(triangle, "csfmt_reporting_triangle_v3"),
     is.function(method)

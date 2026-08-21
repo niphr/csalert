@@ -313,6 +313,8 @@ csfmt_parse <- function(varname) {
 #' csfmt_interpret(d)
 #' @export
 csfmt_interpret <- function(d, value_cols = NULL) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  interpretable <- level <- role <- NULL
   if (is.null(value_cols)) {
     value_cols <- setdiff(names(d), .csfmt_structural)
   }

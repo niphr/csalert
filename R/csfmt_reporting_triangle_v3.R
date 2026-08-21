@@ -120,6 +120,8 @@ reporting_triangle_matrix <- function(
   max_delay,
   value_col = attr(triangle, "value_col")
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  .delay <- .ref <- time_series_id <- NULL
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
   ref_col <- attr(triangle, "reference_col")
   rep_col <- attr(triangle, "reporting_col")

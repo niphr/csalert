@@ -59,6 +59,8 @@ nowcast_passthrough_to_ensemble_v1 <- function(
   max_delay,
   denominator_col = NULL
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  isoyearweek <- original <- time_series_id <- NULL
   stopifnot(inherits(x, "csfmt_reporting_triangle_v3"))
   id_cols <- attr(x, "id_cols")
   val_col <- attr(x, "value_col")

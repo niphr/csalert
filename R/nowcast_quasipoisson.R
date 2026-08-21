@@ -162,6 +162,8 @@ nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3 <- function(
   delay_window = 26,
   ...
 ) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  isoyearweek <- original <- time_series_id <- NULL
   id_cols <- attr(x, "id_cols")
   val_col <- attr(x, "value_col")
   as_of <- attr(x, "as_of")
