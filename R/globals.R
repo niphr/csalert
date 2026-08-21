@@ -2,6 +2,9 @@
 # `[...]` look like undefined globals to R CMD check. Declaring them here keeps
 # "checking R code for possible problems" clean without touching the code.
 utils::globalVariables(c(
+  # "." is data.table's alias for list(), as in d[, .(x = ...)]. It reads as
+  # an undefined function to the scan, not as an undefined variable.
+  ".",
   ".delay", ".horizon", ".ref", ".season",
   "abs_diff", "change", "cur", "from",
   "hi50", "hi90", "hlm_threshold",
