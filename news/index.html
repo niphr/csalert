@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.21</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,12 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.22" id="version-2026822">Version 2026.8.22<a class="anchor" aria-label="anchor" href="#version-2026822"></a></h2>
+<ul><li><p>The package drops <code>magrittr</code>. Every <code>%&gt;%</code> is now the base pipe <code>|&gt;</code>, and <code>magrittr</code> is gone from <code>DESCRIPTION</code>.</p></li>
+<li><p>The rewrite is a relocation, not an edit. Each <code>%&gt;%</code> call was transformed the way R’s parser transforms <code>|&gt;</code>, and the resulting tree was required to match the tree parsed from the rewritten file. A file whose trees disagreed was left untouched and converted by hand instead.</p></li>
+<li><p>The version runs one day ahead of the calendar on purpose. r-universe already published today’s number from a different commit, and one version must never name two trees.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.21" id="version-2026821">Version 2026.8.21<a class="anchor" aria-label="anchor" href="#version-2026821"></a></h2>
 <ul><li>
