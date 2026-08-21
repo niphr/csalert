@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,13 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.23" id="version-2026823">Version 2026.8.23<a class="anchor" aria-label="anchor" href="#version-2026823"></a></h2>
+<ul><li>The 51-name <code><a href="https://rdrr.io/r/utils/globalVariables.html" class="external-link">utils::globalVariables()</a></code> list is gone. Each NSE column name is now declared as <code>NULL</code> at the top of the one function that uses it: 18 declarations across 12 files. Only <code>.</code> stays package-wide, because it is read as an undefined <em>function</em> and no local binding fixes that.</li>
+<li>The old list was both too wide and too narrow. <code>level</code>, <code>method</code>, <code>period</code>, <code>role</code> and <code>truth</code> are also formal arguments of other functions, so declaring them package-wide suppressed the note for a genuine undefined variable anywhere in the package. <code>coverage_raw</code> and <code>horizon</code> were declared and used nowhere.</li>
+<li>
+<code>R/csfmt_ensemble.R</code> already used this idiom at <code><a href="../reference/set_time_series_id.html">set_time_series_id()</a></code>. The package now uses it everywhere.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.22" id="version-2026822">Version 2026.8.22<a class="anchor" aria-label="anchor" href="#version-2026822"></a></h2>
 <ul><li><p>The package drops <code>magrittr</code>. Every <code>%&gt;%</code> is now the base pipe <code>|&gt;</code>, and <code>magrittr</code> is gone from <code>DESCRIPTION</code>.</p></li>
