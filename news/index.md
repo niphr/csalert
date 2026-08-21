@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 2026.8.21
+
+- `R/globals.R` declares `"."`. `R CMD check` read data.table’s `.()`,
+  its alias for [`list()`](https://rdrr.io/r/base/list.html), as an
+  undefined function rather than an undefined variable, so the file’s
+  existing declarations did not cover it.
+
 ## Version 2026.8.7
 
 ### Licensing

@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   csalert: csalert.html
   pipeline: pipeline.html
-last_built: 2026-08-20T19:29Z
+last_built: 2026-08-21T04:07Z
 urls:
   reference: https://niphr.github.io/csalert/reference
   article: https://niphr.github.io/csalert/articles
