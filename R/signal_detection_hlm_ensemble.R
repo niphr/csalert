@@ -26,7 +26,7 @@ signal_detection_hlm.csfmt_ensemble_v3 <- function(
   hlm_threshold <- lag <- point <- time_series_id <- weeks <- years <- NULL
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!measure %in% names(x$draws)) {
-    stop(sprintf("measure '%s' not in $draws", measure))
+    stop(sprintf("measure '%s' not in $draws", measure), call. = FALSE)
   }
 
   Y <- x$draws[[measure]]

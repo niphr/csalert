@@ -78,7 +78,7 @@ ens_collapse.csfmt_ensemble_v3 <- function(
 
   if (heal) {
     if (!requireNamespace("cstidy", quietly = TRUE)) {
-      stop("collapse(heal = TRUE) requires the 'cstidy' package")
+      stop("collapse(heal = TRUE) requires the 'cstidy' package", call. = FALSE)
     }
     cstidy::set_csfmt_rts_data_v3(d) # heal ONCE, here, into the clean csfmt
   }

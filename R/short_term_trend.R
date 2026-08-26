@@ -42,13 +42,13 @@ short_term_trend_internal <- function(
   num_unique_ts <- cstidy::unique_time_series(x) |>
     nrow()
   if (num_unique_ts > 1) {
-    stop("There is more than 1 time series in this dataset")
+    stop("There is more than 1 time series in this dataset", call. = FALSE)
   }
 
   # check granularity time. can only do date and isoyearweek
   gran_time <- x$granularity_time[1]
   if (!gran_time %in% c("isoyearweek")) {
-    stop("granularity_time is not isoyearweek")
+    stop("granularity_time is not isoyearweek", call. = FALSE)
   }
 
   # weekly vs daily
@@ -56,7 +56,10 @@ short_term_trend_internal <- function(
 
   # must have more than 2 weeks data
   if (trend_isoyearweeks < 2) {
-    stop("trend_isoyearweeks must be >= 2 when granularity_time is isoyearweek")
+    stop(
+      "trend_isoyearweeks must be >= 2 when granularity_time is isoyearweek",
+      call. = FALSE
+    )
   }
   trend_rows <- trend_isoyearweeks
   remove_last_rows <- remove_last_isoyearweeks
@@ -193,7 +196,7 @@ short_term_trend_internal <- function(
   if (!is.null(denominator)) {
     with_pred[, (varname_forecast_denominator) := get(denominator)]
   }
-  with_pred[, trend_variable := 1:.N / .N]
+  with_pred[, trend_variable := seq_len(.N) / .N]
 
   doubling_time <- rep(NA_real_, nrow(with_pred))
 
@@ -307,7 +310,7 @@ short_term_trend_internal <- function(
     )
   }
   # prediction interval
-  if (is.null(model) | (!is.null(denominator) & is.null(model_denominator))) {
+  if (is.null(model) || (!is.null(denominator) && is.null(model_denominator))) {
     suppressWarnings(with_pred[
       to_be_forecasted == TRUE,
       (varname_forecast_denominator) := NA_real_
@@ -584,7 +587,7 @@ short_term_trend.csfmt_rts_data_v1 <- function(
     )
   }
 
-  if (remove_time_series_id & "time_series_id" %in% names(retval)) {
+  if (remove_time_series_id && "time_series_id" %in% names(retval)) {
     retval[, time_series_id := NULL]
   }
 

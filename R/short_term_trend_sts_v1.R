@@ -89,12 +89,12 @@ short_term_trend_sts_v1 <- function(
   n <- control$b * (2 * control$w + 1)
 
   # loop over columns of sts
-  for (j in 1:ncol(sts)) {
+  for (j in seq_len(ncol(sts))) {
     #Vector of dates
     if (epochAsDate) {
       vectorOfDates <- as.Date(sts@epoch, origin = "1970-01-01")
     } else {
-      vectorOfDates <- seq_len(length(observed[, j]))
+      vectorOfDates <- seq_along(observed[, j])
     }
 
     # Loop over control$range
@@ -115,7 +115,7 @@ short_term_trend_sts_v1 <- function(
       co <- vals["trend", "Estimate"]
       pval <- vals["trend", ][[4]]
 
-      if (pval < control$alpha & co > 0) {
+      if (pval < control$alpha && co > 0) {
         sts@alarm[k, j] <- 1
       } else {
         sts@alarm[k, j] <- 0

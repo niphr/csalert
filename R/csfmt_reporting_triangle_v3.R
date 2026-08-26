@@ -58,10 +58,10 @@ csfmt_reporting_triangle_v3 <- function(
   # reference" violation (it just carries no delay info); only flag genuine
   # negative-delay rows. Callers are responsible for cleaning NA weeks.
   if (any(d[[reporting_col]] < d[[reference_col]], na.rm = TRUE)) {
-    stop("reporting week is before reference week")
+    stop("reporting week is before reference week", call. = FALSE)
   }
   if (any(d[[value_col]] < 0, na.rm = TRUE)) {
-    stop("negative counts in the reporting triangle")
+    stop("negative counts in the reporting triangle", call. = FALSE)
   }
 
   set_time_series_id(d, id_cols)

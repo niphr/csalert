@@ -55,7 +55,7 @@ nowcast_censor <- function(triangle, as_of) {
   d <- data.table::as.data.table(triangle)
   d <- d[get(rep_col) <= as_of]
   if (!nrow(d)) {
-    stop("nothing reported on or before ", as_of)
+    stop("nothing reported on or before ", as_of, call. = FALSE)
   }
   csfmt_reporting_triangle_v3(
     d,
@@ -111,7 +111,8 @@ nowcast_truth <- function(triangle, max_delay) {
   rts <- reporting_triangle_matrix(triangle, max_delay)
   if (length(rts) != 1L) {
     stop(
-      "nowcast_truth expects a single-series triangle; filter to one series first"
+      "nowcast_truth expects a single-series triangle; filter to one series first",
+      call. = FALSE
     )
   }
   refs <- rts[[1]]$reference
@@ -198,7 +199,8 @@ nowcast_backtest <- function(
   )
   if (data.table::uniqueN(triangle$time_series_id) > 1L) {
     stop(
-      "nowcast_backtest expects a single-series triangle; filter to one series first"
+      "nowcast_backtest expects a single-series triangle; filter to one series first",
+      call. = FALSE
     )
   }
   if (is.null(measure)) {

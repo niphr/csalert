@@ -76,13 +76,19 @@ ens_add_rate.csfmt_ensemble_v3 <- function(
   ...
 ) {
   if (!all(c(numerator, denominator) %in% names(x$draws))) {
-    stop("numerator and denominator must both be measures in $draws")
+    stop(
+      "numerator and denominator must both be measures in $draws",
+      call. = FALSE
+    )
   }
 
   N <- x$draws[[numerator]]
   D <- x$draws[[denominator]]
   if (any(N > D, na.rm = TRUE)) {
-    warning("numerator > denominator in some draws; rate capped at `per`")
+    warning(
+      "numerator > denominator in some draws; rate capped at `per`",
+      call. = FALSE
+    )
   }
 
   rate <- per * N / D

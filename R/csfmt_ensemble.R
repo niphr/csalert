@@ -128,7 +128,10 @@ csfmt_ensemble_v3 <- function(
   if (length(draws)) {
     for (m in names(draws)) {
       if (!is.matrix(draws[[m]]) || nrow(draws[[m]]) != n) {
-        stop(sprintf("draws[['%s']] must be a matrix with %d rows", m, n))
+        stop(
+          sprintf("draws[['%s']] must be a matrix with %d rows", m, n),
+          call. = FALSE
+        )
       }
     }
     draws <- lapply(draws, function(M) {
@@ -212,22 +215,26 @@ validate_ensemble <- function(ens) {
   if (!all(need %in% names(ens$data))) {
     stop(
       "ensemble $data missing ",
-      paste(setdiff(need, names(ens$data)), collapse = ", ")
+      paste(setdiff(need, names(ens$data)), collapse = ", "),
+      call. = FALSE
     )
   }
   n <- nrow(ens$data)
   for (m in names(ens$draws)) {
     M <- ens$draws[[m]]
     if (!is.matrix(M)) {
-      stop(sprintf("draws[['%s']] is not a matrix", m))
+      stop(sprintf("draws[['%s']] is not a matrix", m), call. = FALSE)
     }
     if (nrow(M) != n) {
-      stop(sprintf(
-        "draws[['%s']] has %d rows; expected %d (nrow($data))",
-        m,
-        nrow(M),
-        n
-      ))
+      stop(
+        sprintf(
+          "draws[['%s']] has %d rows; expected %d (nrow($data))",
+          m,
+          nrow(M),
+          n
+        ),
+        call. = FALSE
+      )
     }
   }
   invisible(ens)

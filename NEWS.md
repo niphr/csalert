@@ -67,15 +67,21 @@
 
 ## Static checks
 
-- `R/short_term_trend_ensemble.R` passes the shared `static-checks` gate: every
-  `stop()` names `call. = FALSE`, every function returns explicitly, and no
-  function is over 15 cyclomatic complexity. `rolling_irls_slope()` gave up its
-  response check, its working-weight step and its Wald standard error to
-  `irls_check_response()`, `irls_working()` and `irls_wald_se()`.
-  `short_term_trend.csfmt_ensemble_v3()` gave up its denominator lookup and its
-  error-reference choice to `stt_prior_weights()` and `stt_error_reference()`.
-  The numbers do not change. The other 22 files in `R/` still hold 108
-  findings, which this release does not touch.
+- **`R/` passes the shared `static-checks` gate.** The gate arrived with the
+  workflow pin two releases ago and reported 127 findings across 23 of the 24
+  code files. Every one is now fixed.
+- Every `stop()` and `warning()` names `call. = FALSE`, because the message
+  goes to a user who cannot act on the call. Every function returns explicitly.
+  `seq_len()` and `seq_along()` replace `1:n`, `&&` and `||` replace `&` and
+  `|` inside a condition, and `TRUE` and `FALSE` replace `T` and `F`.
+- Seven functions were over 15 cyclomatic complexity and gave their branches to
+  named helpers. In `short_term_trend_ensemble.R`, `rolling_irls_slope()` gave
+  up `irls_check_response()`, `irls_working()` and `irls_wald_se()`, and
+  `short_term_trend.csfmt_ensemble_v3()` gave up `stt_prior_weights()` and
+  `stt_error_reference()`.
+- No behaviour changes. One user-facing message reads "0.05, 0.25, 0.5, 0.75
+  and 0.95" where it read "0.05/0.25/0.5/0.75/0.95", because the slashes read
+  as a file path.
 
 ## Version
 

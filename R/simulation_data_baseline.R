@@ -25,7 +25,7 @@ periodic_pattern <- function(
   g2 = 0.4,
   s = 29,
   p = 52 * 7,
-  t = 1:nrow(d)
+  t = seq_len(nrow(d))
 ) {
   d <- NULL
 
@@ -33,7 +33,7 @@ periodic_pattern <- function(
 
   c <- rep(0, length(t))
 
-  for (i in 1:length(t)) {
+  for (i in seq_along(t)) {
     c[i] <- sum(
       g1 *
         cos((2 * pi * l * (t[i] + s)) / (p)) +
@@ -145,12 +145,12 @@ simulate_baseline_data <- function(
     granularity_time = "day"
   ))
 
-  d[, time := 1:.N]
+  d[, time := seq_len(.N)]
   d[, wday := lubridate::wday(date)]
-  t <- 1:nrow(d)
+  t <- seq_len(nrow(d))
   d[, phi := phi]
 
-  if (seasonal_pattern_n == 0 & weekly_pattern_n == 0) {
+  if (seasonal_pattern_n == 0 && weekly_pattern_n == 0) {
     d[, mu := exp(alpha + (beta * time))]
   } else {
     if (seasonal_pattern_n == 0) {
@@ -315,8 +315,8 @@ simulate_seasonal_outbreak_data <- function(
   years <- sort(unique(d$calyear))[1:(n_year - 1)]
 
   # random sampling of numbers of years with seasonal outbreak
-  n_out <- sample(1:length(years), 1)
-  years_out <- sort(sample(years, n_out, replace = F))
+  n_out <- sample(seq_along(years), 1)
+  years_out <- sort(sample(years, n_out, replace = FALSE))
 
   print(years_out)
 
@@ -575,7 +575,7 @@ add_holiday_effect <- function(data, holiday_data, holiday_effect = 2) {
     holiday := is_holiday
   ]
 
-  d[holiday == T, n := n * holiday_effect]
+  d[holiday == TRUE, n := n * holiday_effect]
 
   return(d)
 }

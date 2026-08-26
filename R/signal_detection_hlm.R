@@ -158,7 +158,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   # check granularity time. can only do date and isoyearweek
   gran_time <- x$granularity_time[1]
   if (!gran_time %in% c("isoyearweek")) {
-    stop("granularity_time is not isoyearweek")
+    stop("granularity_time is not isoyearweek", call. = FALSE)
   }
 
   max_isoyearweek <- max(x$isoyearweek)
@@ -217,9 +217,9 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
   ) |>
     setDT()
   baseline[, lag := years * 52 + weeks]
-  baseline[, var := paste0("d", 1:.N)]
+  baseline[, var := paste0("d", seq_len(.N))]
 
-  for (i in 1:nrow(baseline)) {
+  for (i in seq_len(nrow(baseline))) {
     with_pred[,
       (baseline$var[i]) := shift(get(value), n = baseline$lag[i]),
       by = .(time_series_id)
@@ -276,7 +276,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
     )
   ]
 
-  for (i in 1:nrow(baseline)) {
+  for (i in seq_len(nrow(baseline))) {
     with_pred[, (baseline$var[i]) := NULL]
   }
   with_pred[, baseline_mean := NULL]
@@ -287,7 +287,7 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
     with_pred <- with_pred[get(varname_status) != "training"]
   }
 
-  if (remove_time_series_id & "time_series_id" %in% names(with_pred)) {
+  if (remove_time_series_id && "time_series_id" %in% names(with_pred)) {
     with_pred[, time_series_id := NULL]
   }
 

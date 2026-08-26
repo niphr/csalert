@@ -153,10 +153,10 @@ mem_thresholds_v1.csfmt_ensemble_v3 <- function(
   .season <- isoyearweek <- mem_n_seasons <- seasonweek <- time_series_id <- NULL
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
   if (!requireNamespace("mem", quietly = TRUE)) {
-    stop("mem_thresholds_v1 requires the 'mem' package")
+    stop("mem_thresholds_v1 requires the 'mem' package", call. = FALSE)
   }
   if (!measure %in% names(x$draws)) {
-    stop(sprintf("measure '%s' not in $draws", measure))
+    stop(sprintf("measure '%s' not in $draws", measure), call. = FALSE)
   }
 
   Y <- x$draws[[measure]]

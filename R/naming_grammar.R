@@ -124,7 +124,7 @@ csfmt_var <- function(
 ) {
   stopifnot(is.character(measure), length(measure) == 1L)
   if (!is.null(q) && !is.null(level)) {
-    stop("supply `q` or `level`, not both")
+    stop("supply `q` or `level`, not both", call. = FALSE)
   }
   v <- measure
   if (!is.null(denom)) {

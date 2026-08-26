@@ -24,19 +24,22 @@
   hi50 <- hi90 <- in50 <- in90 <- lo50 <- lo90 <- med <- NULL
   bt <- data.table::as.data.table(backtest)
   if (!nrow(bt)) {
-    stop("empty backtest: nothing to evaluate")
+    stop("empty backtest: nothing to evaluate", call. = FALSE)
   }
   d <- merge(bt, data.table::as.data.table(truth), by = "reference")
   d <- d[is.finite(truth)]
   if (!nrow(d)) {
-    stop("no overlap between backtest reference weeks and settled truth")
+    stop(
+      "no overlap between backtest reference weeks and settled truth",
+      call. = FALSE
+    )
   }
 
   # one row per forecast unit (reference x horizon x ...) with the quantiles needed
   unit <- intersect(c("reference", "as_of", "horizon"), names(d))
   qcol <- function(p, nm) {
-  # NSE column names, declared so R CMD check does not read them as undefined globals
-  quantile_level <- NULL
+    # NSE column names, declared so R CMD check does not read them as undefined globals
+    quantile_level <- NULL
     x <- d[quantile_level == p, c(unit, "predicted"), with = FALSE]
     data.table::setnames(x, "predicted", nm)[]
   }
@@ -54,7 +57,8 @@
   )
   if (!nrow(m)) {
     stop(
-      "backtest is missing the 0.05/0.25/0.5/0.75/0.95 quantiles needed to evaluate"
+      "backtest is missing the 0.05, 0.25, 0.5, 0.75 and 0.95 quantiles needed to evaluate",
+      call. = FALSE
     )
   }
 

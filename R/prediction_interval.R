@@ -39,7 +39,7 @@ prediction_interval.glm <- function(
 
   tryCatch(
     {
-      pred <- stats::predict(object, newdata, type = "response", se.fit = T)
+      pred <- stats::predict(object, newdata, type = "response", se.fit = TRUE)
 
       mu0 <- pred$fit
       phi <- summary(object)$dispersion
@@ -60,7 +60,7 @@ prediction_interval.glm <- function(
           exponent <- 2 / 3
         },
         {
-          stop("No proper exponent in prediction_interval.glm")
+          stop("No proper exponent in prediction_interval.glm", call. = FALSE)
         }
       )
 
