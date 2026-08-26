@@ -20,196 +20,84 @@ gen_data_short_term_trend <- function(seed = 4) {
 # trend_isoyearweeks = 6
 # remove_last_isoyearweeks = 1
 
-short_term_trend_internal <- function(
+# The naming prefix for one side of the rate. `from` is the prefix value that
+# means "take it from the column name". The literal "generic" means "use
+# `generic_word`". Anything else is used as written.
+stt_v1_prefix <- function(column, naming_prefix, from, generic_word) {
+  if (naming_prefix == from) {
+    return(stringr::str_remove(column, "_[a-z]+$"))
+  }
+  if (naming_prefix == "generic") {
+    return(generic_word)
+  }
+  return(naming_prefix)
+}
+
+# The status and doubling-days column names. "universal" leaves the window
+# width as the only distinguishing part; anything else appends `tail`, which is
+# the per-X suffix for a rate and the measure suffix for a count.
+stt_v1_status_varnames <- function(base, trend_dates, naming_prefix, tail) {
+  if (naming_prefix == "universal") {
+    return(list(
+      trend = paste0(base, "_trend0_", trend_dates, "_status"),
+      dates_to_double = paste0(base, "_doublingdays0_", trend_dates)
+    ))
+  }
+  return(list(
+    trend = paste0(base, "_trend0_", trend_dates, tail, "_status"),
+    dates_to_double = paste0(base, "_doublingdays0_", trend_dates, tail)
+  ))
+}
+
+# The status levels, in the order the factor takes them.
+stt_v1_status_levels <- function(include_decreasing) {
+  if (include_decreasing) {
+    return(c("training", "forecast", "decreasing", "null", "increasing"))
+  }
+  return(c("training", "forecast", "notincreasing", "increasing"))
+}
+
+# One window's status from its slope and p-value. Without
+# `include_decreasing` the test is one-sided: a significant negative slope is
+# "notincreasing", the same label a flat series gets.
+stt_v1_status <- function(pval, co, alpha, include_decreasing) {
+  if (!include_decreasing) {
+    if (pval <= alpha && co > 0) {
+      return("increasing")
+    }
+    return("notincreasing")
+  }
+  if (pval > alpha) {
+    return("null")
+  }
+  if (co < 0) {
+    return("decreasing")
+  }
+  return("increasing")
+}
+
+# Fit one quasi-Poisson GLM per rolling window and label its status.
+#
+# `model` and `model_denominator` are the fits from the LAST window, and the
+# caller uses them to build the forecast. A window that warns or errors leaves
+# them NULL, which is what the caller tests for.
+stt_v1_fit_windows <- function(
   x,
-  numerator,
-  denominator = NULL,
-  prX = 100,
-  trend_isoyearweeks = 6,
-  remove_last_isoyearweeks = 0,
-  forecast_isoyearweeks = trend_isoyearweeks,
-  numerator_naming_prefix = "from_numerator",
-  denominator_naming_prefix = "from_denominator",
-  statistics_naming_prefix = "universal",
-  remove_training_data = FALSE,
-  include_decreasing = FALSE,
-  alpha = 0.05
+  with_pred,
+  trend,
+  doubling_time,
+  trend_rows,
+  remove_last_rows,
+  varname_forecast_numerator,
+  varname_forecast_denominator,
+  denominator,
+  include_decreasing,
+  alpha,
+  gran_time
 ) {
-  to_be_forecasted <- NULL
   trend_variable <- NULL
-
-  # check number of ts. can only process 1 for now
-  num_unique_ts <- cstidy::unique_time_series(x) |>
-    nrow()
-  if (num_unique_ts > 1) {
-    stop("There is more than 1 time series in this dataset", call. = FALSE)
-  }
-
-  # check granularity time. can only do date and isoyearweek
-  gran_time <- x$granularity_time[1]
-  if (!gran_time %in% c("isoyearweek")) {
-    stop("granularity_time is not isoyearweek", call. = FALSE)
-  }
-
-  # weekly vs daily
-  # create with_pred
-
-  # must have more than 2 weeks data
-  if (trend_isoyearweeks < 2) {
-    stop(
-      "trend_isoyearweeks must be >= 2 when granularity_time is isoyearweek",
-      call. = FALSE
-    )
-  }
-  trend_rows <- trend_isoyearweeks
-  remove_last_rows <- remove_last_isoyearweeks
-  forecast_rows <- forecast_isoyearweeks
-
-  trend_dates <- trend_isoyearweeks * 7 - 1
-  # ??
-  with_pred <- cstidy::expand_time_to(
-    x,
-    max_isoyearweek = cstime::date_to_isoyearweek_c(
-      max(x$date) + forecast_isoyearweeks * 7
-    )
-  )
-
-  # numerator name
-  suffix <- stringr::str_extract(numerator, "_[a-z]+$")
-  if (numerator_naming_prefix == "from_numerator") {
-    prefix <- stringr::str_remove(numerator, "_[a-z]+$")
-  } else if (numerator_naming_prefix == "generic") {
-    prefix <- "numerator"
-  } else {
-    prefix <- numerator_naming_prefix
-  }
-
-  # denom
-  if (denominator_naming_prefix == "from_denominator") {
-    prefix_denom <- stringr::str_remove(denominator, "_[a-z]+$")
-  } else if (denominator_naming_prefix == "generic") {
-    prefix_denom <- "denominator"
-  } else {
-    prefix_denom <- denominator_naming_prefix
-  }
-
-  prefix_pr100 <- paste0(prefix, "_vs_", prefix_denom)
-
-  # create forecast var names (num, denom)
-  varname_forecast_numerator <- paste0(prefix, "_forecasted", suffix)
-  varname_forecast_predinterval_q02x5_numerator <- paste0(
-    prefix,
-    "_forecasted_predinterval_q02x5",
-    suffix
-  )
-  varname_forecast_predinterval_q97x5_numerator <- paste0(
-    prefix,
-    "_forecasted_predinterval_q97x5",
-    suffix
-  )
-  varname_forecast_numerator <- paste0(prefix, "_forecasted", suffix)
-  if (!is.null(denominator)) {
-    varname_forecast_denominator <- paste0(prefix_denom, "_forecasted", suffix)
-
-    varname_forecast_prX <- paste0(
-      prefix_pr100,
-      "_forecasted_pr",
-      formatC(prX, format = "f", digits = 0)
-    )
-    varname_forecast_prX_is_forecast <- paste0(
-      prefix_pr100,
-      "_forecasted_pr",
-      formatC(prX, format = "f", digits = 0),
-      "_forecast"
-    )
-    varname_forecast_predinterval_q02x5_prX <- paste0(
-      prefix_pr100,
-      "_forecasted_predinterval_q02x5_pr",
-      formatC(prX, format = "f", digits = 0)
-    )
-    varname_forecast_predinterval_q97x5_prX <- paste0(
-      prefix_pr100,
-      "_forecasted_predinterval_q97x5_pr",
-      formatC(prX, format = "f", digits = 0)
-    )
-
-    if (statistics_naming_prefix == "universal") {
-      varname_trend <- paste0(prefix_pr100, "_trend0_", trend_dates, "_status")
-      varname_dates_to_double <- paste0(
-        prefix_pr100,
-        "_doublingdays0_",
-        trend_dates
-      )
-    } else {
-      varname_trend <- paste0(
-        prefix_pr100,
-        "_trend0_",
-        trend_dates,
-        "_pr",
-        formatC(prX, format = "f", digits = 0),
-        "_status"
-      )
-      varname_dates_to_double <- paste0(
-        prefix_pr100,
-        "_doublingdays0_",
-        trend_dates,
-        "_pr",
-        formatC(prX, format = "f", digits = 0)
-      )
-    }
-
-    varname_forecast <- c(
-      paste0(varname_forecast_numerator, "_forecast"),
-      paste0(varname_forecast_prX, "_forecast")
-    )
-  } else {
-    if (statistics_naming_prefix == "universal") {
-      varname_trend <- paste0(prefix, "_trend0_", trend_dates, "_status")
-      varname_dates_to_double <- paste0(prefix, "_doublingdays0_", trend_dates)
-    } else {
-      varname_trend <- paste0(
-        prefix,
-        "_trend0_",
-        trend_dates,
-        suffix,
-        "_status"
-      )
-      varname_dates_to_double <- paste0(
-        prefix,
-        "_doublingdays0_",
-        trend_dates,
-        suffix
-      )
-    }
-
-    varname_forecast <- paste0(varname_forecast_numerator, "_forecast")
-  }
-
-  # training/forecast period
-  with_pred[, to_be_forecasted := FALSE]
-  with_pred[
-    (.N - remove_last_rows - forecast_rows + 1):.N,
-    to_be_forecasted := TRUE
-  ]
-
-  with_pred[, (varname_forecast_numerator) := get(numerator)]
-  if (!is.null(denominator)) {
-    with_pred[, (varname_forecast_denominator) := get(denominator)]
-  }
-  with_pred[, trend_variable := seq_len(.N) / .N]
-
-  doubling_time <- rep(NA_real_, nrow(with_pred))
-
-  # trend
-  # training period
-  trend <- rep(NA_character_, nrow(with_pred))
-  trend[1:(trend_rows - 1)] <- "training"
-  trend[
-    (length(trend) - remove_last_rows - forecast_rows + 1):length(trend)
-  ] <- "forecast"
-
-  #if(remove_last_dates > 0) indexes <- indexes[-c(1:remove_last_dates)]
-  #indexes <- indexes[which(cstime::keep_sundates_and_latest_date(x$date[indexes]) != "delete")]
+  model <- NULL
+  model_denominator <- NULL
   for (i in seq_len(nrow(x) - remove_last_rows)) {
     index <- (i - trend_rows + 1):i
     if (min(index) < 1) {
@@ -268,23 +156,7 @@ short_term_trend_internal <- function(
         vals <- stats::coef(summary(model))
         co <- vals["trend_variable", "Estimate"]
         pval <- vals["trend_variable", ][[4]]
-        if (include_decreasing) {
-          if (pval > alpha) {
-            trend[i] <- "null"
-          } else {
-            if (co < 0) {
-              trend[i] <- "decreasing"
-            } else {
-              trend[i] <- "increasing"
-            }
-          }
-        } else {
-          if (pval <= alpha & co > 0) {
-            trend[i] <- "increasing"
-          } else {
-            trend[i] <- "notincreasing"
-          }
-        }
+        trend[i] <- stt_v1_status(pval, co, alpha, include_decreasing)
         doubling_time[i] <- nrow(with_pred) * log(2) / co # remember to scale it so that it is per date!!
         if (gran_time == "isoyearweek") {
           doubling_time[i] <- doubling_time[i] * 7 # remember to scale it so that it is per date!!
@@ -298,17 +170,33 @@ short_term_trend_internal <- function(
       }
     )
   }
-  if (include_decreasing) {
-    trend <- factor(
-      trend,
-      levels = c("training", "forecast", "decreasing", "null", "increasing")
-    )
-  } else {
-    trend <- factor(
-      trend,
-      levels = c("training", "forecast", "notincreasing", "increasing")
-    )
-  }
+  return(list(
+    trend = trend,
+    doubling_time = doubling_time,
+    model = model,
+    model_denominator = model_denominator
+  ))
+}
+
+
+# Write the forecast and its prediction interval into `with_pred`, by
+# reference. A missing fit blanks every forecast column instead of leaving the
+# training values in place.
+stt_v1_forecast <- function(
+  with_pred,
+  model,
+  model_denominator,
+  denominator,
+  prX,
+  varname_forecast_numerator,
+  varname_forecast_denominator,
+  varname_forecast_predinterval_q02x5_numerator,
+  varname_forecast_predinterval_q97x5_numerator,
+  varname_forecast_prX,
+  varname_forecast_predinterval_q02x5_prX,
+  varname_forecast_predinterval_q97x5_prX
+) {
+  to_be_forecasted <- NULL
   # prediction interval
   if (is.null(model) || (!is.null(denominator) && is.null(model_denominator))) {
     suppressWarnings(with_pred[
@@ -410,6 +298,202 @@ short_term_trend_internal <- function(
       }
     }
   }
+  return(invisible(with_pred))
+}
+
+
+short_term_trend_internal <- function(
+  x,
+  numerator,
+  denominator = NULL,
+  prX = 100,
+  trend_isoyearweeks = 6,
+  remove_last_isoyearweeks = 0,
+  forecast_isoyearweeks = trend_isoyearweeks,
+  numerator_naming_prefix = "from_numerator",
+  denominator_naming_prefix = "from_denominator",
+  statistics_naming_prefix = "universal",
+  remove_training_data = FALSE,
+  include_decreasing = FALSE,
+  alpha = 0.05
+) {
+  to_be_forecasted <- NULL
+  trend_variable <- NULL
+
+  # check number of ts. can only process 1 for now
+  num_unique_ts <- cstidy::unique_time_series(x) |>
+    nrow()
+  if (num_unique_ts > 1) {
+    stop("There is more than 1 time series in this dataset", call. = FALSE)
+  }
+
+  # check granularity time. can only do date and isoyearweek
+  gran_time <- x$granularity_time[1]
+  if (!gran_time %in% c("isoyearweek")) {
+    stop("granularity_time is not isoyearweek", call. = FALSE)
+  }
+
+  # weekly vs daily
+  # create with_pred
+
+  # must have more than 2 weeks data
+  if (trend_isoyearweeks < 2) {
+    stop(
+      "trend_isoyearweeks must be >= 2 when granularity_time is isoyearweek",
+      call. = FALSE
+    )
+  }
+  trend_rows <- trend_isoyearweeks
+  remove_last_rows <- remove_last_isoyearweeks
+  forecast_rows <- forecast_isoyearweeks
+
+  trend_dates <- trend_isoyearweeks * 7 - 1
+  # ??
+  with_pred <- cstidy::expand_time_to(
+    x,
+    max_isoyearweek = cstime::date_to_isoyearweek_c(
+      max(x$date) + forecast_isoyearweeks * 7
+    )
+  )
+
+  suffix <- stringr::str_extract(numerator, "_[a-z]+$")
+  prefix <- stt_v1_prefix(
+    numerator,
+    numerator_naming_prefix,
+    "from_numerator",
+    "numerator"
+  )
+  prefix_denom <- stt_v1_prefix(
+    denominator,
+    denominator_naming_prefix,
+    "from_denominator",
+    "denominator"
+  )
+
+  prefix_pr100 <- paste0(prefix, "_vs_", prefix_denom)
+
+  # create forecast var names (num, denom)
+  varname_forecast_numerator <- paste0(prefix, "_forecasted", suffix)
+  varname_forecast_predinterval_q02x5_numerator <- paste0(
+    prefix,
+    "_forecasted_predinterval_q02x5",
+    suffix
+  )
+  varname_forecast_predinterval_q97x5_numerator <- paste0(
+    prefix,
+    "_forecasted_predinterval_q97x5",
+    suffix
+  )
+  varname_forecast_numerator <- paste0(prefix, "_forecasted", suffix)
+  if (!is.null(denominator)) {
+    varname_forecast_denominator <- paste0(prefix_denom, "_forecasted", suffix)
+
+    varname_forecast_prX <- paste0(
+      prefix_pr100,
+      "_forecasted_pr",
+      formatC(prX, format = "f", digits = 0)
+    )
+    varname_forecast_prX_is_forecast <- paste0(
+      prefix_pr100,
+      "_forecasted_pr",
+      formatC(prX, format = "f", digits = 0),
+      "_forecast"
+    )
+    varname_forecast_predinterval_q02x5_prX <- paste0(
+      prefix_pr100,
+      "_forecasted_predinterval_q02x5_pr",
+      formatC(prX, format = "f", digits = 0)
+    )
+    varname_forecast_predinterval_q97x5_prX <- paste0(
+      prefix_pr100,
+      "_forecasted_predinterval_q97x5_pr",
+      formatC(prX, format = "f", digits = 0)
+    )
+
+    nm <- stt_v1_status_varnames(
+      prefix_pr100,
+      trend_dates,
+      statistics_naming_prefix,
+      paste0("_pr", formatC(prX, format = "f", digits = 0))
+    )
+    varname_trend <- nm$trend
+    varname_dates_to_double <- nm$dates_to_double
+
+    varname_forecast <- c(
+      paste0(varname_forecast_numerator, "_forecast"),
+      paste0(varname_forecast_prX, "_forecast")
+    )
+  } else {
+    nm <- stt_v1_status_varnames(
+      prefix,
+      trend_dates,
+      statistics_naming_prefix,
+      suffix
+    )
+    varname_trend <- nm$trend
+    varname_dates_to_double <- nm$dates_to_double
+
+    varname_forecast <- paste0(varname_forecast_numerator, "_forecast")
+  }
+
+  # training/forecast period
+  with_pred[, to_be_forecasted := FALSE]
+  with_pred[
+    (.N - remove_last_rows - forecast_rows + 1):.N,
+    to_be_forecasted := TRUE
+  ]
+
+  with_pred[, (varname_forecast_numerator) := get(numerator)]
+  if (!is.null(denominator)) {
+    with_pred[, (varname_forecast_denominator) := get(denominator)]
+  }
+  with_pred[, trend_variable := seq_len(.N) / .N]
+
+  doubling_time <- rep(NA_real_, nrow(with_pred))
+
+  # trend
+  # training period
+  trend <- rep(NA_character_, nrow(with_pred))
+  trend[1:(trend_rows - 1)] <- "training"
+  trend[
+    (length(trend) - remove_last_rows - forecast_rows + 1):length(trend)
+  ] <- "forecast"
+
+  #if(remove_last_dates > 0) indexes <- indexes[-c(1:remove_last_dates)]
+  #indexes <- indexes[which(cstime::keep_sundates_and_latest_date(x$date[indexes]) != "delete")]
+  fitted <- stt_v1_fit_windows(
+    x,
+    with_pred,
+    trend,
+    doubling_time,
+    trend_rows,
+    remove_last_rows,
+    varname_forecast_numerator,
+    varname_forecast_denominator,
+    denominator,
+    include_decreasing,
+    alpha,
+    gran_time
+  )
+  trend <- fitted$trend
+  doubling_time <- fitted$doubling_time
+  model <- fitted$model
+  model_denominator <- fitted$model_denominator
+  trend <- factor(trend, levels = stt_v1_status_levels(include_decreasing))
+  stt_v1_forecast(
+    with_pred,
+    model,
+    model_denominator,
+    denominator,
+    prX,
+    varname_forecast_numerator,
+    varname_forecast_denominator,
+    varname_forecast_predinterval_q02x5_numerator,
+    varname_forecast_predinterval_q97x5_numerator,
+    varname_forecast_prX,
+    varname_forecast_predinterval_q02x5_prX,
+    varname_forecast_predinterval_q97x5_prX
+  )
 
   with_pred[, trend_variable := NULL]
   for (i in varname_forecast) {
