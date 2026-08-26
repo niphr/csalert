@@ -102,7 +102,7 @@ rolling_slope_matrix <- function(
   stopifnot(is.matrix(Y), width >= 2)
   family <- match.arg(family)
   if (!is.null(prior_weights) && family != "binomial") {
-    stop("`prior_weights` is only used by family = 'binomial'")
+    stop("`prior_weights` is only used by family = 'binomial'", call. = FALSE)
   }
   if (family != "identity") {
     return(rolling_irls_slope(Y, width, family, prior_weights, tol, maxit))
@@ -122,7 +122,7 @@ rolling_slope_matrix <- function(
     out <- matrix(NA_real_, W, D)
     out[w:W, ] <- C0[(w + 1):(W + 1), , drop = FALSE] -
       C0[1:(W - w + 1), , drop = FALSE]
-    out
+    return(out)
   }
   Sx <- roll(CY0, n)
   Sx2 <- roll(CY20, n)
@@ -137,7 +137,81 @@ rolling_slope_matrix <- function(
   # depend on the family.
   converged <- matrix(NA, W, D)
   converged[n:W, ] <- TRUE
-  list(beta0 = beta0, beta1 = beta1, se = se, converged = converged)
+  return(list(beta0 = beta0, beta1 = beta1, se = se, converged = converged))
+}
+
+# The response contract for a link family. Returns `prior_weights` recycled to
+# one column per draw, so the caller holds a matrix of the same shape as `Y`.
+irls_check_response <- function(Y, prior_weights, binom, W, D) {
+  if (!binom) {
+    if (any(Y < 0, na.rm = TRUE)) {
+      stop("family = 'quasipoisson' needs a non-negative `Y`", call. = FALSE)
+    }
+    return(prior_weights)
+  }
+  if (is.null(prior_weights)) {
+    stop(
+      "family = 'binomial' needs `prior_weights` (the binomial denominator)",
+      call. = FALSE
+    )
+  }
+  stopifnot(is.matrix(prior_weights), nrow(prior_weights) == W)
+  if (ncol(prior_weights) == 1L && D > 1L) {
+    prior_weights <- prior_weights[, rep(1L, D), drop = FALSE]
+  }
+  if (ncol(prior_weights) != D) {
+    stop(
+      "`prior_weights` must have 1 column, or as many columns as `Y`",
+      call. = FALSE
+    )
+  }
+  if (any(Y < 0 | Y > 1, na.rm = TRUE)) {
+    stop(
+      "family = 'binomial' needs `Y` on the response scale: 0 <= y <= 1",
+      call. = FALSE
+    )
+  }
+  return(prior_weights)
+}
+
+# One IRLS step for one lag: the working weight `w` and the working response
+# `z`. `eta` is NULL on the first iteration, where the start values are glm's
+# own `mustart`. `m` is the binomial denominator, NULL under a log link.
+irls_working <- function(y, m, eta, binom) {
+  if (is.null(eta)) {
+    mu <- if (binom) (m * y + 0.5) / (m + 1) else y + 0.1
+    eta <- if (binom) log(mu / (1 - mu)) else log(mu)
+  } else {
+    mu <- if (binom) 1 / (1 + exp(-eta)) else exp(eta)
+  }
+  if (binom) {
+    v <- mu * (1 - mu)
+    return(list(w = m * v, z = eta + (y - mu) / v))
+  }
+  return(list(w = mu, z = eta + (y - mu) / mu))
+}
+
+# Wald standard error at the converged coefficients: sqrt(phi * (X'WX)^-1_22),
+# and (X'WX)^-1_22 is Sw / det. The quasi-Poisson dispersion is the Pearson
+# statistic over width - 2; the binomial family fixes it at 1, as stats::glm
+# does.
+irls_wald_se <- function(b0, b1, tt, Ylag, Mlag, binom, n, D, n_rows) {
+  Sw <- Swt <- Swt2 <- chi <- matrix(0, n_rows, D)
+  for (j in seq_len(n)) {
+    eta <- b0 + b1 * tt[j]
+    mu <- if (binom) 1 / (1 + exp(-eta)) else exp(eta)
+    if (binom) {
+      w <- Mlag[[j]] * mu * (1 - mu)
+    } else {
+      w <- mu
+      chi <- chi + (Ylag[[j]] - mu)^2 / mu
+    }
+    Sw <- Sw + w
+    Swt <- Swt + w * tt[j]
+    Swt2 <- Swt2 + w * tt[j]^2
+  }
+  phi <- if (binom) 1 else chi / (n - 2)
+  return(sqrt(phi * Sw / (Sw * Swt2 - Swt^2)))
 }
 
 # IRLS on the link scale, one iteration at a time across every window and every
@@ -160,32 +234,14 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
   }
 
   binom <- family == "binomial"
-  if (binom) {
-    if (is.null(prior_weights)) {
-      stop(
-        "family = 'binomial' needs `prior_weights` (the binomial denominator)"
-      )
-    }
-    stopifnot(is.matrix(prior_weights), nrow(prior_weights) == W)
-    if (ncol(prior_weights) == 1L && D > 1L) {
-      prior_weights <- prior_weights[, rep(1L, D), drop = FALSE]
-    }
-    if (ncol(prior_weights) != D) {
-      stop("`prior_weights` must have 1 column, or as many columns as `Y`")
-    }
-    if (any(Y < 0 | Y > 1, na.rm = TRUE)) {
-      stop("family = 'binomial' needs `Y` on the response scale: 0 <= y <= 1")
-    }
-  } else if (any(Y < 0, na.rm = TRUE)) {
-    stop("family = 'quasipoisson' needs a non-negative `Y`")
-  }
+  prior_weights <- irls_check_response(Y, prior_weights, binom, W, D)
 
   rows <- n:W # the last row of each complete window
   tt <- n:1 # local time of lag j-1, for j = 1..n
   Ylag <- lapply(seq_len(n), function(j) Y[rows - (j - 1L), , drop = FALSE])
   Mlag <- if (binom) {
     lapply(seq_len(n), function(j) {
-      prior_weights[rows - (j - 1L), , drop = FALSE]
+      return(prior_weights[rows - (j - 1L), , drop = FALSE])
     })
   }
 
@@ -195,22 +251,14 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
   for (it in seq_len(maxit)) {
     Sw <- Swt <- Swt2 <- Swz <- Swtz <- matrix(0, length(rows), D)
     for (j in seq_len(n)) {
-      y <- Ylag[[j]]
-      if (it == 1L) {
-        mu <- if (binom) (Mlag[[j]] * y + 0.5) / (Mlag[[j]] + 1) else y + 0.1
-        eta <- if (binom) log(mu / (1 - mu)) else log(mu)
-      } else {
-        eta <- b0 + b1 * tt[j]
-        mu <- if (binom) 1 / (1 + exp(-eta)) else exp(eta)
-      }
-      if (binom) {
-        v <- mu * (1 - mu)
-        w <- Mlag[[j]] * v
-        z <- eta + (y - mu) / v
-      } else {
-        w <- mu
-        z <- eta + (y - mu) / mu
-      }
+      wz <- irls_working(
+        Ylag[[j]],
+        if (binom) Mlag[[j]] else NULL,
+        if (it == 1L) NULL else b0 + b1 * tt[j],
+        binom
+      )
+      w <- wz$w
+      z <- wz$z
       Sw <- Sw + w
       Swt <- Swt + w * tt[j]
       Swt2 <- Swt2 + w * tt[j]^2
@@ -236,22 +284,7 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
   # and (X'WX)^-1_22 is Sw / det. The quasi-Poisson dispersion is the Pearson
   # statistic over width - 2; the binomial family fixes it at 1, as stats::glm
   # does.
-  Sw <- Swt <- Swt2 <- chi <- matrix(0, length(rows), D)
-  for (j in seq_len(n)) {
-    eta <- b0 + b1 * tt[j]
-    mu <- if (binom) 1 / (1 + exp(-eta)) else exp(eta)
-    if (binom) {
-      w <- Mlag[[j]] * mu * (1 - mu)
-    } else {
-      w <- mu
-      chi <- chi + (Ylag[[j]] - mu)^2 / mu
-    }
-    Sw <- Sw + w
-    Swt <- Swt + w * tt[j]
-    Swt2 <- Swt2 + w * tt[j]^2
-  }
-  phi <- if (binom) 1 else chi / (n - 2)
-  se <- sqrt(phi * Sw / (Sw * Swt2 - Swt^2))
+  se <- irls_wald_se(b0, b1, tt, Ylag, Mlag, binom, n, D, length(rows))
 
   # A non-convergent window is a separated one. Its last iterate is a finite
   # number of no meaning: 25.19 on the logit scale reaches $draws as 1.1e13
@@ -287,17 +320,100 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
   pad <- function(M, fill = NA_real_) {
     out <- matrix(fill, W, D)
     out[rows, ] <- M
-    out
+    return(out)
   }
-  list(
+  return(list(
     beta0 = pad(b0),
     beta1 = pad(b1),
     se = pad(se),
     converged = pad(ok, NA)
-  )
+  ))
 }
 
 #' @method short_term_trend csfmt_ensemble_v3
+# The binomial denominator is a measure name in $draws, matching
+# ens_add_rate(). It is drawn like everything else, so it carries its own
+# uncertainty column by column.
+stt_prior_weights <- function(x, family, denominator) {
+  if (family != "binomial") {
+    if (!is.null(denominator)) {
+      stop("`denominator` is only used by family = 'binomial'", call. = FALSE)
+    }
+    return(NULL)
+  }
+  if (is.null(denominator)) {
+    stop(
+      paste0(
+        "family = 'binomial' needs `denominator`, the $draws measure holding ",
+        "the binomial denominator"
+      ),
+      call. = FALSE
+    )
+  }
+  if (!denominator %in% names(x$draws)) {
+    stop(
+      sprintf(
+        "denominator '%s' not in $draws (have: %s)",
+        denominator,
+        paste(names(x$draws), collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  return(x$draws[[denominator]])
+}
+
+# The reference distribution for the slope's own sampling error, and its
+# degrees of freedom where it has any.
+#
+# "auto" reads the dispersion. Identity and quasi-Poisson both estimate one
+# from width - 2 residual degrees of freedom, which is the case summary.glm()
+# refers to a t. The binomial family fixes it at 1, so a normal is the right
+# reference there.
+#
+# At width 2 those two families have no residual degrees of freedom, so `se` is
+# NaN under identity and Inf under quasi-Poisson, and the growth rate reaches
+# $draws missing or as a random -100 percent. No `error_reference` escapes
+# that: the defect is in `se`, not in the reference.
+stt_error_reference <- function(family, error_reference, width) {
+  if (family != "binomial" && width < 3) {
+    stop(
+      sprintf(
+        paste0(
+          "propagate_slope_error needs trend_isoyearweeks >= 3 under family = ",
+          "'%s'. That family estimates a dispersion from width - 2 residual ",
+          "degrees of freedom, so `se` is not defined at width 2. Only ",
+          "family = 'binomial' fixes the dispersion at 1 and accepts width 2."
+        ),
+        family
+      ),
+      call. = FALSE
+    )
+  }
+  reference <- if (error_reference != "auto") {
+    error_reference
+  } else if (family == "binomial") {
+    "normal"
+  } else {
+    "t"
+  }
+  if (reference != "t") {
+    return(list(reference = reference, df = NA_real_))
+  }
+  df <- width - 2
+  if (df < 1) {
+    stop(
+      paste0(
+        "propagate_slope_error needs trend_isoyearweeks >= 3 under ",
+        "error_reference = 't'. A t reference needs at least 1 degree of ",
+        "freedom."
+      ),
+      call. = FALSE
+    )
+  }
+  return(list(reference = reference, df = df))
+}
+
 #' @rdname short_term_trend
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
@@ -365,11 +481,14 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   family <- match.arg(family)
   error_reference <- match.arg(error_reference)
   if (!measure %in% names(x$draws)) {
-    stop(sprintf(
-      "measure '%s' not in $draws (have: %s)",
-      measure,
-      paste(names(x$draws), collapse = ", ")
-    ))
+    stop(
+      sprintf(
+        "measure '%s' not in $draws (have: %s)",
+        measure,
+        paste(names(x$draws), collapse = ", ")
+      ),
+      call. = FALSE
+    )
   }
   width <- trend_isoyearweeks
   Y <- x$draws[[measure]]
@@ -378,24 +497,7 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   # ens_add_rate(). It is drawn like everything else, so it carries its own
   # uncertainty column by column. A single-column denominator is recycled
   # across the draws of `measure`.
-  prior_weights <- NULL
-  if (family == "binomial") {
-    if (is.null(denominator)) {
-      stop(
-        "family = 'binomial' needs `denominator`, the $draws measure holding the binomial denominator"
-      )
-    }
-    if (!denominator %in% names(x$draws)) {
-      stop(sprintf(
-        "denominator '%s' not in $draws (have: %s)",
-        denominator,
-        paste(names(x$draws), collapse = ", ")
-      ))
-    }
-    prior_weights <- x$draws[[denominator]]
-  } else if (!is.null(denominator)) {
-    stop("`denominator` is only used by family = 'binomial'")
-  }
+  prior_weights <- stt_prior_weights(x, family, denominator)
   rs <- rolling_slope_matrix(
     Y,
     width,
@@ -415,38 +517,15 @@ short_term_trend.csfmt_ensemble_v3 <- function(
     # from width - 2 residual degrees of freedom, which is the case
     # summary.glm() refers to a t. The binomial family fixes it at 1, so a
     # normal is the right reference there.
-    reference <- if (error_reference != "auto") {
-      error_reference
-    } else if (family == "binomial") {
-      "normal"
-    } else {
-      "t"
-    }
+    ref <- stt_error_reference(family, error_reference, width)
+    reference <- ref$reference
+    df <- ref$df
     # Identity and quasi-Poisson both estimate the dispersion from width - 2
     # residual degrees of freedom. At width 2 there are none, so `se` is NaN
     # under identity and Inf under quasi-Poisson, and the growth rate reaches
     # $draws missing or as a random -100 percent. No `error_reference` escapes
     # that: the defect is in `se`, not in the reference. The binomial family
     # fixes the dispersion at 1, so its `se` is finite at width 2.
-    if (family != "binomial" && width < 3) {
-      stop(sprintf(
-        paste0(
-          "propagate_slope_error needs trend_isoyearweeks >= 3 under family = ",
-          "'%s'. That family estimates a dispersion from width - 2 residual ",
-          "degrees of freedom, so `se` is not defined at width 2. Only ",
-          "family = 'binomial' fixes the dispersion at 1 and accepts width 2."
-        ),
-        family
-      ))
-    }
-    if (reference == "t") {
-      df <- width - 2
-      if (df < 1) {
-        stop(
-          "propagate_slope_error needs trend_isoyearweeks >= 3 under error_reference = 't'. A t reference needs at least 1 degree of freedom."
-        )
-      }
-    }
     se <- rs$se
     # A passthrough ensemble has a single draw, so there is no draw axis to carry
     # the slope's uncertainty: perturbing one column once still leaves one column,
@@ -498,5 +577,5 @@ short_term_trend.csfmt_ensemble_v3 <- function(
     value = inc
   )
 
-  validate_ensemble(x)
+  return(validate_ensemble(x))
 }

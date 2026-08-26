@@ -65,6 +65,18 @@
 - `family = "identity"` is unchanged. It drew `se * t_(width-2)` before and it
   still does.
 
+## Static checks
+
+- `R/short_term_trend_ensemble.R` passes the shared `static-checks` gate: every
+  `stop()` names `call. = FALSE`, every function returns explicitly, and no
+  function is over 15 cyclomatic complexity. `rolling_irls_slope()` gave up its
+  response check, its working-weight step and its Wald standard error to
+  `irls_check_response()`, `irls_working()` and `irls_wald_se()`.
+  `short_term_trend.csfmt_ensemble_v3()` gave up its denominator lookup and its
+  error-reference choice to `stt_prior_weights()` and `stt_error_reference()`.
+  The numbers do not change. The other 22 files in `R/` still hold 108
+  findings, which this release does not touch.
+
 ## Version
 
 - r-universe published 2026.8.23 from commit `ed0749b8`, so this tree cannot
