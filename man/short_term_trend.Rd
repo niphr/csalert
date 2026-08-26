@@ -35,6 +35,9 @@ short_term_trend(x, ...)
   trend_isoyearweeks = 3,
   propagate_slope_error = FALSE,
   n_sim = 1000L,
+  family = c("identity", "quasipoisson", "binomial"),
+  denominator = NULL,
+  error_reference = c("auto", "normal", "t"),
   ...
 )
 }
@@ -45,7 +48,13 @@ short_term_trend(x, ...)
 
 \item{numerator}{Character of name of numerator.}
 
-\item{denominator}{Character of name of denominator (optional).}
+\item{denominator}{Character. The two methods read it differently, and this
+one entry serves both, because they share a help page. For
+`csfmt_rts_data_v1` it names the denominator column, and it is optional.
+For `csfmt_ensemble_v3` it names the `$draws` measure holding the binomial
+denominator, which enters the fit as the prior weight. `measure` MUST then
+be the proportion on the response scale, between 0 and 1.
+`family = "binomial"` needs it, and the other two families reject it.}
 
 \item{prX}{If using denominator, what scaling factor should be used for numerator/denominator?}
 
@@ -69,19 +78,47 @@ short_term_trend(x, ...)
 
 \item{measure}{Character: the `$draws` measure to compute the trend on.}
 
-\item{propagate_slope_error}{Logical. If `TRUE`, add the OLS slope's own
-sampling error to each draw (`beta1 + se * t_(width-2)`) before the growth
-rate is formed. The trend interval then reflects the uncertainty of the
-slope estimate, and not only the uncertainty of the level. Defaults to
-`FALSE`, which keeps the published numbers unchanged. Note the degrees of
-freedom are `trend_isoyearweeks - 2`. At the default width of 3 that is 1, a
-Cauchy, so widen the window before you enable this.}
+\item{propagate_slope_error}{Logical. If `TRUE`, add the slope's own sampling
+  error to each draw, then form the growth rate. The trend interval then
+  reflects the uncertainty of the slope estimate, and not the uncertainty of
+  the level alone. Defaults to `FALSE`, which keeps the published numbers
+  unchanged. `error_reference` picks the distribution the error comes from.
+  Under its `"auto"` default, `"identity"` and `"quasipoisson"` add
+  `se * t_(width-2)`. At the default width of 3 those degrees of freedom are
+  1, a Cauchy, so widen the window first. `"binomial"` adds `se * rnorm()`,
+  and a 3-week window stays usable there.
+
+  `"identity"` and `"quasipoisson"` need `trend_isoyearweeks >= 3` here, and
+  no `error_reference` lowers that floor. Both read a dispersion off
+  `width - 2` residual degrees of freedom, so `se` itself is not defined at
+  width 2. `"binomial"` fixes the dispersion at 1 and accepts width 2.}
 
 \item{n_sim}{Integer. Draw-axis width used for the slope-error perturbation
 when the incoming ensemble is degenerate. A degenerate ensemble holds a
 single passthrough draw, so it has no draw axis to carry the uncertainty.
 Ignored when the ensemble
 already has draws, and when `propagate_slope_error` is `FALSE`.}
+
+\item{family}{Error family and link for the rolling fit. `"identity"` is the
+default. It is ordinary least squares on `measure`, and the growth rate is
+`100 * beta1 / Y`. `"quasipoisson"` is a log link on `measure`.
+`"binomial"` is a logit link, and needs `denominator`. Both of those report
+`beta1` on the link scale. The growth rate is then
+`100 * (exp(beta1) - 1)`, a percent change per week. Under `"binomial"`
+that percent change is in the odds, not in the proportion. A zero in
+`measure` needs no offset: the log link models `E[Y] = exp(b0 + b1 t)` and
+never takes `log(Y)`.}
+
+\item{error_reference}{Character: the reference distribution that
+`propagate_slope_error` perturbs the slope with. `"auto"` is the default.
+It gives `"identity"` and `"quasipoisson"` a t on
+`trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
+from that many residual degrees of freedom, which is the case
+`summary.glm()` refers to a t. It gives `"binomial"` a standard normal,
+because that family fixes the dispersion at 1. `"normal"` and `"t"` force
+one reference on every family. Use `"normal"` to match a pipeline whose
+interval comes from `stats::confint()`, which profiles the deviance
+against an asymptotic chi-squared.}
 }
 \value{
 The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.

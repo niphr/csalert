@@ -1,3 +1,75 @@
+# Version 2026.8.26
+
+## Trend on the link scale
+
+- **`short_term_trend()` on a `csfmt_ensemble_v3` takes `family`.**
+  `"quasipoisson"` is a log link and `"binomial"` is a logit link. `beta1` is
+  then the slope on the link scale. That is the `coef(model)[2]` the older
+  `glm()` pipelines report, so the two become comparable. `"identity"` is the
+  default and reproduces the previous numbers exactly.
+- The growth rate on a link scale is `100 * (exp(beta1) - 1)`, a percent change
+  per week. Under `"binomial"` that percent change is in the odds.
+- A zero count needs no offset. The log link models `E[Y] = exp(b0 + b1 t)` and
+  never takes `log(Y)`.
+- `family = "binomial"` needs the new `denominator` argument, which names the
+  `$draws` measure holding the binomial denominator. It enters the fit as the
+  prior weight, and `measure` MUST then be a proportion between 0 and 1.
+- The rolling GLM stays a filter. IRLS advances every window of every draw
+  together, and no window reaches `stats::glm()`.
+
+## A window that cannot converge returns NA
+
+- **A separated window has no finite slope, and the fit cannot converge.**
+  Complete or quasi-complete separation drives the IRLS slope to infinity. The
+  iterate that `maxit` stops on is finite, so `is.finite()` never removed it. A
+  window of `c(0, 0, 0, 0, 0.2, 0.3, 0.4, 0.5)` separates at width 4, with a
+  denominator of 50. Its growth rate reached `$draws` as 1.06e13 percent per
+  week. `beta1`, `se` and the growth rate are now `NA_real_` there.
+- `rolling_slope_matrix()` returns a fourth matrix, `converged`. It is logical,
+  and `NA` on the leading `width-1` rows that hold no window.
+- `beta0` is `NA_real_` there too. A lone intercept beside a missing slope reads
+  as a fitted level, and it is the same meaningless iterate.
+- **An all-zero window returns `NA`, and `stats::glm()` returns a slope of 0.**
+  That is the one place the two disagree on purpose. `stats::glm()` stops on the
+  relative change in the deviance, which is 0 for an all-zero window from the
+  first iteration. This kernel stops on the coefficient step, and that step
+  never settles: the intercept marches to `-Inf` as the fitted mean goes to 0.
+  An all-zero window identifies no slope, and `NA` says so.
+- The warning reports the iteration the batch stopped on, and names `maxit`
+  separately. It claimed `maxit` iterations before. A batch holding a
+  missing-value window can settle earlier, because the stopping rule drops that
+  window with `na.rm`.
+- The two GLM families warn once per call, with the count of window fits that
+  did not converge. A run of zero weeks followed by a rise is ordinary
+  early-season surveillance data, so the warning will fire.
+
+## The slope-error reference is now an argument
+
+- **`short_term_trend()` on a `csfmt_ensemble_v3` takes `error_reference`.**
+  `"auto"` is the default. It gives `"identity"` and `"quasipoisson"` a t on
+  `trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion from
+  that many residual degrees of freedom. That is the case `summary.glm()`
+  refers to a t.
+- `"binomial"` keeps a standard normal under `"auto"`, because that family
+  fixes the dispersion at 1 and leaves nothing to estimate.
+- Pass `error_reference = "normal"` to match a pipeline whose interval comes
+  from `stats::confint()`, which profiles the deviance against an asymptotic
+  chi-squared. `"t"` forces the other direction on every family.
+- `propagate_slope_error = TRUE` now needs `trend_isoyearweeks >= 3` under
+  `family = "identity"` and `family = "quasipoisson"`, whatever the
+  `error_reference`. Both read a dispersion off `width - 2` residual degrees of
+  freedom, so at width 2 `se` is `NaN` under identity and `Inf` under
+  quasi-Poisson. The growth rate then reached `$draws` missing, or as a random
+  -100 percent. `family = "binomial"` fixes the dispersion at 1 and still
+  accepts width 2.
+- `family = "identity"` is unchanged. It drew `se * t_(width-2)` before and it
+  still does.
+
+## Version
+
+- r-universe published 2026.8.23 from commit `ed0749b8`, so this tree cannot
+  reuse that number. 2026.8.26 is the release date of this tree.
+
 # Version 2026.8.23
 
 - The 51-name `utils::globalVariables()` list is gone. Each NSE column name is

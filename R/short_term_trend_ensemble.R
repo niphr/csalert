@@ -10,15 +10,63 @@
 # column, then rows where time_series_internal_id < width are masked to NA --
 # which is exactly the set of windows that would straddle a series boundary
 # (internal_id resets to 1 per series).
+#
+# family = "quasipoisson" and family = "binomial" replace that closed form with
+# IRLS, which is weighted least squares repeated a few times. It stays a filter:
+# every window of every draw advances one iteration together, and no window ever
+# reaches stats::glm.
+#
+# A window can also fail to converge. Complete or quasi-complete separation
+# drives the slope to infinity. The iteration then returns whatever iterate
+# maxit stopped on, which is finite and absurd. The kernel tracks the step size
+# of each window separately. A window is converged only when its own step falls
+# under tol. Everywhere else beta0, beta1 and se are NA.
+#
+# colCumsums cannot carry the weighted sums, and that is not an oversight. A
+# working weight belongs to a (row, window) pair, not to a row alone. Row r sits
+# at a different local time in each of the `width` windows holding it, so its eta
+# and its mu differ in each one. A cumulative sum can only roll a quantity
+# indexed by the row. The weighted sums are therefore accumulated over the
+# `width` lagged slices of Y, which costs the O(width x rows x draws) the
+# identity path already pays for `Stx`.
 
-#' Rolling OLS slope over a weeks x draws matrix
+#' Rolling regression slope over a weeks x draws matrix
 #'
-#' Closed-form simple linear regression of each window (length `width`, time
-#' index 1..width) applied independently down every column. Returns matrices of
-#' the same shape; leading `width-1` rows of each column are NA.
+#' Fits `y ~ 1 + t` over each window (length `width`, local time index
+#' `1..width`) independently down every column. Returns matrices of the same
+#' shape; the leading `width-1` rows of each column are NA.
+#'
+#' A window with complete or quasi-complete separation drives the slope to
+#' infinity, so IRLS cannot converge. `beta0`, `beta1` and `se` are then
+#' `NA_real_`, and the function warns once with the count.
 #' @param Y Numeric matrix, rows = time (ordered), columns = draws.
 #' @param width Window width (>= 2).
-#' @returns List of matrices: `beta0`, `beta1`, `se`.
+#' @param family Error family and link. `"identity"` is the default. It is the
+#'   closed-form ordinary least squares fit on `Y`. `"quasipoisson"` is a log
+#'   link and `"binomial"` is a logit link. Both of those run iteratively
+#'   reweighted least squares, so `beta1` is a slope on the link scale.
+#' @param prior_weights Numeric matrix of binomial denominators, shaped like `Y`
+#'   or holding one column that is recycled across the draws.
+#'   `family = "binomial"` needs it, and the other two families reject it.
+#' @param tol Convergence tolerance. The iteration stops once no coefficient of
+#'   any window moves further than `tol`.
+#' @param maxit Maximum number of iterations. A window whose coefficients still
+#'   move further than `tol` at iteration `maxit` did not converge.
+#' @returns List of matrices: `beta0`, `beta1`, `se`, `converged`. `se` is the
+#'   standard error of `beta1`. Under the two GLM families it is a Wald standard
+#'   error. `converged` is logical. It is `NA` on the leading `width-1` rows,
+#'   which hold no window. `beta0`, `beta1` and `se` are `NA_real_` wherever
+#'   `converged` is `FALSE`. The closed-form identity family solves every
+#'   complete window, so its `converged` is `TRUE` throughout.
+#' @section A deliberate divergence from glm:
+#'   An all-zero window returns `NA` here. `stats::glm()` returns a slope of 0
+#'   on the same window. The two use different convergence rules.
+#'   `stats::glm()` stops on the relative change in the deviance, which is 0 for
+#'   an all-zero window from the first iteration. This kernel stops on the
+#'   coefficient step, and that step never settles: the intercept marches to
+#'   `-Inf` as the fitted mean goes to 0. Agreement with `stats::glm()` is the
+#'   contract of this function, so the divergence is deliberate, and this is the
+#'   one case of it. An all-zero window identifies no slope, and `NA` says so.
 #' @seealso Neither package vignette covers this function. It is the numeric
 #'   kernel behind the ensemble method of \code{\link{short_term_trend}}, which
 #'   is the function you normally want. Use this one when you have a bare
@@ -38,9 +86,28 @@
 #'
 #' # `se` is the OLS standard error of that slope
 #' round(rs$se[10, ], 2)
+#'
+#' # a log link instead: counts rising at 0.2 per week on the log scale
+#' N <- matrix(rpois(40, rep(exp(1 + 0.2 * 1:10), 4)), nrow = 10)
+#' round(rolling_slope_matrix(N, width = 4, family = "quasipoisson")$beta1[10, ], 2)
 #' @export
-rolling_slope_matrix <- function(Y, width) {
+rolling_slope_matrix <- function(
+  Y,
+  width,
+  family = c("identity", "quasipoisson", "binomial"),
+  prior_weights = NULL,
+  tol = 1e-10,
+  maxit = 25L
+) {
   stopifnot(is.matrix(Y), width >= 2)
+  family <- match.arg(family)
+  if (!is.null(prior_weights) && family != "binomial") {
+    stop("`prior_weights` is only used by family = 'binomial'")
+  }
+  if (family != "identity") {
+    return(rolling_irls_slope(Y, width, family, prior_weights, tol, maxit))
+  }
+
   n <- width
   t_bar <- (n + 1) / 2
   SS_t <- n * (n^2 - 1) / 12
@@ -65,25 +132,220 @@ rolling_slope_matrix <- function(Y, width) {
   beta0 <- Sx / n - beta1 * t_bar
   RSS <- pmax(Sx2 - Sx^2 / n - beta1^2 * SS_t, 0)
   se <- sqrt(RSS / ((n - 2) * SS_t))
-  list(beta0 = beta0, beta1 = beta1, se = se)
+  # The closed form solves each complete window in one step, so there is no
+  # iteration to fail. `converged` exists so that the return shape does not
+  # depend on the family.
+  converged <- matrix(NA, W, D)
+  converged[n:W, ] <- TRUE
+  list(beta0 = beta0, beta1 = beta1, se = se, converged = converged)
+}
+
+# IRLS on the link scale, one iteration at a time across every window and every
+# draw. `Ylag[[j]]` holds the rows that sit at local time `tt[j]` in their
+# window. A window sum is therefore an accumulation over j, not a rolling sum
+# over rows. The start values are glm's own `mustart`, which depends on the row
+# alone, so the first iteration reproduces the first step of stats::glm.fit.
+rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
+  n <- width
+  W <- nrow(Y)
+  D <- ncol(Y)
+  blank <- matrix(NA_real_, W, D)
+  if (W < n) {
+    return(list(
+      beta0 = blank,
+      beta1 = blank,
+      se = blank,
+      converged = matrix(NA, W, D)
+    ))
+  }
+
+  binom <- family == "binomial"
+  if (binom) {
+    if (is.null(prior_weights)) {
+      stop(
+        "family = 'binomial' needs `prior_weights` (the binomial denominator)"
+      )
+    }
+    stopifnot(is.matrix(prior_weights), nrow(prior_weights) == W)
+    if (ncol(prior_weights) == 1L && D > 1L) {
+      prior_weights <- prior_weights[, rep(1L, D), drop = FALSE]
+    }
+    if (ncol(prior_weights) != D) {
+      stop("`prior_weights` must have 1 column, or as many columns as `Y`")
+    }
+    if (any(Y < 0 | Y > 1, na.rm = TRUE)) {
+      stop("family = 'binomial' needs `Y` on the response scale: 0 <= y <= 1")
+    }
+  } else if (any(Y < 0, na.rm = TRUE)) {
+    stop("family = 'quasipoisson' needs a non-negative `Y`")
+  }
+
+  rows <- n:W # the last row of each complete window
+  tt <- n:1 # local time of lag j-1, for j = 1..n
+  Ylag <- lapply(seq_len(n), function(j) Y[rows - (j - 1L), , drop = FALSE])
+  Mlag <- if (binom) {
+    lapply(seq_len(n), function(j) {
+      prior_weights[rows - (j - 1L), , drop = FALSE]
+    })
+  }
+
+  b0 <- b1 <- matrix(Inf, length(rows), D)
+  step <- matrix(NA_real_, length(rows), D)
+  it <- 0L
+  for (it in seq_len(maxit)) {
+    Sw <- Swt <- Swt2 <- Swz <- Swtz <- matrix(0, length(rows), D)
+    for (j in seq_len(n)) {
+      y <- Ylag[[j]]
+      if (it == 1L) {
+        mu <- if (binom) (Mlag[[j]] * y + 0.5) / (Mlag[[j]] + 1) else y + 0.1
+        eta <- if (binom) log(mu / (1 - mu)) else log(mu)
+      } else {
+        eta <- b0 + b1 * tt[j]
+        mu <- if (binom) 1 / (1 + exp(-eta)) else exp(eta)
+      }
+      if (binom) {
+        v <- mu * (1 - mu)
+        w <- Mlag[[j]] * v
+        z <- eta + (y - mu) / v
+      } else {
+        w <- mu
+        z <- eta + (y - mu) / mu
+      }
+      Sw <- Sw + w
+      Swt <- Swt + w * tt[j]
+      Swt2 <- Swt2 + w * tt[j]^2
+      Swz <- Swz + w * z
+      Swtz <- Swtz + w * tt[j] * z
+    }
+    det <- Sw * Swt2 - Swt^2
+    new1 <- (Sw * Swtz - Swt * Swz) / det
+    new0 <- (Swt2 * Swz - Swt * Swtz) / det
+    # `step` is per window, `delta` is the whole batch. The loop stops on
+    # `delta`, and `step` at the last iteration says which windows got there.
+    # A converged window sits at its own fixed point while the batch runs on,
+    # so its step stays at machine precision.
+    step <- pmax(abs(new1 - b1), abs(new0 - b0))
+    delta <- suppressWarnings(max(step, na.rm = TRUE))
+    b1 <- new1
+    b0 <- new0
+    if (delta < tol) break
+  }
+  ok <- !is.na(step) & step < tol
+
+  # Wald standard error at the converged coefficients: sqrt(phi * (X'WX)^-1_22),
+  # and (X'WX)^-1_22 is Sw / det. The quasi-Poisson dispersion is the Pearson
+  # statistic over width - 2; the binomial family fixes it at 1, as stats::glm
+  # does.
+  Sw <- Swt <- Swt2 <- chi <- matrix(0, length(rows), D)
+  for (j in seq_len(n)) {
+    eta <- b0 + b1 * tt[j]
+    mu <- if (binom) 1 / (1 + exp(-eta)) else exp(eta)
+    if (binom) {
+      w <- Mlag[[j]] * mu * (1 - mu)
+    } else {
+      w <- mu
+      chi <- chi + (Ylag[[j]] - mu)^2 / mu
+    }
+    Sw <- Sw + w
+    Swt <- Swt + w * tt[j]
+    Swt2 <- Swt2 + w * tt[j]^2
+  }
+  phi <- if (binom) 1 else chi / (n - 2)
+  se <- sqrt(phi * Sw / (Sw * Swt2 - Swt^2))
+
+  # A non-convergent window is a separated one. Its last iterate is a finite
+  # number of no meaning: 25.19 on the logit scale reaches $draws as 1.1e13
+  # percent per week. `is.finite()` cannot catch that. A missing slope is the
+  # honest answer, so drop it and say how many were dropped. `beta0` goes with
+  # it: a lone intercept beside a missing slope reads as a fitted level, and it
+  # is the same meaningless iterate.
+  b0[!ok] <- NA_real_
+  b1[!ok] <- NA_real_
+  se[!ok] <- NA_real_
+  n_bad <- sum(!ok)
+  if (n_bad > 0L) {
+    # `it` is the iteration the batch stopped on, which is not always `maxit`.
+    # `delta` drops a missing window with na.rm, so a batch holding one can
+    # settle early while that window stays unconverged.
+    warning(
+      sprintf(
+        paste0(
+          "rolling_slope_matrix: IRLS did not converge in %d of %d window ",
+          "fits after %d iterations (maxit = %d). `beta0`, `beta1` and `se` ",
+          "are NA there. Check those windows for separation or for a missing ",
+          "value."
+        ),
+        n_bad,
+        length(ok),
+        it,
+        maxit
+      ),
+      call. = FALSE
+    )
+  }
+
+  pad <- function(M, fill = NA_real_) {
+    out <- matrix(fill, W, D)
+    out[rows, ] <- M
+    out
+  }
+  list(
+    beta0 = pad(b0),
+    beta1 = pad(b1),
+    se = pad(se),
+    converged = pad(ok, NA)
+  )
 }
 
 #' @method short_term_trend csfmt_ensemble_v3
 #' @rdname short_term_trend
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
-#' @param propagate_slope_error Logical. If `TRUE`, add the OLS slope's own
-#'   sampling error to each draw (`beta1 + se * t_(width-2)`) before the growth
-#'   rate is formed. The trend interval then reflects the uncertainty of the
-#'   slope estimate, and not only the uncertainty of the level. Defaults to
-#'   `FALSE`, which keeps the published numbers unchanged. Note the degrees of
-#'   freedom are `trend_isoyearweeks - 2`. At the default width of 3 that is 1, a
-#'   Cauchy, so widen the window before you enable this.
+#' @param propagate_slope_error Logical. If `TRUE`, add the slope's own sampling
+#'   error to each draw, then form the growth rate. The trend interval then
+#'   reflects the uncertainty of the slope estimate, and not the uncertainty of
+#'   the level alone. Defaults to `FALSE`, which keeps the published numbers
+#'   unchanged. `error_reference` picks the distribution the error comes from.
+#'   Under its `"auto"` default, `"identity"` and `"quasipoisson"` add
+#'   `se * t_(width-2)`. At the default width of 3 those degrees of freedom are
+#'   1, a Cauchy, so widen the window first. `"binomial"` adds `se * rnorm()`,
+#'   and a 3-week window stays usable there.
+#'
+#'   `"identity"` and `"quasipoisson"` need `trend_isoyearweeks >= 3` here, and
+#'   no `error_reference` lowers that floor. Both read a dispersion off
+#'   `width - 2` residual degrees of freedom, so `se` itself is not defined at
+#'   width 2. `"binomial"` fixes the dispersion at 1 and accepts width 2.
 #' @param n_sim Integer. Draw-axis width used for the slope-error perturbation
 #'   when the incoming ensemble is degenerate. A degenerate ensemble holds a
 #'   single passthrough draw, so it has no draw axis to carry the uncertainty.
 #'   Ignored when the ensemble
 #'   already has draws, and when `propagate_slope_error` is `FALSE`.
+#' @param family Error family and link for the rolling fit. `"identity"` is the
+#'   default. It is ordinary least squares on `measure`, and the growth rate is
+#'   `100 * beta1 / Y`. `"quasipoisson"` is a log link on `measure`.
+#'   `"binomial"` is a logit link, and needs `denominator`. Both of those report
+#'   `beta1` on the link scale. The growth rate is then
+#'   `100 * (exp(beta1) - 1)`, a percent change per week. Under `"binomial"`
+#'   that percent change is in the odds, not in the proportion. A zero in
+#'   `measure` needs no offset: the log link models `E[Y] = exp(b0 + b1 t)` and
+#'   never takes `log(Y)`.
+#' @param denominator Character. The two methods read it differently, and this
+#'   one entry serves both, because they share a help page. For
+#'   `csfmt_rts_data_v1` it names the denominator column, and it is optional.
+#'   For `csfmt_ensemble_v3` it names the `$draws` measure holding the binomial
+#'   denominator, which enters the fit as the prior weight. `measure` MUST then
+#'   be the proportion on the response scale, between 0 and 1.
+#'   `family = "binomial"` needs it, and the other two families reject it.
+#' @param error_reference Character: the reference distribution that
+#'   `propagate_slope_error` perturbs the slope with. `"auto"` is the default.
+#'   It gives `"identity"` and `"quasipoisson"` a t on
+#'   `trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
+#'   from that many residual degrees of freedom, which is the case
+#'   `summary.glm()` refers to a t. It gives `"binomial"` a standard normal,
+#'   because that family fixes the dispersion at 1. `"normal"` and `"t"` force
+#'   one reference on every family. Use `"normal"` to match a pipeline whose
+#'   interval comes from `stats::confint()`, which profiles the deviance
+#'   against an asymptotic chi-squared.
 #' @returns The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
 #'   to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
 #'   ready for the quantile collapse.
@@ -94,9 +356,14 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   trend_isoyearweeks = 3,
   propagate_slope_error = FALSE,
   n_sim = 1000L,
+  family = c("identity", "quasipoisson", "binomial"),
+  denominator = NULL,
+  error_reference = c("auto", "normal", "t"),
   ...
 ) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
+  family <- match.arg(family)
+  error_reference <- match.arg(error_reference)
   if (!measure %in% names(x$draws)) {
     stop(sprintf(
       "measure '%s' not in $draws (have: %s)",
@@ -106,7 +373,35 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   }
   width <- trend_isoyearweeks
   Y <- x$draws[[measure]]
-  rs <- rolling_slope_matrix(Y, width)
+
+  # The binomial denominator is a measure name in $draws, matching
+  # ens_add_rate(). It is drawn like everything else, so it carries its own
+  # uncertainty column by column. A single-column denominator is recycled
+  # across the draws of `measure`.
+  prior_weights <- NULL
+  if (family == "binomial") {
+    if (is.null(denominator)) {
+      stop(
+        "family = 'binomial' needs `denominator`, the $draws measure holding the binomial denominator"
+      )
+    }
+    if (!denominator %in% names(x$draws)) {
+      stop(sprintf(
+        "denominator '%s' not in $draws (have: %s)",
+        denominator,
+        paste(names(x$draws), collapse = ", ")
+      ))
+    }
+    prior_weights <- x$draws[[denominator]]
+  } else if (!is.null(denominator)) {
+    stop("`denominator` is only used by family = 'binomial'")
+  }
+  rs <- rolling_slope_matrix(
+    Y,
+    width,
+    family = family,
+    prior_weights = prior_weights
+  )
 
   # seam mask: windows that would straddle a series boundary
   invalid <- x$data$time_series_internal_id < width
@@ -116,9 +411,41 @@ short_term_trend.csfmt_ensemble_v3 <- function(
 
   beta1 <- rs$beta1
   if (propagate_slope_error) {
-    df <- width - 2
-    if (df < 1) {
-      stop("propagate_slope_error needs trend_isoyearweeks >= 3")
+    # "auto" reads the dispersion. Identity and quasi-Poisson both estimate one
+    # from width - 2 residual degrees of freedom, which is the case
+    # summary.glm() refers to a t. The binomial family fixes it at 1, so a
+    # normal is the right reference there.
+    reference <- if (error_reference != "auto") {
+      error_reference
+    } else if (family == "binomial") {
+      "normal"
+    } else {
+      "t"
+    }
+    # Identity and quasi-Poisson both estimate the dispersion from width - 2
+    # residual degrees of freedom. At width 2 there are none, so `se` is NaN
+    # under identity and Inf under quasi-Poisson, and the growth rate reaches
+    # $draws missing or as a random -100 percent. No `error_reference` escapes
+    # that: the defect is in `se`, not in the reference. The binomial family
+    # fixes the dispersion at 1, so its `se` is finite at width 2.
+    if (family != "binomial" && width < 3) {
+      stop(sprintf(
+        paste0(
+          "propagate_slope_error needs trend_isoyearweeks >= 3 under family = ",
+          "'%s'. That family estimates a dispersion from width - 2 residual ",
+          "degrees of freedom, so `se` is not defined at width 2. Only ",
+          "family = 'binomial' fixes the dispersion at 1 and accepts width 2."
+        ),
+        family
+      ))
+    }
+    if (reference == "t") {
+      df <- width - 2
+      if (df < 1) {
+        stop(
+          "propagate_slope_error needs trend_isoyearweeks >= 3 under error_reference = 't'. A t reference needs at least 1 degree of freedom."
+        )
+      }
     }
     se <- rs$se
     # A passthrough ensemble has a single draw, so there is no draw axis to carry
@@ -132,16 +459,23 @@ short_term_trend.csfmt_ensemble_v3 <- function(
       se <- se[, rep1, drop = FALSE]
       Y <- Y[, rep1, drop = FALSE]
     }
-    # The OLS slope's sampling distribution is beta1_hat + se * t_(width-2).
-    # WARNING: at the default width of 3 that is t_1, i.e. Cauchy -- no finite
-    # variance, so the growth-rate quantiles get very heavy tails. Widen the
-    # window before turning this on.
-    beta1 <- beta1 +
-      se * matrix(stats::rt(length(beta1), df = df), nrow(beta1), ncol(beta1))
+    # The slope's sampling distribution is beta1_hat + se * reference.
+    # WARNING: at the default width of 3 a t reference is t_1, a Cauchy. It
+    # has no finite variance, so the growth-rate quantiles get heavy tails.
+    # Widen the window before turning this on. A normal reference keeps width 3
+    # usable, and error_reference = "normal" forces one on every family.
+    err <- if (reference == "t") {
+      stats::rt(length(beta1), df = df)
+    } else {
+      stats::rnorm(length(beta1))
+    }
+    beta1 <- beta1 + se * matrix(err, nrow(beta1), ncol(beta1))
   }
 
-  # growth rate per draw: gr_pr100 = 100 * slope / level
-  gr <- 100 * beta1 / Y
+  # growth rate per draw. Identity: gr_pr100 = 100 * slope / level. Log or logit
+  # link: the slope IS a growth rate on the link scale, so exp(beta1) - 1 is the
+  # per-week relative change and needs no level to divide by.
+  gr <- if (family == "identity") 100 * beta1 / Y else 100 * (exp(beta1) - 1)
   gr[!is.finite(gr)] <- NA_real_
 
   x$draws[[csfmt_var(measure, role = "trend", suffix = "_beta1")]] <- beta1

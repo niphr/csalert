@@ -2,23 +2,67 @@
 % Please edit documentation in R/short_term_trend_ensemble.R
 \name{rolling_slope_matrix}
 \alias{rolling_slope_matrix}
-\title{Rolling OLS slope over a weeks x draws matrix}
+\title{Rolling regression slope over a weeks x draws matrix}
 \usage{
-rolling_slope_matrix(Y, width)
+rolling_slope_matrix(
+  Y,
+  width,
+  family = c("identity", "quasipoisson", "binomial"),
+  prior_weights = NULL,
+  tol = 1e-10,
+  maxit = 25L
+)
 }
 \arguments{
 \item{Y}{Numeric matrix, rows = time (ordered), columns = draws.}
 
 \item{width}{Window width (>= 2).}
+
+\item{family}{Error family and link. `"identity"` is the default. It is the
+closed-form ordinary least squares fit on `Y`. `"quasipoisson"` is a log
+link and `"binomial"` is a logit link. Both of those run iteratively
+reweighted least squares, so `beta1` is a slope on the link scale.}
+
+\item{prior_weights}{Numeric matrix of binomial denominators, shaped like `Y`
+or holding one column that is recycled across the draws.
+`family = "binomial"` needs it, and the other two families reject it.}
+
+\item{tol}{Convergence tolerance. The iteration stops once no coefficient of
+any window moves further than `tol`.}
+
+\item{maxit}{Maximum number of iterations. A window whose coefficients still
+move further than `tol` at iteration `maxit` did not converge.}
 }
 \value{
-List of matrices: `beta0`, `beta1`, `se`.
+List of matrices: `beta0`, `beta1`, `se`, `converged`. `se` is the
+  standard error of `beta1`. Under the two GLM families it is a Wald standard
+  error. `converged` is logical. It is `NA` on the leading `width-1` rows,
+  which hold no window. `beta0`, `beta1` and `se` are `NA_real_` wherever
+  `converged` is `FALSE`. The closed-form identity family solves every
+  complete window, so its `converged` is `TRUE` throughout.
 }
 \description{
-Closed-form simple linear regression of each window (length `width`, time
-index 1..width) applied independently down every column. Returns matrices of
-the same shape; leading `width-1` rows of each column are NA.
+Fits `y ~ 1 + t` over each window (length `width`, local time index
+`1..width`) independently down every column. Returns matrices of the same
+shape; the leading `width-1` rows of each column are NA.
 }
+\details{
+A window with complete or quasi-complete separation drives the slope to
+infinity, so IRLS cannot converge. `beta0`, `beta1` and `se` are then
+`NA_real_`, and the function warns once with the count.
+}
+\section{A deliberate divergence from glm}{
+
+  An all-zero window returns `NA` here. `stats::glm()` returns a slope of 0
+  on the same window. The two use different convergence rules.
+  `stats::glm()` stops on the relative change in the deviance, which is 0 for
+  an all-zero window from the first iteration. This kernel stops on the
+  coefficient step, and that step never settles: the intercept marches to
+  `-Inf` as the fitted mean goes to 0. Agreement with `stats::glm()` is the
+  contract of this function, so the divergence is deliberate, and this is the
+  one case of it. An all-zero window identifies no slope, and `NA` says so.
+}
+
 \examples{
 # 10 weeks x 4 draws, all rising at a true slope of 2 per week
 set.seed(1)
@@ -34,6 +78,10 @@ round(rs$beta1[8:10, ], 2)
 
 # `se` is the OLS standard error of that slope
 round(rs$se[10, ], 2)
+
+# a log link instead: counts rising at 0.2 per week on the log scale
+N <- matrix(rpois(40, rep(exp(1 + 0.2 * 1:10), 4)), nrow = 10)
+round(rolling_slope_matrix(N, width = 4, family = "quasipoisson")$beta1[10, ], 2)
 }
 \seealso{
 Neither package vignette covers this function. It is the numeric
