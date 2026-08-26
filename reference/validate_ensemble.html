@@ -13,7 +13,7 @@ that `$data` is a data.table and `$draws` a list, that `$data` has the
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.26</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -126,8 +126,7 @@ this check.</p>
 <span class="r-in"><span><span class="va">bad</span> <span class="op">&lt;-</span> <span class="va">ens</span></span></span>
 <span class="r-in"><span><span class="va">bad</span><span class="op">$</span><span class="va">draws</span><span class="op">$</span><span class="va">numerator_nowcasted</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, nrow <span class="op">=</span> <span class="fl">2</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">validate_ensemble</span><span class="op">(</span><span class="va">bad</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Error in validate_ensemble(bad) : </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   draws[['numerator_nowcasted']] has 2 rows; expected 3 (nrow($data))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Error : draws[['numerator_nowcasted']] has 2 rows; expected 3 (nrow($data))</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># but a draw matrix whose rows have been PERMUTED has the right count, so it</span></span></span>
 <span class="r-in"><span><span class="co"># passes -- the row-to-week correspondence is not checked</span></span></span>

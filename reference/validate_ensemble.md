@@ -74,8 +74,7 @@ validate_ensemble(ens)
 bad <- ens
 bad$draws$numerator_nowcasted <- matrix(1, nrow = 2, ncol = 4)
 try(validate_ensemble(bad))
-#> Error in validate_ensemble(bad) : 
-#>   draws[['numerator_nowcasted']] has 2 rows; expected 3 (nrow($data))
+#> Error : draws[['numerator_nowcasted']] has 2 rows; expected 3 (nrow($data))
 
 # but a draw matrix whose rows have been PERMUTED has the right count, so it
 # passes -- the row-to-week correspondence is not checked

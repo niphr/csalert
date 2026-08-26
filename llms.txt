@@ -69,7 +69,7 @@ quantile summary (optionally healed into a cstidy csfmt_rts_data_v3).
 - [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
   : MEM intensity thresholds
 - [`rolling_slope_matrix()`](https://niphr.github.io/csalert/reference/rolling_slope_matrix.md)
-  : Rolling OLS slope over a weeks x draws matrix
+  : Rolling regression slope over a weeks x draws matrix
 
 ## Nowcasting engines
 

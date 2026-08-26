@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.26</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,56 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.26" id="version-2026826">Version 2026.8.26<a class="anchor" aria-label="anchor" href="#version-2026826"></a></h2>
+<div class="section level3">
+<h3 id="trend-on-the-link-scale-2026-8-26">Trend on the link scale<a class="anchor" aria-label="anchor" href="#trend-on-the-link-scale-2026-8-26"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a <code>csfmt_ensemble_v3</code> takes <code>family</code>.</strong> <code>"quasipoisson"</code> is a log link and <code>"binomial"</code> is a logit link. <code>beta1</code> is then the slope on the link scale. That is the <code>coef(model)[2]</code> the older <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">glm()</a></code> pipelines report, so the two become comparable. <code>"identity"</code> is the default and reproduces the previous numbers exactly.</li>
+<li>The growth rate on a link scale is <code>100 * (exp(beta1) - 1)</code>, a percent change per week. Under <code>"binomial"</code> that percent change is in the odds.</li>
+<li>A zero count needs no offset. The log link models <code>E[Y] = exp(b0 + b1 t)</code> and never takes <code>log(Y)</code>.</li>
+<li>
+<code>family = "binomial"</code> needs the new <code>denominator</code> argument, which names the <code>$draws</code> measure holding the binomial denominator. It enters the fit as the prior weight, and <code>measure</code> MUST then be a proportion between 0 and 1.</li>
+<li>The rolling GLM stays a filter. IRLS advances every window of every draw together, and no window reaches <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="a-window-that-cannot-converge-returns-na-2026-8-26">A window that cannot converge returns NA<a class="anchor" aria-label="anchor" href="#a-window-that-cannot-converge-returns-na-2026-8-26"></a></h3>
+<ul><li>
+<strong>A separated window has no finite slope, and the fit cannot converge.</strong> Complete or quasi-complete separation drives the IRLS slope to infinity. The iterate that <code>maxit</code> stops on is finite, so <code><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite()</a></code> never removed it. A window of <code>c(0, 0, 0, 0, 0.2, 0.3, 0.4, 0.5)</code> separates at width 4, with a denominator of 50. Its growth rate reached <code>$draws</code> as 1.06e13 percent per week. <code>beta1</code>, <code>se</code> and the growth rate are now <code>NA_real_</code> there.</li>
+<li>
+<code><a href="../reference/rolling_slope_matrix.html">rolling_slope_matrix()</a></code> returns a fourth matrix, <code>converged</code>. It is logical, and <code>NA</code> on the leading <code>width-1</code> rows that hold no window.</li>
+<li>
+<code>beta0</code> is <code>NA_real_</code> there too. A lone intercept beside a missing slope reads as a fitted level, and it is the same meaningless iterate.</li>
+<li>
+<strong>An all-zero window returns <code>NA</code>, and <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> returns a slope of 0.</strong> That is the one place the two disagree on purpose. <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> stops on the relative change in the deviance, which is 0 for an all-zero window from the first iteration. This kernel stops on the coefficient step, and that step never settles: the intercept marches to <code>-Inf</code> as the fitted mean goes to 0. An all-zero window identifies no slope, and <code>NA</code> says so.</li>
+<li>The warning reports the iteration the batch stopped on, and names <code>maxit</code> separately. It claimed <code>maxit</code> iterations before. A batch holding a missing-value window can settle earlier, because the stopping rule drops that window with <code>na.rm</code>.</li>
+<li>The two GLM families warn once per call, with the count of window fits that did not converge. A run of zero weeks followed by a rise is ordinary early-season surveillance data, so the warning will fire.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-slope-error-reference-is-now-an-argument-2026-8-26">The slope-error reference is now an argument<a class="anchor" aria-label="anchor" href="#the-slope-error-reference-is-now-an-argument-2026-8-26"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a <code>csfmt_ensemble_v3</code> takes <code>error_reference</code>.</strong> <code>"auto"</code> is the default. It gives <code>"identity"</code> and <code>"quasipoisson"</code> a t on <code>trend_isoyearweeks - 2</code> degrees of freedom. Both estimate a dispersion from that many residual degrees of freedom. That is the case <code><a href="https://rdrr.io/r/stats/summary.glm.html" class="external-link">summary.glm()</a></code> refers to a t.</li>
+<li>
+<code>"binomial"</code> keeps a standard normal under <code>"auto"</code>, because that family fixes the dispersion at 1 and leaves nothing to estimate.</li>
+<li>Pass <code>error_reference = "normal"</code> to match a pipeline whose interval comes from <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">stats::confint()</a></code>, which profiles the deviance against an asymptotic chi-squared. <code>"t"</code> forces the other direction on every family.</li>
+<li>
+<code>propagate_slope_error = TRUE</code> now needs <code>trend_isoyearweeks &gt;= 3</code> under <code>family = "identity"</code> and <code>family = "quasipoisson"</code>, whatever the <code>error_reference</code>. Both read a dispersion off <code>width - 2</code> residual degrees of freedom, so at width 2 <code>se</code> is <code>NaN</code> under identity and <code>Inf</code> under quasi-Poisson. The growth rate then reached <code>$draws</code> missing, or as a random -100 percent. <code>family = "binomial"</code> fixes the dispersion at 1 and still accepts width 2.</li>
+<li>
+<code>family = "identity"</code> is unchanged. It drew <code>se * t_(width-2)</code> before and it still does.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="static-checks-2026-8-26">Static checks<a class="anchor" aria-label="anchor" href="#static-checks-2026-8-26"></a></h3>
+<ul><li>
+<strong><code>R/</code> passes the shared <code>static-checks</code> gate.</strong> The gate arrived with the workflow pin two releases ago and reported 127 findings across 23 of the 24 code files. Every one is now fixed.</li>
+<li>Every <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> and <code><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning()</a></code> names <code>call. = FALSE</code>, because the message goes to a user who cannot act on the call. Every function returns explicitly. <code><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len()</a></code> and <code><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along()</a></code> replace <code>1:n</code>, <code>&amp;&amp;</code> and <code>||</code> replace <code>&amp;</code> and <code>|</code> inside a condition, and <code>TRUE</code> and <code>FALSE</code> replace <code>T</code> and <code>F</code>.</li>
+<li>Seven functions were over 15 cyclomatic complexity and gave their branches to named helpers. In <code>short_term_trend_ensemble.R</code>, <code>rolling_irls_slope()</code> gave up <code>irls_check_response()</code>, <code>irls_working()</code> and <code>irls_wald_se()</code>, and <code><a href="../reference/short_term_trend.html">short_term_trend.csfmt_ensemble_v3()</a></code> gave up <code>stt_prior_weights()</code> and <code>stt_error_reference()</code>.</li>
+<li>No behaviour changes. One user-facing message reads “0.05, 0.25, 0.5, 0.75 and 0.95” where it read “0.05/0.25/0.5/0.75/0.95”, because the slashes read as a file path.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="version-2026-8-26">Version<a class="anchor" aria-label="anchor" href="#version-2026-8-26"></a></h3>
+<ul><li>r-universe published 2026.8.23 from commit <code>ed0749b8</code>, so this tree cannot reuse that number. 2026.8.26 is the release date of this tree.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.23" id="version-2026823">Version 2026.8.23<a class="anchor" aria-label="anchor" href="#version-2026823"></a></h2>
 <ul><li>The 51-name <code><a href="https://rdrr.io/r/utils/globalVariables.html" class="external-link">utils::globalVariables()</a></code> list is gone. Each NSE column name is now declared as <code>NULL</code> at the top of the one function that uses it: 18 declarations across 12 files. Only <code>.</code> stays package-wide, because it is read as an undefined <em>function</em> and no local binding fixes that.</li>
