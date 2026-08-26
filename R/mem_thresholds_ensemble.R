@@ -14,12 +14,12 @@
 
 # Extract the four thresholds from a fitted mem::memmodel object.
 mem_extract_thresholds <- function(fit) {
-  data.table::data.table(
+  return(data.table::data.table(
     mem_preepidemic = fit$epidemic.thresholds[1], # onset (pre-epidemic)
     mem_medium = fit$epi.intervals[1, 4], # 40%
     mem_high = fit$epi.intervals[2, 4], # 90%
     mem_veryhigh = fit$epi.intervals[3, 4] # 97.5%
-  )
+  ))
 }
 
 # Fit MEM, with the norsyss fallback to i.method = 3. NULL on failure.
@@ -51,7 +51,7 @@ mem_fit <- function(model_data, i.seasons = 10) {
         error = function(e) NULL
       )
     )))
-    f
+    return(f)
   }
   fit <- fit_quiet(NULL)
   if (is.null(fit) || is.na(fit$epidemic.thresholds[1])) {
@@ -60,7 +60,7 @@ mem_fit <- function(model_data, i.seasons = 10) {
   if (is.null(fit) || is.na(fit$epidemic.thresholds[1])) {
     return(NULL)
   }
-  fit
+  return(fit)
 }
 
 #' MEM intensity thresholds
@@ -270,5 +270,5 @@ mem_thresholds_v1.csfmt_ensemble_v3 <- function(
   attr(code, "levels") <- c("preepidemic", "low", "medium", "high", "veryhigh")
   x$draws[[csfmt_var(measure, role = "status")]] <- code
 
-  validate_ensemble(x)
+  return(validate_ensemble(x))
 }

@@ -82,7 +82,7 @@ ens_collapse.csfmt_ensemble_v3 <- function(
     }
     cstidy::set_csfmt_rts_data_v3(d) # heal ONCE, here, into the clean csfmt
   }
-  d[]
+  return(d[])
 }
 
 # Reduce an ordinal status code matrix (codes 1..K, with a "levels" attribute)
@@ -104,5 +104,5 @@ collapse_status_into <- function(d, measure, M, levs, probs) {
   qmat <- matrix(qmat, nrow = n, ncol = length(probs))
   qcols <- vapply(probs, function(p) csfmt_var(measure, q = p), character(1))
   d[, (qcols) := data.table::as.data.table(qmat)]
-  invisible(d)
+  return(invisible(d))
 }

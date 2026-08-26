@@ -62,7 +62,7 @@ set_time_series_id <- function(d, id_cols, sep = "") {
       time_series_label = i.time_series_label
     )
   ]
-  invisible(d)
+  return(invisible(d))
 }
 
 #' Construct a csfmt_ensemble_v3
@@ -140,14 +140,14 @@ csfmt_ensemble_v3 <- function(
       if (!is.null(lv)) {
         attr(R, "levels") <- lv
       }
-      R
+      return(R)
     })
   }
 
-  validate_ensemble(structure(
+  return(validate_ensemble(structure(
     list(data = d, draws = draws),
     class = "csfmt_ensemble_v3"
-  ))
+  )))
 }
 
 #' Check a csfmt_ensemble_v3's structural shape
@@ -237,7 +237,7 @@ validate_ensemble <- function(ens) {
       )
     }
   }
-  invisible(ens)
+  return(invisible(ens))
 }
 
 #' Print a `csfmt_ensemble_v3`
@@ -258,5 +258,5 @@ print.csfmt_ensemble_v3 <- function(x, ...) {
     data.table::uniqueN(x$data$time_series_id),
     if (length(x$draws)) paste(names(x$draws), collapse = ", ") else "none"
   ))
-  invisible(x)
+  return(invisible(x))
 }

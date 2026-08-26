@@ -242,10 +242,10 @@ short_term_trend_internal <- function(
           )
         },
         warning = function(cond) {
-          model_denominator <- NULL
+          return(model_denominator <- NULL)
         },
         error = function(cond) {
-          model_denominator <- NULL
+          return(model_denominator <- NULL)
         }
       )
 
@@ -291,10 +291,10 @@ short_term_trend_internal <- function(
         }
       },
       warning = function(cond) {
-        model <- NULL
+        return(model <- NULL)
       },
       error = function(cond) {
-        model <- NULL
+        return(model <- NULL)
       }
     )
   }
@@ -552,7 +552,7 @@ short_term_trend.csfmt_rts_data_v1 <- function(
     ds <- split(x, x$time_series_id)
     retval <- lapply(ds, function(y) {
       y[, time_series_id := NULL]
-      short_term_trend_internal(
+      return(short_term_trend_internal(
         y,
         numerator = numerator,
         denominator = denominator,
@@ -566,7 +566,7 @@ short_term_trend.csfmt_rts_data_v1 <- function(
         remove_training_data = remove_training_data,
         include_decreasing = include_decreasing,
         alpha = alpha
-      )
+      ))
     })
     retval <- rbindlist(retval) #unlist(retval, recursive = FALSE, use.names = FALSE)
   } else {

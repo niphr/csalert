@@ -41,7 +41,7 @@
     # NSE column names, declared so R CMD check does not read them as undefined globals
     quantile_level <- NULL
     x <- d[quantile_level == p, c(unit, "predicted"), with = FALSE]
-    data.table::setnames(x, "predicted", nm)[]
+    return(data.table::setnames(x, "predicted", nm)[])
   }
   truth_u <- unique(d[, c(unit, "truth"), with = FALSE])
   m <- Reduce(
@@ -68,7 +68,7 @@
   )]
   m[truth > 0, rel := (med - truth) / truth] # relative revision (undefined at truth 0)
 
-  m[,
+  return(m[,
     {
       r <- rel[is.finite(rel)]
       a <- abs(r)
@@ -93,14 +93,14 @@
         ),
         stats::setNames(
           lapply(thresholds, function(t) {
-            if (has) round(mean(a > t), 4) else NA_real_
+            if (has) return(round(mean(a > t), 4)) else return(NA_real_)
           }),
           paste0("p_gt_", thresholds * 100)
         )
       )
     },
     by = by
-  ]
+  ])
 }
 
 #' Evaluate nowcast method(s): interval coverage + point-estimate revision
@@ -185,5 +185,5 @@ nowcast_evaluate_v1 <- function(
     ev[, method := nm]
     out[[nm]] <- ev
   }
-  data.table::rbindlist(out, fill = TRUE)
+  return(data.table::rbindlist(out, fill = TRUE))
 }

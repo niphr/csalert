@@ -129,10 +129,10 @@ nowcast_estimate_calibration_v1 <- function(
     ),
     by = by
   ][order(get(by[1]))]
-  structure(
+  return(structure(
     list(level = level, by = by, table = tab[]),
     class = "nowcast_calibration"
-  )
+  ))
 }
 
 #' Print a `nowcast_calibration`
@@ -155,7 +155,7 @@ print.nowcast_calibration <- function(x, ...) {
   ))
   cat("  factor > 1 widens (under-dispersed); < 1 narrows (over-dispersed)\n")
   print(x$table)
-  invisible(x)
+  return(invisible(x))
 }
 
 #' Apply a nowcast calibration to quantile predictions
@@ -227,5 +227,5 @@ nowcast_apply_calibration_v1 <- function(x, calibration) {
   d[is.na(factor), factor := 1] # unseen group -> identity
   d[, predicted := .med + factor * (predicted - .med)]
   d[, c(".med", "factor") := NULL]
-  d[]
+  return(d[])
 }

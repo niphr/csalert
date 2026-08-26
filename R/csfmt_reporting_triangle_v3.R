@@ -75,7 +75,7 @@ csfmt_reporting_triangle_v3 <- function(
     "class",
     unique(c("csfmt_reporting_triangle_v3", class(d)))
   )
-  d[]
+  return(d[])
 }
 
 #' Densify a reporting triangle into per-series reference x delay count matrices
@@ -173,5 +173,5 @@ reporting_triangle_matrix <- function(
       mat = as.matrix(m[, delay_cols, with = FALSE])
     )
   }
-  out
+  return(out)
 }

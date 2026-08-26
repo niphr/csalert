@@ -99,5 +99,5 @@ ens_add_rate.csfmt_ensemble_v3 <- function(
     name <- csfmt_var(numerator, denom = denominator, per = per)
   }
   x$draws[[name]] <- rate
-  validate_ensemble(x)
+  return(validate_ensemble(x))
 }

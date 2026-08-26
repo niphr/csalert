@@ -88,7 +88,7 @@
       draws[tgt[ti], ] <- pmax(cnt, obs_total[tgt[ti]]) # nowcast >= observed
     }
   }
-  draws
+  return(draws)
 }
 
 #' Nowcast a reporting triangle into an ensemble (quasipoisson reporting regression)
@@ -189,14 +189,14 @@ nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3 <- function(
   for (vc in value_cols) {
     rts <- reporting_triangle_matrix(x, max_delay, value_col = vc)
     chunks <- lapply(series_ids, function(tsid) {
-      .glm_complete(
+      return(.glm_complete(
         rts[[tsid]]$mat,
         rts[[tsid]]$reference,
         as_of,
         max_delay,
         n_sim,
         delay_window
-      )
+      ))
     })
     draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)
     if (!identical(vc, val_col)) {
@@ -204,10 +204,10 @@ nowcast_quasipoisson_v1.csfmt_reporting_triangle_v3 <- function(
       data[, (csfmt_var(vc, role = "observed")) := obs]
     }
   }
-  csfmt_ensemble_v3(
+  return(csfmt_ensemble_v3(
     data,
     id_cols = id_cols,
     time_col = "isoyearweek",
     draws = draws
-  )
+  ))
 }

@@ -57,13 +57,13 @@ nowcast_censor <- function(triangle, as_of) {
   if (!nrow(d)) {
     stop("nothing reported on or before ", as_of, call. = FALSE)
   }
-  csfmt_reporting_triangle_v3(
+  return(csfmt_reporting_triangle_v3(
     d,
     id_cols = attr(triangle, "id_cols"),
     reference_col = ref_col,
     reporting_col = rep_col,
     value_col = val_col
-  )
+  ))
 }
 
 #' The settled (eventually-observed) total per reference week
@@ -120,7 +120,7 @@ nowcast_truth <- function(triangle, max_delay) {
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   age_w <- match(attr(triangle, "as_of"), weeks) - match(refs, weeks)
   settled <- age_w >= (max_delay - 1L)
-  data.table::data.table(reference = refs, truth = total)[settled]
+  return(data.table::data.table(reference = refs, truth = total)[settled])
 }
 
 #' Replay a nowcast method across as-of weeks (backtest)
@@ -222,7 +222,7 @@ nowcast_backtest <- function(
       method(nowcast_censor(triangle, as_of)),
       error = function(e) {
         warning("as_of ", as_of, ": ", conditionMessage(e), call. = FALSE)
-        NULL
+        return(NULL)
       }
     )
     if (is.null(ens)) {
@@ -248,5 +248,5 @@ nowcast_backtest <- function(
       )
     }
   }
-  data.table::rbindlist(out)
+  return(data.table::rbindlist(out))
 }

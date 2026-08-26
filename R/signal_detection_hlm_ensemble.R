@@ -57,5 +57,5 @@ signal_detection_hlm.csfmt_ensemble_v3 <- function(
   attr(code, "levels") <- c("null", "high")
   x$draws[[csfmt_var(measure, role = "hlmstatus")]] <- code
 
-  validate_ensemble(x)
+  return(validate_ensemble(x))
 }

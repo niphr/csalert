@@ -100,16 +100,16 @@ compare_results <- function(current, previous) {
     if (!cc %in% names(m) && !pc %in% names(m)) {
       return(NULL)
     }
-    data.table::data.table(
+    return(data.table::data.table(
       m[, c(key, idc), with = FALSE],
       column = col,
       cur = if (cc %in% names(m)) m[[cc]] else NA_real_,
       prv = if (pc %in% names(m)) m[[pc]] else NA_real_
-    )
+    ))
   })
   long <- data.table::rbindlist(chunks)
   long[interp, on = "column", `:=`(role = i.role, q = i.q, level = i.level)]
-  long[]
+  return(long[])
 }
 
 #' Week-over-week QC: settled-data integrity (A) + frontier status signal (B)
@@ -233,5 +233,5 @@ qc_week_over_week_v1 <- function(
     B[, change := data.table::fifelse(is.na(from), "new", "changed")]
   }
 
-  list(integrity = A[], signal = B[])
+  return(list(integrity = A[], signal = B[]))
 }

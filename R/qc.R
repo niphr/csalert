@@ -61,5 +61,5 @@ qc_surveillance_data_v1 <- function(
       }
     }
   }
-  list(ok = length(reasons) == 0L, reasons = reasons)
+  return(list(ok = length(reasons) == 0L, reasons = reasons))
 }

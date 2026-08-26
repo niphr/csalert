@@ -37,7 +37,7 @@ prediction_interval.glm <- function(
   stopifnot(object$family$family %in% c("poisson", "quasipoisson"))
   stopifnot(skewness_transform %in% c("none", "1/2", "2/3"))
 
-  tryCatch(
+  return(tryCatch(
     {
       pred <- stats::predict(object, newdata, type = "response", se.fit = TRUE)
 
@@ -96,5 +96,5 @@ prediction_interval.glm <- function(
         )
       )
     }
-  )
+  ))
 }

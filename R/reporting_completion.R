@@ -131,7 +131,7 @@ reporting_completion_v1 <- function(
     for (i in seq_along(frac)) {
       row[[paste0("pct_delay", i - 1L)]] <- round(frac[i] * 100, 1)
     }
-    row
+    return(row)
   }
 
   out <- list()
@@ -158,7 +158,7 @@ reporting_completion_v1 <- function(
       out[[paste(tsid, pv)]] <- data.table::data.table(ids, period = pv, s)
     }
   }
-  data.table::rbindlist(out, fill = TRUE)
+  return(data.table::rbindlist(out, fill = TRUE))
 }
 
 #' Reporting-completion trend: the delay curve by year and recent months
@@ -200,5 +200,5 @@ reporting_completion_trend_v1 <- function(triangle, max_delay, n_months = 12L) {
     by_month <- by_month[, utils::tail(.SD, n_months), by = id_cols] # last N months per series
     by_month[, scope := "month"]
   }
-  data.table::rbindlist(list(by_year, by_month), fill = TRUE)
+  return(data.table::rbindlist(list(by_year, by_month), fill = TRUE))
 }

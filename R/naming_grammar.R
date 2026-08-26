@@ -54,7 +54,7 @@ q_label <- function(p) {
   dec[carry] <- 0
   out <- sprintf("q%02dx%d", as.integer(intp), as.integer(dec))
   out[is.na(p)] <- NA_character_
-  out
+  return(out)
 }
 
 #' Quantile label -> probability
@@ -84,16 +84,16 @@ q_label <- function(p) {
 q_value <- function(label) {
   stopifnot(is.character(label))
   m <- regmatches(label, regexec("^q([0-9]{2})x([0-9])$", label))
-  vapply(
+  return(vapply(
     m,
     function(x) {
       if (length(x) != 3) {
         return(NA_real_)
       }
-      (as.numeric(x[2]) + as.numeric(x[3]) / 10) / 100
+      return((as.numeric(x[2]) + as.numeric(x[3]) / 10) / 100)
     },
     numeric(1)
-  )
+  ))
 }
 
 #' Construct a csfmt measure column name from components
@@ -145,7 +145,7 @@ csfmt_var <- function(
   if (!is.null(suffix)) {
     v <- paste0(v, suffix)
   }
-  v
+  return(v)
 }
 
 # known role vocabulary, for parsing
@@ -251,9 +251,9 @@ csfmt_parse <- function(varname) {
   }
 
   out$measure <- x
-  out[c("measure", "denom", "role", "q", "level", "per", "suffix")[
+  return(out[c("measure", "denom", "role", "q", "level", "per", "suffix")[
     c("measure", "denom", "role", "q", "level", "per", "suffix") %in% names(out)
-  ]]
+  ]])
 }
 
 # Structural (non-value) columns: the csfmt unified schema + the time_series_*
@@ -320,11 +320,11 @@ csfmt_interpret <- function(d, value_cols = NULL) {
   }
   g <- function(p, k, na) {
     v <- p[[k]]
-    if (is.null(v)) na else v
+    if (is.null(v)) return(na) else return(v)
   }
   rows <- lapply(value_cols, function(col) {
     p <- csfmt_parse(col)
-    data.table::data.table(
+    return(data.table::data.table(
       column = col,
       measure = g(p, "measure", NA_character_),
       denom = g(p, "denom", NA_character_),
@@ -333,11 +333,11 @@ csfmt_interpret <- function(d, value_cols = NULL) {
       level = g(p, "level", NA_character_),
       per = g(p, "per", NA_integer_),
       suffix = g(p, "suffix", NA_character_)
-    )
+    ))
   })
   out <- data.table::rbindlist(rows)
   if (nrow(out)) {
     out[, interpretable := !is.na(role) | !is.na(q) | !is.na(level)]
   }
-  out[]
+  return(out[])
 }

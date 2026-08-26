@@ -93,10 +93,10 @@ nowcast_passthrough_to_ensemble_v1 <- function(
     }
   }
 
-  csfmt_ensemble_v3(
+  return(csfmt_ensemble_v3(
     data,
     id_cols = id_cols,
     time_col = "isoyearweek",
     draws = draws
-  )
+  ))
 }
