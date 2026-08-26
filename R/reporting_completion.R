@@ -22,6 +22,40 @@
 # that is slowing down or speeding up; `"year"` / `"month"` give one curve per
 # period so the trend in mean_delay is readable straight off the table.
 
+# completion summary for one block of settled weeks (rows = reference weeks,
+# cols = delays 0..max_delay-1); NULL when too few non-empty weeks to trust.
+.rc_summarise <- function(M) {
+  tot <- rowSums(M)
+  ok <- tot > 0
+  if (sum(ok) < 3L) {
+    return(NULL)
+  }
+  Mk <- M[ok, , drop = FALSE]
+  # apply(, 1, cumsum) returns a MATRIX (delays x weeks) for >= 2 delay columns,
+  # which t() puts back to weeks x delays -- but a VECTOR of length n_settled when
+  # there is only one delay column, and t() then makes that 1 x n_settled. That
+  # silently produced one pct_delay column per settled WEEK at max_delay = 1, and a
+  # complete_by_md far below 1. With a single delay the cumulative sum is the
+  # column itself, so take it directly.
+  cum <- if (ncol(Mk) == 1L) Mk else t(apply(Mk, 1, cumsum))
+  frac <- colSums(cum) / sum(tot[ok]) # pooled cumulative fraction by delay
+  incr <- c(frac[1], diff(frac))
+  row <- data.table::data.table(
+    n_settled = sum(ok),
+    mean_delay = round(sum((seq_along(frac) - 1L) * incr), 2), # mean delay in weeks
+    complete_by_md = round(frac[length(frac)], 3)
+  )
+  # the delay ECDF read at each DISCRETE delay: pct_delayD = pooled % of a
+  # reference week's cases reported by the END of week (reference + D), so
+  # pct_delay0 is the reference week itself. Indexed by delay, 0-based, to match
+  # max_delay and the triangle's own delay axis -- frac[i] is delay i - 1. No
+  # interpolation: these are the step heights themselves.
+  for (i in seq_along(frac)) {
+    row[[paste0("pct_delay", i - 1L)]] <- round(frac[i] * 100, 1)
+  }
+  return(row)
+}
+
 #' Empirical reporting-completion summary from a reporting triangle
 #' @param triangle A `csfmt_reporting_triangle_v3`.
 #' @param max_delay Delay horizon in weeks.
@@ -100,40 +134,6 @@ reporting_completion_v1 <- function(
     month = format(dbi$thu, "%Y-%m")
   ) # dbi$thu = the week's midweek day
 
-  # completion summary for one block of settled weeks (rows = reference weeks,
-  # cols = delays 0..max_delay-1); NULL when too few non-empty weeks to trust.
-  summarise <- function(M) {
-    tot <- rowSums(M)
-    ok <- tot > 0
-    if (sum(ok) < 3L) {
-      return(NULL)
-    }
-    Mk <- M[ok, , drop = FALSE]
-    # apply(, 1, cumsum) returns a MATRIX (delays x weeks) for >= 2 delay columns,
-    # which t() puts back to weeks x delays -- but a VECTOR of length n_settled when
-    # there is only one delay column, and t() then makes that 1 x n_settled. That
-    # silently produced one pct_delay column per settled WEEK at max_delay = 1, and a
-    # complete_by_md far below 1. With a single delay the cumulative sum is the
-    # column itself, so take it directly.
-    cum <- if (ncol(Mk) == 1L) Mk else t(apply(Mk, 1, cumsum))
-    frac <- colSums(cum) / sum(tot[ok]) # pooled cumulative fraction by delay
-    incr <- c(frac[1], diff(frac))
-    row <- data.table::data.table(
-      n_settled = sum(ok),
-      mean_delay = round(sum((seq_along(frac) - 1L) * incr), 2), # mean delay in weeks
-      complete_by_md = round(frac[length(frac)], 3)
-    )
-    # the delay ECDF read at each DISCRETE delay: pct_delayD = pooled % of a
-    # reference week's cases reported by the END of week (reference + D), so
-    # pct_delay0 is the reference week itself. Indexed by delay, 0-based, to match
-    # max_delay and the triangle's own delay axis -- frac[i] is delay i - 1. No
-    # interpolation: these are the step heights themselves.
-    for (i in seq_along(frac)) {
-      row[[paste0("pct_delay", i - 1L)]] <- round(frac[i] * 100, 1)
-    }
-    return(row)
-  }
-
   out <- list()
   for (tsid in names(rts)) {
     refs <- rts[[tsid]]$reference
@@ -151,7 +151,7 @@ reporting_completion_v1 <- function(
     ids <- unique(d_tri[time_series_id == tsid, id_cols, with = FALSE])[1]
     for (pv in sort(unique(per))) {
       # one summary per period slice
-      s <- summarise(M[per == pv, , drop = FALSE])
+      s <- .rc_summarise(M[per == pv, , drop = FALSE])
       if (is.null(s)) {
         next
       }

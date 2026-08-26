@@ -159,6 +159,43 @@ csfmt_var <- function(
   "hlmstatus"
 )
 
+# Strip the trailing coordinates from a variable name, and return both the
+# stump and what was found. They are independent and may appear in either
+# order: csfmt_var() emits q before per, but the ensemble bakes per into a
+# measure base and appends q afterwards (..._pr100_q50x0).
+# The trailing coordinates, in the order one pass tries them. Each is
+# independent of the others and each may appear at most once.
+.csfmt_coordinates <- list(
+  list(key = "suffix", pattern = "(_n)$", value = function(g) g),
+  list(key = "per", pattern = "_pr([0-9]+)$", value = as.integer),
+  list(key = "q", pattern = "_(q[0-9]{2}x[0-9])$", value = q_value),
+  list(key = "level", pattern = "_prob_([a-z0-9]+)$", value = function(g) g)
+)
+
+csfmt_strip_coordinates <- function(x) {
+  out <- list()
+  repeat {
+    matched <- FALSE
+    for (co in .csfmt_coordinates) {
+      if (!is.null(out[[co$key]])) {
+        next
+      }
+      g <- regmatches(x, regexec(co$pattern, x))[[1]]
+      if (length(g) != 2L) {
+        next
+      }
+      out[[co$key]] <- co$value(g[2])
+      x <- sub(co$pattern, "", x)
+      matched <- TRUE
+    }
+    if (!matched) {
+      break
+    }
+  }
+  return(list(x = x, out = out))
+}
+
+
 #' Parse a csfmt measure column name into components
 #'
 #' Reads a column name written by [csfmt_var] back into its parts. It strips the
@@ -199,42 +236,9 @@ csfmt_parse <- function(varname) {
   x <- varname
   out <- list()
 
-  # Trailing coordinates (suffix / per / quantile / level) are independent and
-  # may appear in either order: csfmt_var() emits q-before-per (canonical), but
-  # the ensemble bakes per into a measure base and appends q afterwards
-  # (..._pr100_q50x0). Strip whichever coordinate is at the tail, repeatedly,
-  # until none match -- order-independent.
-  repeat {
-    matched <- FALSE
-    # suffix (known unit tag): _n
-    if (is.null(out$suffix) && grepl("_n$", x)) {
-      out$suffix <- "_n"
-      x <- sub("_n$", "", x)
-      matched <- TRUE
-    }
-    # per: _pr<digits>
-    g <- regmatches(x, regexec("_pr([0-9]+)$", x))[[1]]
-    if (is.null(out$per) && length(g) == 2) {
-      out$per <- as.integer(g[2])
-      x <- sub("_pr[0-9]+$", "", x)
-      matched <- TRUE
-    }
-    # quantile coordinate: _qXXxX
-    g <- regmatches(x, regexec("_(q[0-9]{2}x[0-9])$", x))[[1]]
-    if (is.null(out$q) && length(g) == 2) {
-      out$q <- q_value(g[2])
-      x <- sub("_q[0-9]{2}x[0-9]$", "", x)
-      matched <- TRUE
-    }
-    # level coordinate: _prob_<level>
-    g <- regmatches(x, regexec("_prob_([a-z0-9]+)$", x))[[1]]
-    if (is.null(out$level) && length(g) == 2) {
-      out$level <- g[2]
-      x <- sub("_prob_[a-z0-9]+$", "", x)
-      matched <- TRUE
-    }
-    if (!matched) break
-  }
+  stripped <- csfmt_strip_coordinates(x)
+  x <- stripped$x
+  out <- stripped$out
   # role
   for (r in .csfmt_roles) {
     if (grepl(paste0("_", r, "$"), x)) {

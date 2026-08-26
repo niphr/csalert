@@ -20,6 +20,68 @@
 # the training weeks recent so the mapping tracks a drifting regime. Any fit issue
 # leaves that horizon's weeks at their observed total (never errors).
 
+# One horizon of `.glm_complete()`: fit the settled total on the delays
+# observed so far, then simulate the completion for every reference week of
+# that age. Returns NULL when the horizon has no target week, or when the fit
+# or the prediction fails.
+.glm_horizon_draws <- function(
+  h,
+  mat,
+  train,
+  y_train,
+  obs_total,
+  settled,
+  age,
+  n_sim
+) {
+  w <- h + 1L # weeks observed
+  cols <- seq_len(w) # observed delays 0..w-1 -> matrix cols
+  tgt <- which(!settled & age == h)
+  if (!length(tgt)) {
+    return(NULL)
+  }
+  Xtr <- mat[train, cols, drop = FALSE]
+  df <- data.frame(y = y_train, Xtr)
+  names(df) <- c("y", paste0("d", cols))
+  form <- stats::as.formula(paste(
+    "y ~",
+    paste(paste0("d", cols), collapse = " + ")
+  )) # + intercept
+  s0 <- sum(y_train) / max(sum(Xtr), 1) # overall inflation, a stable start
+  fit <- tryCatch(
+    stats::glm(
+      form,
+      family = stats::quasipoisson(link = "identity"),
+      data = df,
+      start = c(0, rep(s0, length(cols)))
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(fit) || anyNA(stats::coef(fit))) {
+    return(NULL)
+  }
+  Xnew <- as.data.frame(mat[tgt, cols, drop = FALSE])
+  names(Xnew) <- paste0("d", cols)
+  pr <- tryCatch(
+    stats::predict(fit, newdata = Xnew, type = "response", se.fit = TRUE),
+    error = function(e) NULL
+  )
+  if (is.null(pr)) {
+    return(NULL)
+  }
+  phi <- max(summary(fit)$dispersion, 1)
+  out <- matrix(NA_real_, length(tgt), n_sim)
+  for (ti in seq_along(tgt)) {
+    mu <- pmax(stats::rnorm(n_sim, pr$fit[ti], pr$se.fit[ti]), 1e-6) # parameter uncertainty
+    size <- if (phi > 1) mu / (phi - 1) else Inf
+    cnt <- stats::rnbinom(n_sim, size = size, mu = mu) # observation + overdispersion
+    cnt[!is.finite(cnt)] <- obs_total[tgt[ti]]
+    out[ti, ] <- pmax(cnt, obs_total[tgt[ti]]) # nowcast >= observed
+  }
+  return(list(tgt = tgt, draws = out))
+}
+
+
 # Complete a reference x delay matrix into n_sim totals via per-horizon regression.
 .glm_complete <- function(mat, refs, as_of, max_delay, n_sim, delay_window) {
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
@@ -44,49 +106,20 @@
   # week with its delay-0 reports = 1 week observed.)
   ages <- sort(unique(age[!settled & age >= 0L & age < (max_delay - 1L)]))
   for (h in ages) {
-    w <- h + 1L # weeks observed
-    cols <- seq_len(w) # observed delays 0..w-1 -> matrix cols
-    tgt <- which(!settled & age == h)
-    if (!length(tgt)) {
-      next
-    }
-    Xtr <- mat[train, cols, drop = FALSE]
-    df <- data.frame(y = y_train, Xtr)
-    names(df) <- c("y", paste0("d", cols))
-    form <- stats::as.formula(paste(
-      "y ~",
-      paste(paste0("d", cols), collapse = " + ")
-    )) # + intercept
-    s0 <- sum(y_train) / max(sum(Xtr), 1) # overall inflation, a stable start
-    fit <- tryCatch(
-      stats::glm(
-        form,
-        family = stats::quasipoisson(link = "identity"),
-        data = df,
-        start = c(0, rep(s0, length(cols)))
-      ),
-      error = function(e) NULL
+    hz <- .glm_horizon_draws(
+      h,
+      mat,
+      train,
+      y_train,
+      obs_total,
+      settled,
+      age,
+      n_sim
     )
-    if (is.null(fit) || anyNA(stats::coef(fit))) {
+    if (is.null(hz)) {
       next
     }
-    Xnew <- as.data.frame(mat[tgt, cols, drop = FALSE])
-    names(Xnew) <- paste0("d", cols)
-    pr <- tryCatch(
-      stats::predict(fit, newdata = Xnew, type = "response", se.fit = TRUE),
-      error = function(e) NULL
-    )
-    if (is.null(pr)) {
-      next
-    }
-    phi <- max(summary(fit)$dispersion, 1)
-    for (ti in seq_along(tgt)) {
-      mu <- pmax(stats::rnorm(n_sim, pr$fit[ti], pr$se.fit[ti]), 1e-6) # parameter uncertainty
-      size <- if (phi > 1) mu / (phi - 1) else Inf
-      cnt <- stats::rnbinom(n_sim, size = size, mu = mu) # observation + overdispersion
-      cnt[!is.finite(cnt)] <- obs_total[tgt[ti]]
-      draws[tgt[ti], ] <- pmax(cnt, obs_total[tgt[ti]]) # nowcast >= observed
-    }
+    draws[hz$tgt, ] <- hz$draws
   }
   return(draws)
 }

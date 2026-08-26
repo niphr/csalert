@@ -123,6 +123,58 @@ nowcast_truth <- function(triangle, max_delay) {
   return(data.table::data.table(reference = refs, truth = total)[settled])
 }
 
+# One as_of week of the backtest: run the method on the censored triangle,
+# collapse it, and emit one row per horizon and quantile level. Returns an
+# empty list when the method fails or the horizons are not covered.
+.bt_one_as_of <- function(
+  triangle,
+  method,
+  as_of,
+  weeks,
+  max_delay,
+  horizons,
+  probs,
+  measure,
+  seed
+) {
+  .horizon <- NULL
+  rows <- list()
+  if (!is.null(seed)) {
+    set.seed(seed + match(as_of, weeks))
+  } # reproducible per cell
+  ens <- tryCatch(
+    method(nowcast_censor(triangle, as_of)),
+    error = function(e) {
+      warning("as_of ", as_of, ": ", conditionMessage(e), call. = FALSE)
+      return(NULL)
+    }
+  )
+  if (is.null(ens)) {
+    return(list())
+  }
+  q <- ens_collapse(ens, probs = probs)
+  q[, .horizon := match(as_of, weeks) - match(get("isoyearweek"), weeks)]
+  q <- q[.horizon %in% horizons]
+  if (!nrow(q)) {
+    return(list())
+  }
+  for (p in probs) {
+    col <- csfmt_var(measure, q = p)
+    if (!col %in% names(q)) {
+      next
+    }
+    rows[[length(rows) + 1L]] <- data.table::data.table(
+      reference = q$isoyearweek,
+      as_of = as_of,
+      horizon = q$.horizon,
+      quantile_level = p,
+      predicted = q[[col]]
+    )
+  }
+  return(rows)
+}
+
+
 #' Replay a nowcast method across as-of weeks (backtest)
 #'
 #' For each `as_of` week, censor the triangle to what was known then, run the
@@ -215,38 +267,20 @@ nowcast_backtest <- function(
 
   out <- list()
   for (as_of in as_of_weeks) {
-    if (!is.null(seed)) {
-      set.seed(seed + match(as_of, weeks))
-    } # reproducible per cell
-    ens <- tryCatch(
-      method(nowcast_censor(triangle, as_of)),
-      error = function(e) {
-        warning("as_of ", as_of, ": ", conditionMessage(e), call. = FALSE)
-        return(NULL)
-      }
-    )
-    if (is.null(ens)) {
-      next
-    }
-    q <- ens_collapse(ens, probs = probs)
-    q[, .horizon := match(as_of, weeks) - match(get("isoyearweek"), weeks)]
-    q <- q[.horizon %in% horizons]
-    if (!nrow(q)) {
-      next
-    }
-    for (p in probs) {
-      col <- csfmt_var(measure, q = p)
-      if (!col %in% names(q)) {
-        next
-      }
-      out[[length(out) + 1L]] <- data.table::data.table(
-        reference = q$isoyearweek,
-        as_of = as_of,
-        horizon = q$.horizon,
-        quantile_level = p,
-        predicted = q[[col]]
+    out <- c(
+      out,
+      .bt_one_as_of(
+        triangle,
+        method,
+        as_of,
+        weeks,
+        max_delay,
+        horizons,
+        probs,
+        measure,
+        seed
       )
-    }
+    )
   }
   return(data.table::rbindlist(out))
 }

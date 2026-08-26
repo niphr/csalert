@@ -121,6 +121,68 @@ mem_thresholds_v1 <- function(x, ...) {
   UseMethod("mem_thresholds_v1")
 }
 
+# Estimate leave-future-out MEM thresholds for every season of every time
+# series. A season is fit only on the seasons before it, so nothing leaks
+# forward. `provisional` names the seasons fit on fewer than `prefer_seasons`
+# training seasons.
+mem_estimate_thresholds <- function(
+  d,
+  min_seasons,
+  prefer_seasons,
+  i.seasons,
+  min_weeks_per_season,
+  exclude_seasons
+) {
+  seasonweek <- time_series_id <- mem_n_seasons <- NULL
+  thr_all <- list()
+  provisional <- character(0)
+  for (tsid in unique(d$time_series_id)) {
+    ds <- d[time_series_id == tsid]
+    m <- data.table::dcast.data.table(
+      ds,
+      seasonweek ~ season,
+      value.var = "point"
+    )
+    m[, seasonweek := NULL]
+    week_counts <- vapply(m, function(v) sum(!is.na(v)), integer(1))
+    train_ok <- names(week_counts)[week_counts >= min_weeks_per_season]
+    for (s in sort(unique(ds$season))) {
+      prior <- train_ok[train_ok < s]
+      # drop anomalous seasons from the training baseline (thresholds are still
+      # estimated for `s` itself, just not fit on the excluded seasons)
+      if (length(exclude_seasons)) {
+        prior <- setdiff(prior, exclude_seasons)
+      }
+      if (length(prior) < min_seasons) {
+        next
+      }
+      # Keep only the most recent i.seasons BEFORE na.omit: memmodel uses the last
+      # i.seasons anyway, and na.omit over older (often partially-covered) seasons
+      # would needlessly drop seasonweeks and starve the fit -> NA thresholds.
+      prior <- utils::tail(prior, i.seasons)
+      fit <- mem_fit(
+        stats::na.omit(m[, prior, with = FALSE]),
+        i.seasons = i.seasons
+      )
+      if (is.null(fit)) {
+        next
+      }
+      res <- mem_extract_thresholds(fit)
+      res[, `:=`(
+        season = s,
+        time_series_id = tsid,
+        mem_n_seasons = length(prior)
+      )]
+      thr_all[[paste(tsid, s)]] <- res
+      if (length(prior) < prefer_seasons) {
+        provisional <- c(provisional, paste(tsid, s))
+      }
+    }
+  }
+  return(list(thr_all = thr_all, provisional = provisional))
+}
+
+
 #' @method mem_thresholds_v1 csfmt_ensemble_v3
 #' @rdname mem_thresholds_v1
 #' @param measure The `$draws` measure to threshold on (a rate or count).
@@ -182,52 +244,16 @@ mem_thresholds_v1.csfmt_ensemble_v3 <- function(
     }
   }
 
-  thr_all <- list()
-  provisional <- character(0)
-  for (tsid in unique(d$time_series_id)) {
-    ds <- d[time_series_id == tsid]
-    m <- data.table::dcast.data.table(
-      ds,
-      seasonweek ~ season,
-      value.var = "point"
-    )
-    m[, seasonweek := NULL]
-    week_counts <- vapply(m, function(v) sum(!is.na(v)), integer(1))
-    train_ok <- names(week_counts)[week_counts >= min_weeks_per_season]
-    for (s in sort(unique(ds$season))) {
-      prior <- train_ok[train_ok < s]
-      # drop anomalous seasons from the training baseline (thresholds are still
-      # estimated for `s` itself, just not fit on the excluded seasons)
-      if (length(exclude_seasons)) {
-        prior <- setdiff(prior, exclude_seasons)
-      }
-      if (length(prior) < min_seasons) {
-        next
-      }
-      # Keep only the most recent i.seasons BEFORE na.omit: memmodel uses the last
-      # i.seasons anyway, and na.omit over older (often partially-covered) seasons
-      # would needlessly drop seasonweeks and starve the fit -> NA thresholds.
-      prior <- utils::tail(prior, i.seasons)
-      fit <- mem_fit(
-        stats::na.omit(m[, prior, with = FALSE]),
-        i.seasons = i.seasons
-      )
-      if (is.null(fit)) {
-        next
-      }
-      res <- mem_extract_thresholds(fit)
-      res[, `:=`(
-        season = s,
-        time_series_id = tsid,
-        mem_n_seasons = length(prior)
-      )]
-      thr_all[[paste(tsid, s)]] <- res
-      if (length(prior) < prefer_seasons) {
-        provisional <- c(provisional, paste(tsid, s))
-      }
-    }
-  }
-  thr <- data.table::rbindlist(thr_all)
+  est <- mem_estimate_thresholds(
+    d,
+    min_seasons,
+    prefer_seasons,
+    i.seasons,
+    min_weeks_per_season,
+    exclude_seasons
+  )
+  thr <- data.table::rbindlist(est$thr_all)
+  provisional <- est$provisional
   if (length(provisional)) {
     message(
       "mem_thresholds_v1: ",
