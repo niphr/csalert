@@ -15,7 +15,7 @@ The method is based upon a published analytics strategy by Benedetti (2019)
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.26</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.27</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,6 @@ The method is based upon a published analytics strategy by Benedetti (2019)
 <span>  <span class="va">x</span>,</span>
 <span>  <span class="va">measure</span>,</span>
 <span>  trend_isoyearweeks <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  propagate_slope_error <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  n_sim <span class="op">=</span> <span class="fl">1000L</span>,</span>
 <span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"identity"</span>, <span class="st">"quasipoisson"</span>, <span class="st">"binomial"</span><span class="op">)</span>,</span>
 <span>  denominator <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -176,28 +175,11 @@ be the proportion on the response scale, between 0 and 1.
 <dd><p>Character: the `$draws` measure to compute the trend on.</p></dd>
 
 
-<dt id="arg-propagate-slope-error">propagate_slope_error<a class="anchor" aria-label="anchor" href="#arg-propagate-slope-error"></a></dt>
-<dd><p>Logical. If `TRUE`, add the slope's own sampling
-  error to each draw, then form the growth rate. The trend interval then
-  reflects the uncertainty of the slope estimate, and not the uncertainty of
-  the level alone. Defaults to `FALSE`, which keeps the published numbers
-  unchanged. `error_reference` picks the distribution the error comes from.
-  Under its `"auto"` default, `"identity"` and `"quasipoisson"` add
-  `se * t_(width-2)`. At the default width of 3 those degrees of freedom are
-  1, a Cauchy, so widen the window first. `"binomial"` adds `se * rnorm()`,
-  and a 3-week window stays usable there.</p>
-<p>`"identity"` and `"quasipoisson"` need `trend_isoyearweeks &gt;= 3` here, and
-  no `error_reference` lowers that floor. Both read a dispersion off
-  `width - 2` residual degrees of freedom, so `se` itself is not defined at
-  width 2. `"binomial"` fixes the dispersion at 1 and accepts width 2.</p></dd>
-
-
 <dt id="arg-n-sim">n_sim<a class="anchor" aria-label="anchor" href="#arg-n-sim"></a></dt>
 <dd><p>Integer. Draw-axis width used for the slope-error perturbation
 when the incoming ensemble is degenerate. A degenerate ensemble holds a
 single passthrough draw, so it has no draw axis to carry the uncertainty.
-Ignored when the ensemble
-already has draws, and when `propagate_slope_error` is `FALSE`.</p></dd>
+Ignored when the ensemble already has draws.</p></dd>
 
 
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
@@ -213,8 +195,8 @@ never takes `log(Y)`.</p></dd>
 
 
 <dt id="arg-error-reference">error_reference<a class="anchor" aria-label="anchor" href="#arg-error-reference"></a></dt>
-<dd><p>Character: the reference distribution that
-`propagate_slope_error` perturbs the slope with. `"auto"` is the default.
+<dd><p>Character: the reference distribution the slope's own
+sampling error is drawn from. `"auto"` is the default.
 It gives `"identity"` and `"quasipoisson"` a t on
 `trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
 from that many residual degrees of freedom, which is the case

@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.26</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.27</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -180,7 +180,7 @@ then uses.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.8.26</span></span>
+<span><span class="co">#&gt; csalert 2026.8.27</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -1111,16 +1111,16 @@ lives on <code>$data</code> and is not collapsed.</li>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">trend</span>, <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     isoyearweek     gr  gr_lo  gr_hi p_increasing</span></span>
 <span><span class="co">#&gt;          &lt;char&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt;  1:     2024-09  -2.19  -2.19  -2.19        0.000</span></span>
-<span><span class="co">#&gt;  2:     2024-10  -4.39  -4.39  -4.39        0.000</span></span>
-<span><span class="co">#&gt;  3:     2024-11  -6.25  -6.25  -6.25        0.000</span></span>
-<span><span class="co">#&gt;  4:     2024-12  -6.21  -6.21  -6.21        0.000</span></span>
-<span><span class="co">#&gt;  5:     2024-13 -10.75 -10.75 -10.75        0.000</span></span>
-<span><span class="co">#&gt;  6:     2024-14 -11.74 -11.74 -11.74        0.000</span></span>
-<span><span class="co">#&gt;  7:     2024-15 -17.56 -19.54 -12.25        0.000</span></span>
-<span><span class="co">#&gt;  8:     2024-16 -19.52 -23.61 -12.60        0.000</span></span>
-<span><span class="co">#&gt;  9:     2024-17 -13.43 -18.29  -7.53        0.000</span></span>
-<span><span class="co">#&gt; 10:     2024-18 -10.00 -25.25  -2.26        0.012</span></span></code></pre></div>
+<span><span class="co">#&gt;  1:     2024-09  -2.26  -5.47   2.28        0.154</span></span>
+<span><span class="co">#&gt;  2:     2024-10  -4.24 -10.82   1.61        0.106</span></span>
+<span><span class="co">#&gt;  3:     2024-11  -6.37 -10.21  -2.63        0.012</span></span>
+<span><span class="co">#&gt;  4:     2024-12  -6.06 -10.14  -2.20        0.008</span></span>
+<span><span class="co">#&gt;  5:     2024-13 -10.61 -17.32  -5.37        0.008</span></span>
+<span><span class="co">#&gt;  6:     2024-14 -11.57 -18.02  -5.73        0.008</span></span>
+<span><span class="co">#&gt;  7:     2024-15 -16.48 -25.73  -7.83        0.006</span></span>
+<span><span class="co">#&gt;  8:     2024-16 -19.54 -25.78 -10.25        0.004</span></span>
+<span><span class="co">#&gt;  9:     2024-17 -13.16 -22.68  -2.61        0.028</span></span>
+<span><span class="co">#&gt; 10:     2024-18 -10.06 -27.12   2.13        0.078</span></span></code></pre></div>
 <p>The last four rows are the nowcast weeks. Their point estimates are
 negative and their 5-95% bands sit entirely below zero, with
 <code>p_increasing</code> at 0. The series is on the spring side of its
@@ -1132,116 +1132,102 @@ nowcast. It does not say the fall will continue. It is conditional on
 the nowcast being right about the four weeks that are still filling.
 Stage 2 measured those weeks as the engine’s weakest point.</p>
 <div class="section level3">
-<h3 id="the-settled-weeks-have-no-interval-and-that-is-the-right-answer">The settled weeks have no interval, and that is the right
-answer<a class="anchor" aria-label="anchor" href="#the-settled-weeks-have-no-interval-and-that-is-the-right-answer"></a>
+<h3 id="every-week-gets-an-interval-including-the-settled-ones">Every week gets an interval, including the settled ones<a class="anchor" aria-label="anchor" href="#every-week-gets-an-interval-including-the-settled-ones"></a>
 </h3>
-<p>Look at the rows above the nowcast weeks: <code>gr_lo</code> and
-<code>gr_hi</code> equal <code>gr</code>, and <code>p_increasing</code>
-is exactly 0 or 1. That is not a display artefact and it is not a
-defect. Those windows lie entirely inside the settled weeks. There every
-draw of the numerator and of the denominator is the same observed total,
-so every draw of their ratio is too.</p>
-<p>The six rates are <em>known</em>, so their OLS slope is a known
-number, and the descriptive estimand has nothing left to be uncertain
-about. <code>p_increasing</code> collapses to a <strong>sign
-indicator</strong> on that one number — which is what a share-of-draws
-becomes when all the draws agree. It is not a sign test, and no
-inference is being performed. Measured rather than asserted:</p>
+<p>Two things are uncertain and both reach the draws.</p>
+<p>The first is the <strong>level</strong>. A week still filling in has
+a nowcast, so its numerator and denominator differ from draw to draw. A
+settled week does not: every draw of the observed total is the same
+number.</p>
+<p>The second is the <strong>line</strong> fitted through those levels.
+That one is never certain, not even when the six weekly rates are known
+exactly. Six known points do not determine the slope of the process that
+generated them, and <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> therefore always
+adds the slope’s own sampling error, <code>se * reference</code>, to
+each draw before forming the growth rate.</p>
+<p>That was optional until 2026.8.27, and off by default. It is neither
+now, for one reason: <code>p_increasing</code> is the share of draws
+whose slope is positive. Without the slope’s error a settled week has
+one slope repeated across every draw, so that share is exactly 0 or 1
+for <em>every</em> settled week, and a threshold on it does nothing at
+all. A column named for a probability was reporting a sign
+indicator.</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">settled_weeks</span> <span class="op">&lt;-</span> <span class="va">truth</span><span class="op">$</span><span class="va">reference</span></span>
 <span><span class="va">tr_settled</span> <span class="op">&lt;-</span> <span class="va">trend</span><span class="op">[</span><span class="va">isoyearweek</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">settled_weeks</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">gr_lo</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="va">tr_settled</span><span class="op">$</span><span class="va">p_increasing</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span>
 <span>  settled_rows_with_a_full_window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">tr_settled</span><span class="op">)</span>,</span>
-<span>  all_intervals_degenerate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">tr_settled</span><span class="op">$</span><span class="va">gr_lo</span> <span class="op">==</span> <span class="va">tr_settled</span><span class="op">$</span><span class="va">gr_hi</span><span class="op">)</span>,</span>
-<span>  p_increasing_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">tr_settled</span><span class="op">$</span><span class="va">p_increasing</span><span class="op">)</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span></span>
+<span>  any_degenerate_interval <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">tr_settled</span><span class="op">$</span><span class="va">gr_lo</span> <span class="op">==</span> <span class="va">tr_settled</span><span class="op">$</span><span class="va">gr_hi</span><span class="op">)</span>,</span>
+<span>  p_increasing_strictly_inside_0_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  p_increasing_at_a_boundary <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">p</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt;    settled_rows_with_a_full_window all_intervals_degenerate p_increasing_values</span></span>
-<span><span class="co">#&gt;                              &lt;int&gt;                   &lt;lgcl&gt;              &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:                             236                     TRUE                0, 1</span></span></code></pre></div>
+<span><span class="co">#&gt;    settled_rows_with_a_full_window any_degenerate_interval</span></span>
+<span><span class="co">#&gt;                              &lt;int&gt;                  &lt;lgcl&gt;</span></span>
+<span><span class="co">#&gt; 1:                             236                   FALSE</span></span>
+<span><span class="co">#&gt;    p_increasing_strictly_inside_0_1 p_increasing_at_a_boundary</span></span>
+<span><span class="co">#&gt;                               &lt;int&gt;                      &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1:                              211                         25</span></span></code></pre></div>
+<p>Every settled week now has a real interval. Most also have a
+<code>p_increasing</code> strictly between 0 and 1. The remainder sit at
+exactly 0 or 1, and that is a different thing from the old degeneracy:
+those are windows whose slope is so many standard errors from zero that
+every draw lands on the same side. That is a probability of 1 at the
+Monte Carlo resolution the draw count buys, not a sign indicator. Raise
+<code>n_sim</code> if you need to distinguish 0.999 from 1.</p>
 </div>
 <div class="section level3">
-<h3 id="propagate_slope_error-true-changes-the-estimand">
-<code>propagate_slope_error = TRUE</code> changes the estimand<a class="anchor" aria-label="anchor" href="#propagate_slope_error-true-changes-the-estimand"></a>
+<h3 id="what-that-interval-is-and-what-it-is-not">What that interval is, and what it is not<a class="anchor" aria-label="anchor" href="#what-that-interval-is-and-what-it-is-not"></a>
 </h3>
-<p><code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> has an argument that gives the
-settled weeks an interval. It is worth understanding what it actually
-does, because it is not “adding the uncertainty the default forgot”.</p>
-<p><code>propagate_slope_error = TRUE</code> perturbs each draw’s slope
-by <code>se * t</code>. Here <code>se</code> is the OLS standard error
-of that window, and <code>t</code> is on
-<code>trend_isoyearweeks - 2</code> degrees of freedom. That quantity
-only means something if you stop asking the descriptive question and
-start asking a <strong>model-based</strong> one. The model-based
-question is this: <em>treat the six weekly counts as noisy observations
-around a latent straight line, and report uncertainty about that line’s
-slope</em>. Switching to that question buys an interval, and commits you
-to three assumptions:</p>
+<p>Adding the slope’s error answers a <strong>model-based</strong>
+question: <em>treat the six weekly counts as noisy observations around a
+latent straight line, and report uncertainty about that line’s
+slope</em>. That question is the one a trend arrow asks. Asking it
+commits you to three assumptions:</p>
 <ol style="list-style-type: decimal">
 <li>the underlying weekly mean is <strong>linear</strong> across the
 window;</li>
 <li>the deviations are <strong>independent</strong> across weeks;</li>
-<li>they are <strong>homoskedastic</strong>, with a <code>t</code>
-reference distribution.</li>
+<li>they are <strong>homoskedastic</strong>, with the reference
+distribution <code>error_reference</code> names.</li>
 </ol>
 <p>None of the three holds for the series in this vignette.
 <code>sim_reports()</code> draws tests from a Poisson and positives from
 a binomial, both with a <strong>sinusoidal</strong> mean. So the window
 mean is curved rather than linear, and the variance of the rate changes
-with the level and with the number of tests. The interval below is
-therefore a model-based perturbation, under assumptions the data
-generator violates. It is informative about the sensitivity of the
-slope, not a valid confidence statement about it.</p>
-<p>Use the default when you want to describe what the completed series
-did. Reach for this one only when a latent linear trend is genuinely the
-thing you mean, and say so when you publish the interval:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">ens_trend2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/short_term_trend.html">short_term_trend</a></span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="va">rate</span>, trend_isoyearweeks <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>                               propagate_slope_error <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">qt2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens_trend2</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">trend2</span> <span class="op">&lt;-</span> <span class="va">qt2</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek</span>,</span>
-<span>                  gr    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">gr</span>, q <span class="op">=</span> <span class="fl">0.50</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>                  gr_lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">gr</span>, q <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>                  gr_hi <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">gr</span>, q <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">trend2</span>, <span class="fl">10</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     isoyearweek     gr  gr_lo  gr_hi</span></span>
-<span><span class="co">#&gt;          &lt;char&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span></span>
-<span><span class="co">#&gt;  1:     2024-09  -2.35  -6.38   1.35</span></span>
-<span><span class="co">#&gt;  2:     2024-10  -4.33 -10.77   1.43</span></span>
-<span><span class="co">#&gt;  3:     2024-11  -6.22  -9.82  -2.29</span></span>
-<span><span class="co">#&gt;  4:     2024-12  -6.09 -10.11  -1.98</span></span>
-<span><span class="co">#&gt;  5:     2024-13 -10.75 -15.60  -5.24</span></span>
-<span><span class="co">#&gt;  6:     2024-14 -12.02 -17.87  -6.03</span></span>
-<span><span class="co">#&gt;  7:     2024-15 -16.67 -26.32  -7.83</span></span>
-<span><span class="co">#&gt;  8:     2024-16 -19.21 -25.34 -10.78</span></span>
-<span><span class="co">#&gt;  9:     2024-17 -13.58 -22.22  -2.75</span></span>
-<span><span class="co">#&gt; 10:     2024-18 -10.37 -29.96   0.13</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>degenerate_intervals_now <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">trend2</span><span class="op">$</span><span class="va">gr_lo</span> <span class="op">==</span> <span class="va">trend2</span><span class="op">$</span><span class="va">gr_hi</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; degenerate_intervals_now </span></span>
-<span><span class="co">#&gt;                        0</span></span></code></pre></div>
-<p>Every row now has an interval, and <code>p_increasing</code> moves
-off 0 and 1. Note what that costs: the settled weeks, whose counts are
-known exactly, are now reported as uncertain. That is the change of
-estimand made visible, not new information.</p>
-<p>One practical trap on top of the assumptions. The degrees of freedom
-are <code>trend_isoyearweeks - 2</code>, which is 4 at the width of 6
-used here. At the function’s own default width of 3 it is 1 — a Cauchy.
-The growth-rate quantiles then have no finite variance and very heavy
-tails. Widen the window before you enable this.</p>
+with the level and with the number of tests. Read the interval as a
+statement about the sensitivity of the slope, not as a validated
+confidence interval, and say which you mean when you publish it.</p>
+<p>There is a practical trap on top of the assumptions. Under
+<code>error_reference = "auto"</code> the identity and quasi-Poisson
+families use a t on <code>trend_isoyearweeks - 2</code> degrees of
+freedom, which is 4 at the width of 6 used here. At the function’s own
+default width of 3 it is 1, a Cauchy: the growth-rate quantiles then
+have no finite variance and very heavy tails. Widen the window, or pass
+<code>error_reference = "normal"</code>, which is what a Wald interval
+uses and what a pipeline built on <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">stats::confint()</a></code>
+matches.</p>
+<p>Width 2 is refused outright for those two families. Both read a
+dispersion off <code>width - 2</code> residual degrees of freedom, so at
+width 2 there are none and <code>se</code> has no value.
+<code>family = "binomial"</code> fixes the dispersion at 1 and accepts
+width 2.</p>
 <p>This ensemble method is not the same estimator as
 <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a
 <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code>. That one fits a quasi-Poisson
 log-link model over a moving window and returns a factor status column
 (<code>increasing</code> / <code>notincreasing</code>), following
 Benedetti (2019); see <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code>. The ensemble
-method here is an OLS slope. It was chosen because it is a fixed linear
-filter, and so can be applied down 500 draw columns at once. <strong>The
-<code>csfmt_rts_data_v1</code> method is the pre-ensemble architecture
-and is deprecated</strong>. New work SHOULD run
-<code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on the ensemble, as above, before
-<code><a href="../reference/ens_collapse.html">ens_collapse()</a></code>.</p>
+method here defaults to an OLS slope. That default was chosen because it
+is a fixed linear filter, and so can be applied down 500 draw columns at
+once. <code>family = "quasipoisson"</code> gives it the same log link
+the deprecated method uses, at the same cost, by running the iteration
+as a filter too. <strong>The <code>csfmt_rts_data_v1</code> method is
+the pre-ensemble architecture and is deprecated</strong>. New work
+SHOULD run <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on the ensemble, as above,
+before <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code>.</p>
 <p>Carry the trend ensemble forward — the chain continues from here:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="va">ens_trend</span></span></code></pre></div>
 </div>
 </div>
@@ -1261,7 +1247,7 @@ which a fit is reported as provisional. A season needs
 <code>min_weeks_per_season</code> (default 30) weeks to count as
 training at all. It is the reason this vignette’s series starts in 2019
 rather than last year.</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1</a></span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="va">rate</span><span class="op">)</span></span>
 <span><span class="co">#&gt; mem_thresholds_v1: 3 season(s) fit on &lt; 5 training seasons (provisional); see mem_n_seasons.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">ens</span><span class="op">$</span><span class="va">data</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek</span>, <span class="va">mem_n_seasons</span>, <span class="va">mem_preepidemic</span>,</span>
@@ -1279,7 +1265,7 @@ thresholds fit on five, and this is where you find out which you
 have.</p>
 <p>The classification arrives as per-level probabilities after the
 collapse:</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">qm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens</span>, probs <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
 <span><span class="va">pcols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"_status_prob_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">qm</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">intensity</span> <span class="op">&lt;-</span> <span class="va">qm</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"isoyearweek"</span>, <span class="va">pcols</span><span class="op">)</span>, with <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
@@ -1296,7 +1282,7 @@ collapse:</p>
 <p>Some weeks belong to a season with no thresholds — the early seasons,
 which have no prior seasons to learn from. Those weeks get
 <code>NA</code> for every draw and are not classified at all:</p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">status</span> <span class="op">&lt;-</span> <span class="va">ens</span><span class="op">$</span><span class="va">draws</span><span class="op">[[</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">rate</span>, role <span class="op">=</span> <span class="st">"status"</span><span class="op">)</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>weeks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span>,</span>
 <span>  weeks_with_no_threshold <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">status</span>, <span class="fl">1</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1322,7 +1308,7 @@ is an exceedance <em>probability</em>, not a yes/no flag.</p>
 of history before the first week can be classified. This series is
 shorter than that, so it uses three, which is the kind of trade every
 new indicator faces:</p>
-<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/signal_detection_hlm.html">signal_detection_hlm</a></span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="va">rate</span>, baseline_isoyears <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">qh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens</span>, probs <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
 <span><span class="va">hcols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"_hlmstatus_prob_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">qh</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -1343,7 +1329,7 @@ completed rate exceeds the historical limit. It is not a p-value, a
 posterior probability, or a false-alarm rate. The baseline itself is
 estimated from the point history with no uncertainty attached, so
 <code>hlm_threshold</code> is treated as known.</p>
-<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hlm</span> <span class="op">&lt;-</span> <span class="va">ens</span><span class="op">$</span><span class="va">draws</span><span class="op">[[</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">rate</span>, role <span class="op">=</span> <span class="st">"hlmstatus"</span><span class="op">)</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>weeks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">hlm</span><span class="op">)</span>,</span>
 <span>  weeks_with_no_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">hlm</span>, <span class="fl">1</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1359,7 +1345,7 @@ per-level probabilities. With <code>heal = TRUE</code> it hands the
 result to <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v3.html" class="external-link">cstidy::set_csfmt_rts_data_v3()</a></code>, which adds the
 standard calendar columns and returns a
 <code>csfmt_rts_data_v3</code>.</p>
-<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">final</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_collapse.html">ens_collapse</a></span><span class="op">(</span><span class="va">ens</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.95</span><span class="op">)</span>, heal <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">final</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "csfmt_rts_data_v3" "data.table"        "data.frame"</span></span>
@@ -1392,7 +1378,7 @@ today.</p>
 ad-hoc string pasting, so downstream code routes on parsed parts instead
 of hard-coded names:</p>
 <pre><code>&lt;measure&gt;[_vs_&lt;denom&gt;][_&lt;role&gt;][_&lt;q-coord&gt; | _prob_&lt;level&gt;][_pr&lt;per&gt;][&lt;suffix&gt;]</code></pre>
-<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="st">"numerator"</span>, role <span class="op">=</span> <span class="st">"nowcasted"</span>, q <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "numerator_nowcasted_q50x0"</span></span>
 <span><span class="fu"><a href="../reference/csfmt_parse.html">csfmt_parse</a></span><span class="op">(</span><span class="st">"numerator_nowcasted_q50x0"</span><span class="op">)</span></span>
@@ -1409,7 +1395,7 @@ of hard-coded names:</p>
 matches a role against a fixed vocabulary. So it cannot tell which of
 several role-looking segments was the role. The package’s own rate name
 is a case where it gets the denominator wrong:</p>
-<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="st">"numerator_nowcasted"</span>, denom <span class="op">=</span> <span class="st">"denominator_nowcasted"</span>, per <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="va">nm</span></span>
 <span><span class="co">#&gt; [1] "numerator_nowcasted_vs_denominator_nowcasted_pr100"</span></span>
@@ -1426,7 +1412,7 @@ pair. <code><a href="../reference/q_label.html">q_label()</a></code> holds one d
 two integer-percent digits. So a finer probability is rounded, and
 <code>p = 1</code> produces a three-digit label that
 <code><a href="../reference/q_value.html">q_value()</a></code> cannot read back.</p>
-<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/q_value.html">q_value</a></span><span class="op">(</span><span class="fu"><a href="../reference/q_label.html">q_label</a></span><span class="op">(</span><span class="fl">0.0125</span><span class="op">)</span><span class="op">)</span>   <span class="co"># rounded to the label grid</span></span>
 <span><span class="co">#&gt; [1] 0.012</span></span>
 <span><span class="fu"><a href="../reference/q_label.html">q_label</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>

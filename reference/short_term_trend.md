@@ -37,7 +37,6 @@ short_term_trend(
   x,
   measure,
   trend_isoyearweeks = 3,
-  propagate_slope_error = FALSE,
   n_sim = 1000L,
   family = c("identity", "quasipoisson", "binomial"),
   denominator = NULL,
@@ -122,32 +121,12 @@ short_term_trend(
 
   Character: the \`\$draws\` measure to compute the trend on.
 
-- propagate_slope_error:
-
-  Logical. If \`TRUE\`, add the slope's own sampling error to each draw,
-  then form the growth rate. The trend interval then reflects the
-  uncertainty of the slope estimate, and not the uncertainty of the
-  level alone. Defaults to \`FALSE\`, which keeps the published numbers
-  unchanged. \`error_reference\` picks the distribution the error comes
-  from. Under its \`"auto"\` default, \`"identity"\` and
-  \`"quasipoisson"\` add \`se \* t\_(width-2)\`. At the default width of
-  3 those degrees of freedom are 1, a Cauchy, so widen the window first.
-  \`"binomial"\` adds \`se \* rnorm()\`, and a 3-week window stays
-  usable there.
-
-  \`"identity"\` and \`"quasipoisson"\` need \`trend_isoyearweeks \>=
-  3\` here, and no \`error_reference\` lowers that floor. Both read a
-  dispersion off \`width - 2\` residual degrees of freedom, so \`se\`
-  itself is not defined at width 2. \`"binomial"\` fixes the dispersion
-  at 1 and accepts width 2.
-
 - n_sim:
 
   Integer. Draw-axis width used for the slope-error perturbation when
   the incoming ensemble is degenerate. A degenerate ensemble holds a
   single passthrough draw, so it has no draw axis to carry the
-  uncertainty. Ignored when the ensemble already has draws, and when
-  \`propagate_slope_error\` is \`FALSE\`.
+  uncertainty. Ignored when the ensemble already has draws.
 
 - family:
 
@@ -163,16 +142,16 @@ short_term_trend(
 
 - error_reference:
 
-  Character: the reference distribution that \`propagate_slope_error\`
-  perturbs the slope with. \`"auto"\` is the default. It gives
-  \`"identity"\` and \`"quasipoisson"\` a t on \`trend_isoyearweeks -
-  2\` degrees of freedom. Both estimate a dispersion from that many
-  residual degrees of freedom, which is the case \`summary.glm()\`
-  refers to a t. It gives \`"binomial"\` a standard normal, because that
-  family fixes the dispersion at 1. \`"normal"\` and \`"t"\` force one
-  reference on every family. Use \`"normal"\` to match a pipeline whose
-  interval comes from \`stats::confint()\`, which profiles the deviance
-  against an asymptotic chi-squared.
+  Character: the reference distribution the slope's own sampling error
+  is drawn from. \`"auto"\` is the default. It gives \`"identity"\` and
+  \`"quasipoisson"\` a t on \`trend_isoyearweeks - 2\` degrees of
+  freedom. Both estimate a dispersion from that many residual degrees of
+  freedom, which is the case \`summary.glm()\` refers to a t. It gives
+  \`"binomial"\` a standard normal, because that family fixes the
+  dispersion at 1. \`"normal"\` and \`"t"\` force one reference on every
+  family. Use \`"normal"\` to match a pipeline whose interval comes from
+  \`stats::confint()\`, which profiles the deviance against an
+  asymptotic chi-squared.
 
 ## Value
 

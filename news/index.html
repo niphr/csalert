@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.26</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.27</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,31 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.27" id="version-2026827">Version 2026.8.27<a class="anchor" aria-label="anchor" href="#version-2026827"></a></h2>
+<div class="section level3">
+<h3 id="breaking-propagate_slope_error-was-removed-and-the-slope-error-is-always-propagated-2026-8-27">Breaking: <code>propagate_slope_error</code> was removed, and the slope error is always propagated<a class="anchor" aria-label="anchor" href="#breaking-propagate_slope_error-was-removed-and-the-slope-error-is-always-propagated-2026-8-27"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a <code>csfmt_ensemble_v3</code> no longer takes <code>propagate_slope_error</code>.</strong> The slope’s own sampling error now reaches every draw, always, and there is no way to switch it off.</li>
+<li>Two things are uncertain and both belong in the draws: the <strong>level</strong>, which the incoming ensemble already carries, and the <strong>line</strong> fitted through those levels. <code>increasing_pr</code> is the share of draws whose slope is positive, so without the second it is a sign test on the point slope wearing the name of a probability. A threshold like <code>&gt; 0.975</code> on it then does nothing at all. That was the default behaviour, and nothing warned.</li>
+<li>
+<strong>Published numbers change.</strong> Every <code>_trend_beta1</code>, <code>_trend_gr</code> and <code>_trend_increasing_pr</code> a caller was producing under the old default is different now, and the trend columns are no longer reproducible run to run without a seed. Set one if you need that.</li>
+<li>
+<strong><code>$draws[["&lt;measure&gt;_trend_beta1"]]</code> is no longer the point estimate.</strong> It holds the perturbed draws. Call <code><a href="../reference/rolling_slope_matrix.html">rolling_slope_matrix()</a></code> for the unperturbed slope, its standard error and its convergence flag.</li>
+<li>Passing <code>propagate_slope_error</code> now raises an error naming the removal. The method takes <code>...</code>, so without that guard a caller who had turned it off would get propagated numbers and no notice.</li>
+<li>
+<strong><code>family = "identity"</code> and <code>family = "quasipoisson"</code> now refuse <code>trend_isoyearweeks = 2</code>.</strong> Both read a dispersion off <code>width - 2</code> residual degrees of freedom, so <code>se</code> has no value at width 2 and no <code>error_reference</code> repairs it. <code>family = "binomial"</code> fixes the dispersion at 1 and still accepts width 2.</li>
+<li>
+<code>n_sim</code> moved from argument 5 to argument 4, which changes the meaning of a positional call.</li>
+<li>
+<code>error_reference</code> is unchanged and still selects the reference distribution.</li>
+</ul><p>The <code>csfmt_rts_data_v1</code> method is untouched. It fits its own GLM per window and never had this argument.</p>
+</div>
+<div class="section level3">
+<h3 id="version-2026-8-27">Version<a class="anchor" aria-label="anchor" href="#version-2026-8-27"></a></h3>
+<ul><li>r-universe publishes 2026.8.26 from commit <code>576b9c51</code>, so this tree needs a number above it. 2026.8.27 is the release date of this tree.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.26" id="version-2026826">Version 2026.8.26<a class="anchor" aria-label="anchor" href="#version-2026826"></a></h2>
 <div class="section level3">
