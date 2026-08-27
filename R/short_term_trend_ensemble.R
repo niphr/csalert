@@ -380,7 +380,7 @@ stt_error_reference <- function(family, error_reference, width) {
     stop(
       sprintf(
         paste0(
-          "propagate_slope_error needs trend_isoyearweeks >= 3 under family = ",
+          "the slope error needs trend_isoyearweeks >= 3 under family = ",
           "'%s'. That family estimates a dispersion from width - 2 residual ",
           "degrees of freedom, so `se` is not defined at width 2. Only ",
           "family = 'binomial' fixes the dispersion at 1 and accepts width 2."
@@ -404,7 +404,7 @@ stt_error_reference <- function(family, error_reference, width) {
   if (df < 1) {
     stop(
       paste0(
-        "propagate_slope_error needs trend_isoyearweeks >= 3 under ",
+        "the slope error needs trend_isoyearweeks >= 3 under ",
         "error_reference = 't'. A t reference needs at least 1 degree of ",
         "freedom."
       ),
@@ -417,25 +417,10 @@ stt_error_reference <- function(family, error_reference, width) {
 #' @rdname short_term_trend
 #' @param measure Character: the `$draws` measure to compute the trend on.
 #' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
-#' @param propagate_slope_error Logical. If `TRUE`, add the slope's own sampling
-#'   error to each draw, then form the growth rate. The trend interval then
-#'   reflects the uncertainty of the slope estimate, and not the uncertainty of
-#'   the level alone. Defaults to `FALSE`, which keeps the published numbers
-#'   unchanged. `error_reference` picks the distribution the error comes from.
-#'   Under its `"auto"` default, `"identity"` and `"quasipoisson"` add
-#'   `se * t_(width-2)`. At the default width of 3 those degrees of freedom are
-#'   1, a Cauchy, so widen the window first. `"binomial"` adds `se * rnorm()`,
-#'   and a 3-week window stays usable there.
-#'
-#'   `"identity"` and `"quasipoisson"` need `trend_isoyearweeks >= 3` here, and
-#'   no `error_reference` lowers that floor. Both read a dispersion off
-#'   `width - 2` residual degrees of freedom, so `se` itself is not defined at
-#'   width 2. `"binomial"` fixes the dispersion at 1 and accepts width 2.
 #' @param n_sim Integer. Draw-axis width used for the slope-error perturbation
 #'   when the incoming ensemble is degenerate. A degenerate ensemble holds a
 #'   single passthrough draw, so it has no draw axis to carry the uncertainty.
-#'   Ignored when the ensemble
-#'   already has draws, and when `propagate_slope_error` is `FALSE`.
+#'   Ignored when the ensemble already has draws.
 #' @param family Error family and link for the rolling fit. `"identity"` is the
 #'   default. It is ordinary least squares on `measure`, and the growth rate is
 #'   `100 * beta1 / Y`. `"quasipoisson"` is a log link on `measure`.
@@ -452,8 +437,8 @@ stt_error_reference <- function(family, error_reference, width) {
 #'   denominator, which enters the fit as the prior weight. `measure` MUST then
 #'   be the proportion on the response scale, between 0 and 1.
 #'   `family = "binomial"` needs it, and the other two families reject it.
-#' @param error_reference Character: the reference distribution that
-#'   `propagate_slope_error` perturbs the slope with. `"auto"` is the default.
+#' @param error_reference Character: the reference distribution the slope's own
+#'   sampling error is drawn from. `"auto"` is the default.
 #'   It gives `"identity"` and `"quasipoisson"` a t on
 #'   `trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
 #'   from that many residual degrees of freedom, which is the case
@@ -470,7 +455,6 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   x,
   measure,
   trend_isoyearweeks = 3,
-  propagate_slope_error = FALSE,
   n_sim = 1000L,
   family = c("identity", "quasipoisson", "binomial"),
   denominator = NULL,
@@ -478,6 +462,19 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   ...
 ) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
+  # `propagate_slope_error` was removed. Without the guard it would land in
+  # `...` and be silently ignored, so a caller who had turned it off would get
+  # propagated numbers and no notice.
+  if ("propagate_slope_error" %in% names(list(...))) {
+    stop(
+      paste0(
+        "`propagate_slope_error` was removed. The slope's own sampling error ",
+        "is always propagated now, because P(increasing) without it is a sign ",
+        "test rather than a probability. There is no way to switch it off."
+      ),
+      call. = FALSE
+    )
+  }
   family <- match.arg(family)
   error_reference <- match.arg(error_reference)
   if (!measure %in% names(x$draws)) {
@@ -511,45 +508,49 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   rs$beta0[invalid, ] <- NA_real_
   rs$se[invalid, ] <- NA_real_
 
+  # The slope's own sampling error, always. Two things are uncertain and both
+  # belong in the draws: the LEVEL, which the incoming ensemble already carries,
+  # and the LINE fitted through those levels, which is this. P(increasing)
+  # without the second is a sign test on the point slope wearing the name of a
+  # probability, and a threshold like `> 0.975` then does nothing.
   beta1 <- rs$beta1
-  if (propagate_slope_error) {
-    # "auto" reads the dispersion. Identity and quasi-Poisson both estimate one
-    # from width - 2 residual degrees of freedom, which is the case
-    # summary.glm() refers to a t. The binomial family fixes it at 1, so a
-    # normal is the right reference there.
-    ref <- stt_error_reference(family, error_reference, width)
-    reference <- ref$reference
-    df <- ref$df
-    # Identity and quasi-Poisson both estimate the dispersion from width - 2
-    # residual degrees of freedom. At width 2 there are none, so `se` is NaN
-    # under identity and Inf under quasi-Poisson, and the growth rate reaches
-    # $draws missing or as a random -100 percent. No `error_reference` escapes
-    # that: the defect is in `se`, not in the reference. The binomial family
-    # fixes the dispersion at 1, so its `se` is finite at width 2.
-    se <- rs$se
-    # A passthrough ensemble has a single draw, so there is no draw axis to carry
-    # the slope's uncertainty: perturbing one column once still leaves one column,
-    # and P(increasing) stays a bare sign test. Widen the trend's own draw axis --
-    # the count is observed, but its TREND is estimated. $draws matrices are
-    # allowed to differ in width; ens_collapse quantiles each one independently.
-    if (ncol(beta1) == 1L && n_sim > 1L) {
-      rep1 <- rep(1L, n_sim)
-      beta1 <- beta1[, rep1, drop = FALSE]
-      se <- se[, rep1, drop = FALSE]
-      Y <- Y[, rep1, drop = FALSE]
-    }
-    # The slope's sampling distribution is beta1_hat + se * reference.
-    # WARNING: at the default width of 3 a t reference is t_1, a Cauchy. It
-    # has no finite variance, so the growth-rate quantiles get heavy tails.
-    # Widen the window before turning this on. A normal reference keeps width 3
-    # usable, and error_reference = "normal" forces one on every family.
-    err <- if (reference == "t") {
-      stats::rt(length(beta1), df = df)
-    } else {
-      stats::rnorm(length(beta1))
-    }
-    beta1 <- beta1 + se * matrix(err, nrow(beta1), ncol(beta1))
+  # "auto" reads the dispersion. Identity and quasi-Poisson both estimate one
+  # from width - 2 residual degrees of freedom, which is the case
+  # summary.glm() refers to a t. The binomial family fixes it at 1, so a
+  # normal is the right reference there.
+  #
+  # At width 2 identity and quasi-Poisson have no residual degrees of freedom,
+  # so `se` is NaN under identity and Inf under quasi-Poisson. No
+  # `error_reference` escapes that: the defect is in `se`, not in the
+  # reference. stt_error_reference() therefore errors, and a two-point trend is
+  # unavailable for those two families. The binomial family fixes the
+  # dispersion at 1 and accepts width 2.
+  ref <- stt_error_reference(family, error_reference, width)
+  reference <- ref$reference
+  df <- ref$df
+  se <- rs$se
+  # A passthrough ensemble has a single draw, so there is no draw axis to carry
+  # the slope's uncertainty: perturbing one column once still leaves one column,
+  # and P(increasing) stays a bare sign test. Widen the trend's own draw axis --
+  # the count is observed, but its TREND is estimated. $draws matrices are
+  # allowed to differ in width; ens_collapse quantiles each one independently.
+  if (ncol(beta1) == 1L && n_sim > 1L) {
+    rep1 <- rep(1L, n_sim)
+    beta1 <- beta1[, rep1, drop = FALSE]
+    se <- se[, rep1, drop = FALSE]
+    Y <- Y[, rep1, drop = FALSE]
   }
+  # The slope's sampling distribution is beta1_hat + se * reference.
+  # WARNING: at the default width of 3 a t reference is t_1, a Cauchy. It has
+  # no finite variance, so the growth-rate quantiles get heavy tails. Widen the
+  # window, or set error_reference = "normal", which forces a normal on every
+  # family.
+  err <- if (reference == "t") {
+    stats::rt(length(beta1), df = df)
+  } else {
+    stats::rnorm(length(beta1))
+  }
+  beta1 <- beta1 + se * matrix(err, nrow(beta1), ncol(beta1))
 
   # growth rate per draw. Identity: gr_pr100 = 100 * slope / level. Log or logit
   # link: the slope IS a growth rate on the link scale, so exp(beta1) - 1 is the
@@ -562,8 +563,9 @@ short_term_trend.csfmt_ensemble_v3 <- function(
 
   # P(increasing) = fraction of draws with a positive slope (a point column, not
   # a draw matrix, since it is already a reduction over the draw axis).
-  # NB with a single-draw (passthrough) ensemble and propagate_slope_error =
-  # FALSE this is exactly 0 or 1 -- a bare positive slope reads as certainty.
+  # The slope error is always in `beta1` by now, so this is a probability
+  # rather than a sign test. It was the latter until the error became
+  # mandatory, and a `> 0.975` threshold on it then did nothing.
   inc <- rowMeans(beta1 > 0, na.rm = TRUE)
   inc[is.nan(inc)] <- NA_real_
   # data.table::set(), NOT `[[<-`. Base assignment copies the table and breaks its

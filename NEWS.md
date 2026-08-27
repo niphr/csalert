@@ -1,3 +1,43 @@
+# Version 2026.8.27
+
+## Breaking: `propagate_slope_error` was removed, and the slope error is always propagated
+
+- **`short_term_trend()` on a `csfmt_ensemble_v3` no longer takes
+  `propagate_slope_error`.** The slope's own sampling error now reaches every
+  draw, always, and there is no way to switch it off.
+- Two things are uncertain and both belong in the draws: the **level**, which
+  the incoming ensemble already carries, and the **line** fitted through those
+  levels. `increasing_pr` is the share of draws whose slope is positive, so
+  without the second it is a sign test on the point slope wearing the name of a
+  probability. A threshold like `> 0.975` on it then does nothing at all. That
+  was the default behaviour, and nothing warned.
+- **Published numbers change.** Every `_trend_beta1`, `_trend_gr` and
+  `_trend_increasing_pr` a caller was producing under the old default is
+  different now, and the trend columns are no longer reproducible run to run
+  without a seed. Set one if you need that.
+- **`$draws[["<measure>_trend_beta1"]]` is no longer the point estimate.** It
+  holds the perturbed draws. Call `rolling_slope_matrix()` for the unperturbed
+  slope, its standard error and its convergence flag.
+- Passing `propagate_slope_error` now raises an error naming the removal. The
+  method takes `...`, so without that guard a caller who had turned it off
+  would get propagated numbers and no notice.
+- **`family = "identity"` and `family = "quasipoisson"` now refuse
+  `trend_isoyearweeks = 2`.** Both read a dispersion off `width - 2` residual
+  degrees of freedom, so `se` has no value at width 2 and no `error_reference`
+  repairs it. `family = "binomial"` fixes the dispersion at 1 and still accepts
+  width 2.
+- `n_sim` moved from argument 5 to argument 4, which changes the meaning of a
+  positional call.
+- `error_reference` is unchanged and still selects the reference distribution.
+
+The `csfmt_rts_data_v1` method is untouched. It fits its own GLM per window and
+never had this argument.
+
+## Version
+
+- r-universe publishes 2026.8.26 from commit `576b9c51`, so this tree needs a
+  number above it. 2026.8.27 is the release date of this tree.
+
 # Version 2026.8.26
 
 ## Trend on the link scale

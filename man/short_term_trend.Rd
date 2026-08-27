@@ -33,7 +33,6 @@ short_term_trend(x, ...)
   x,
   measure,
   trend_isoyearweeks = 3,
-  propagate_slope_error = FALSE,
   n_sim = 1000L,
   family = c("identity", "quasipoisson", "binomial"),
   denominator = NULL,
@@ -78,26 +77,10 @@ be the proportion on the response scale, between 0 and 1.
 
 \item{measure}{Character: the `$draws` measure to compute the trend on.}
 
-\item{propagate_slope_error}{Logical. If `TRUE`, add the slope's own sampling
-  error to each draw, then form the growth rate. The trend interval then
-  reflects the uncertainty of the slope estimate, and not the uncertainty of
-  the level alone. Defaults to `FALSE`, which keeps the published numbers
-  unchanged. `error_reference` picks the distribution the error comes from.
-  Under its `"auto"` default, `"identity"` and `"quasipoisson"` add
-  `se * t_(width-2)`. At the default width of 3 those degrees of freedom are
-  1, a Cauchy, so widen the window first. `"binomial"` adds `se * rnorm()`,
-  and a 3-week window stays usable there.
-
-  `"identity"` and `"quasipoisson"` need `trend_isoyearweeks >= 3` here, and
-  no `error_reference` lowers that floor. Both read a dispersion off
-  `width - 2` residual degrees of freedom, so `se` itself is not defined at
-  width 2. `"binomial"` fixes the dispersion at 1 and accepts width 2.}
-
 \item{n_sim}{Integer. Draw-axis width used for the slope-error perturbation
 when the incoming ensemble is degenerate. A degenerate ensemble holds a
 single passthrough draw, so it has no draw axis to carry the uncertainty.
-Ignored when the ensemble
-already has draws, and when `propagate_slope_error` is `FALSE`.}
+Ignored when the ensemble already has draws.}
 
 \item{family}{Error family and link for the rolling fit. `"identity"` is the
 default. It is ordinary least squares on `measure`, and the growth rate is
@@ -109,8 +92,8 @@ that percent change is in the odds, not in the proportion. A zero in
 `measure` needs no offset: the log link models `E[Y] = exp(b0 + b1 t)` and
 never takes `log(Y)`.}
 
-\item{error_reference}{Character: the reference distribution that
-`propagate_slope_error` perturbs the slope with. `"auto"` is the default.
+\item{error_reference}{Character: the reference distribution the slope's own
+sampling error is drawn from. `"auto"` is the default.
 It gives `"identity"` and `"quasipoisson"` a t on
 `trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
 from that many residual degrees of freedom, which is the case

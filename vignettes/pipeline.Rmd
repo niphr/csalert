@@ -862,90 +862,87 @@ say the fall will continue. It is conditional on the nowcast being right about
 the four weeks that are still filling. Stage 2 measured those weeks as the
 engine's weakest point.
 
-### The settled weeks have no interval, and that is the right answer
+### Every week gets an interval, including the settled ones
 
-Look at the rows above the nowcast weeks: `gr_lo` and `gr_hi` equal `gr`, and
-`p_increasing` is exactly 0 or 1. That is not a display artefact and it is not a
-defect. Those windows lie entirely inside the settled weeks. There every draw of
-the numerator and of the denominator is the same observed total, so every draw of
-their ratio is too.
+Two things are uncertain and both reach the draws.
 
-The six rates are *known*, so their OLS slope is a known
-number, and the descriptive estimand has nothing left to be uncertain
-about. `p_increasing` collapses to a **sign indicator** on that one number —
-which is what a share-of-draws becomes when all the draws agree. It is not a
-sign test, and no inference is being performed. Measured rather than asserted:
+The first is the **level**. A week still filling in has a nowcast, so its
+numerator and denominator differ from draw to draw. A settled week does not:
+every draw of the observed total is the same number.
+
+The second is the **line** fitted through those levels. That one is never
+certain, not even when the six weekly rates are known exactly. Six known points
+do not determine the slope of the process that generated them, and
+`short_term_trend()` therefore always adds the slope's own sampling error,
+`se * reference`, to each draw before forming the growth rate.
+
+That was optional until 2026.8.27, and off by default. It is neither now, for
+one reason: `p_increasing` is the share of draws whose slope is positive.
+Without the slope's error a settled week has one slope repeated across every
+draw, so that share is exactly 0 or 1 for *every* settled week, and a threshold
+on it does nothing at all. A column named for a probability was reporting a
+sign indicator.
 
 ```{r}
 settled_weeks <- truth$reference
 tr_settled <- trend[isoyearweek %in% settled_weeks & !is.na(gr_lo)]
+p <- tr_settled$p_increasing
 data.table(
   settled_rows_with_a_full_window = nrow(tr_settled),
-  all_intervals_degenerate = all(tr_settled$gr_lo == tr_settled$gr_hi),
-  p_increasing_values = paste(sort(unique(tr_settled$p_increasing)), collapse = ", ")
+  any_degenerate_interval = any(tr_settled$gr_lo == tr_settled$gr_hi),
+  p_increasing_strictly_inside_0_1 = sum(p > 0 & p < 1),
+  p_increasing_at_a_boundary = sum(p %in% c(0, 1))
 )
 ```
 
-### `propagate_slope_error = TRUE` changes the estimand
+Every settled week now has a real interval. Most also have a `p_increasing`
+strictly between 0 and 1. The remainder sit at exactly 0 or 1, and that is a
+different thing from the old degeneracy: those are windows whose slope is so
+many standard errors from zero that every draw lands on the same side. That is a probability of 1 at the Monte Carlo resolution the draw
+count buys, not a sign indicator. Raise `n_sim` if you need to distinguish
+0.999 from 1.
 
-`short_term_trend()` has an argument that gives the settled weeks an interval.
-It is worth understanding what it actually does, because it is not "adding the
-uncertainty the default forgot".
+### What that interval is, and what it is not
 
-`propagate_slope_error = TRUE` perturbs each draw's slope by `se * t`. Here `se`
-is the OLS standard error of that window, and `t` is on `trend_isoyearweeks - 2`
-degrees of freedom. That quantity only means something if you stop asking the
-descriptive question and start asking a **model-based** one. The model-based
-question is this: *treat the six weekly counts as noisy observations around a
-latent straight line, and report uncertainty about that line's slope*. Switching
-to that question buys an interval, and commits you to three assumptions:
+Adding the slope's error answers a **model-based** question: *treat the six
+weekly counts as noisy observations around a latent straight line, and report
+uncertainty about that line's slope*. That question is the one a trend arrow
+asks. Asking it commits you to three assumptions:
 
 1. the underlying weekly mean is **linear** across the window;
 2. the deviations are **independent** across weeks;
-3. they are **homoskedastic**, with a `t` reference distribution.
+3. they are **homoskedastic**, with the reference distribution `error_reference`
+   names.
 
 None of the three holds for the series in this vignette. `sim_reports()` draws
 tests from a Poisson and positives from a binomial, both with a **sinusoidal**
 mean. So the window mean is curved rather than linear, and the variance of the
-rate changes with the level and with the number of tests. The interval below is
-therefore a model-based perturbation, under assumptions the data generator
-violates. It is informative about the sensitivity of the slope, not a valid
-confidence statement about it.
+rate changes with the level and with the number of tests. Read the interval as a
+statement about the sensitivity of the slope, not as a validated confidence
+interval, and say which you mean when you publish it.
 
-Use the default when you want to describe what the completed series did. Reach
-for this one only when a latent linear trend is genuinely the thing you mean, and
-say so when you publish the interval:
+There is a practical trap on top of the assumptions. Under `error_reference =
+"auto"` the identity and quasi-Poisson families use a t on
+`trend_isoyearweeks - 2` degrees of freedom, which is 4 at the width of 6 used
+here. At the function's own default width of 3 it is 1, a Cauchy: the
+growth-rate quantiles then have no finite variance and very heavy tails. Widen
+the window, or pass `error_reference = "normal"`, which is what a Wald interval
+uses and what a pipeline built on `stats::confint()` matches.
 
-```{r}
-set.seed(3)
-ens_trend2 <- short_term_trend(ens, measure = rate, trend_isoyearweeks = 6,
-                               propagate_slope_error = TRUE)
-qt2 <- ens_collapse(ens_trend2, probs = c(0.05, 0.5, 0.95))
-trend2 <- qt2[, .(isoyearweek,
-                  gr    = round(get(csfmt_var(gr, q = 0.50)), 2),
-                  gr_lo = round(get(csfmt_var(gr, q = 0.05)), 2),
-                  gr_hi = round(get(csfmt_var(gr, q = 0.95)), 2))]
-tail(trend2, 10)
-c(degenerate_intervals_now = sum(trend2$gr_lo == trend2$gr_hi, na.rm = TRUE))
-```
+Width 2 is refused outright for those two families. Both read a dispersion off
+`width - 2` residual degrees of freedom, so at width 2 there are none and `se`
+has no value. `family = "binomial"` fixes the dispersion at 1 and accepts width
+2.
 
-Every row now has an interval, and `p_increasing` moves off 0 and 1. Note
-what that costs: the settled weeks, whose counts are known exactly, are now
-reported as uncertain. That is the change of estimand made visible, not new
-information.
-
-One practical trap on top of the assumptions. The degrees of freedom are
-`trend_isoyearweeks - 2`, which is 4 at the width of 6 used here. At the
-function's own default width of 3 it is 1 — a Cauchy. The growth-rate
-quantiles then have no finite variance and very heavy tails. Widen the window
-before you enable this.
 
 This ensemble method is not the same estimator as `short_term_trend()` on a
 `cstidy::csfmt_rts_data_v1`. That one fits a quasi-Poisson log-link model over a
 moving window and returns a factor status column (`increasing` /
 `notincreasing`), following Benedetti (2019); see `?short_term_trend`. The
-ensemble method here is an OLS slope. It was chosen because it is a fixed linear
-filter, and so can be applied down 500 draw columns at once. **The
+ensemble method here defaults to an OLS slope. That default was chosen because
+it is a fixed linear filter, and so can be applied down 500 draw columns at
+once. `family = "quasipoisson"` gives it the same log link the deprecated
+method uses, at the same cost, by running the iteration as a filter too. **The
 `csfmt_rts_data_v1` method is the pre-ensemble architecture and is deprecated**.
 New work SHOULD run `short_term_trend()` on the ensemble, as above, before
 `ens_collapse()`.
