@@ -25,13 +25,32 @@ different arguments, return a different shape, and give different numbers.
 
 ## Installation
 
-``` r
-# released version
-install.packages("csalert")
+Install from the niphr r-universe, which builds every commit on `main`:
 
-# development version
-pak::pak("niphr/csalert")
+``` r
+options(repos = c(
+  niphr = "https://niphr.r-universe.dev",
+  CRAN = "https://cloud.r-project.org"
+))
+install.packages("csalert")
 ```
+
+Put those `repos` in your `~/.Rprofile` so every session uses them. Without
+them R has no mirror set and reaches CRAN, where **csalert is years behind**:
+CRAN carries 2024.6.24, published 2024-06-24. That release still installs, so
+the mistake is silent.
+
+`pak` works the same way once the repos are set:
+
+``` r
+pak::pak("csalert")            # the r-universe build
+pak::pak("niphr/csalert")      # straight from GitHub, ignores the repo list
+```
+
+`pak` does not support a version range, so `csalert@>=2026.8.27` is an error.
+Pin an exact version with `csalert@2026.8.27`, or declare
+`Imports: csalert (>= 2026.8.27)` in a `DESCRIPTION` and install with
+`pak::local_install_deps()`.
 
 ## Quick start
 
