@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.27</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.28</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,21 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.8.28" id="version-2026828">Version 2026.8.28<a class="anchor" aria-label="anchor" href="#version-2026828"></a></h2>
+<div class="section level3">
+<h3 id="installation-points-at-the-r-universe-2026-8-28">Installation points at the r-universe<a class="anchor" aria-label="anchor" href="#installation-points-at-the-r-universe-2026-8-28"></a></h3>
+<ul><li>
+<code>README.md</code> told users to run <code>install.packages("csalert")</code>. With no repos set that reaches CRAN, which carries 2024.6.24 from 2024-06-24. It installs without complaint, so a reader following the README got a release two years behind and nothing said so.</li>
+<li>The section now sets <code>repos</code> to <code>niphr.r-universe.dev</code> first, which builds every commit on <code>main</code>, and says to put that in <code>~/.Rprofile</code>.</li>
+<li>It also records what <code>pak</code> can express, measured against pak 0.11.1: a version range such as <code>csalert@&gt;=2026.8.27</code> is rejected with “Version ranges are not implemented yet”, an exact <code>csalert@2026.8.27</code> pin works, and a <code>DESCRIPTION</code> floor of <code>Imports: csalert (&gt;= x)</code> resolves through <code><a href="https://pak.r-lib.org/reference/local_install_deps.html" class="external-link">pak::local_install_deps()</a></code>.</li>
+</ul><p>No code changed. This release is documentation only.</p>
+</div>
+<div class="section level3">
+<h3 id="version-2026-8-28">Version<a class="anchor" aria-label="anchor" href="#version-2026-8-28"></a></h3>
+<ul><li>2026.8.27 was published twice, from <code>44a33f02</code> and then from <code>0f719ece</code>. Two trees under one version is the defect CalVer prevents, so the README tree takes a number of its own. 2026.8.28 is the release date of this tree.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.27" id="version-2026827">Version 2026.8.27<a class="anchor" aria-label="anchor" href="#version-2026827"></a></h2>
 <div class="section level3">

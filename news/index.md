@@ -1,5 +1,31 @@
 # Changelog
 
+## Version 2026.8.28
+
+### Installation points at the r-universe
+
+- `README.md` told users to run `install.packages("csalert")`. With no
+  repos set that reaches CRAN, which carries 2024.6.24 from 2024-06-24.
+  It installs without complaint, so a reader following the README got a
+  release two years behind and nothing said so.
+- The section now sets `repos` to `niphr.r-universe.dev` first, which
+  builds every commit on `main`, and says to put that in `~/.Rprofile`.
+- It also records what `pak` can express, measured against pak 0.11.1: a
+  version range such as `csalert@>=2026.8.27` is rejected with “Version
+  ranges are not implemented yet”, an exact `csalert@2026.8.27` pin
+  works, and a `DESCRIPTION` floor of `Imports: csalert (>= x)` resolves
+  through
+  [`pak::local_install_deps()`](https://pak.r-lib.org/reference/local_install_deps.html).
+
+No code changed. This release is documentation only.
+
+### Version
+
+- 2026.8.27 was published twice, from `44a33f02` and then from
+  `0f719ece`. Two trees under one version is the defect CalVer prevents,
+  so the README tree takes a number of its own. 2026.8.28 is the release
+  date of this tree.
+
 ## Version 2026.8.27
 
 ### Breaking: `propagate_slope_error` was removed, and the slope error is always propagated
