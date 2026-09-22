@@ -9,7 +9,7 @@ csfmt_reporting_triangle_v3(
   data,
   id_cols,
   reference_col = "isoyearweek_reference",
-  reporting_col = "isoyearweek_reporting",
+  reporting_col = "reporting_date",
   value_col = "numerator"
 )
 ```
@@ -18,16 +18,25 @@ csfmt_reporting_triangle_v3(
 
 - data:
 
-  data.table with identity columns, a reference and a reporting ISO-week
-  column, and a value column.
+  data.table with identity columns, a reference ISO-week column, a
+  reporting date column, and a value column.
 
 - id_cols:
 
   Identity columns defining a series.
 
-- reference_col, reporting_col:
+- reference_col:
 
-  ISO-week column names.
+  ISO-week column name.
+
+- reporting_col:
+
+  Column name holding the calendar date the count was reported. The
+  column MUST be a \`Date\`. A character, a number, a factor and an
+  \`IDate\` each error. It MUST NOT hold \`NA\`, and a missing value
+  errors with its count. One \`NA\` makes \`max()\` return \`NA\`, so
+  the as-of boundary would be \`NA\`, no reference week would settle,
+  and every nowcast engine would quietly return the observed totals.
 
 - value_col:
 
@@ -36,7 +45,8 @@ csfmt_reporting_triangle_v3(
 ## Value
 
 A validated \`csfmt_reporting_triangle_v3\` (a data.table with the as-of
-boundary and column roles stored as attributes).
+boundary and column roles stored as attributes). The as-of boundary is a
+\`Date\`.
 
 ## See also
 
@@ -50,36 +60,37 @@ Other reporting triangle functions:
 ## Examples
 
 ``` r
-# 40 reference weeks, each reported over delays 0-2, then right-truncated at
-# the newest reference week so the most recent weeks are still incomplete
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
+# right-truncated at one as-of date so the newest weeks are still incomplete
+cal <- cstime::dates_by_isoyearweek
+i <- match("2023-01", cal$isoyearweek)
 set.seed(1)
+monday <- as.Date(cal$mon[i + rep(0:39, each = 3)])
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = cal$isoyearweek[i + rep(0:39, each = 3)],
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= as.Date(cal$mon[i + 39]) + 6]
 
 tri <- csfmt_reporting_triangle_v3(
   d,
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# the as-of boundary is the newest reporting week seen
+# the as-of boundary is the newest reporting date seen
 attr(tri, "as_of")
-#> [1] "2023-40"
+#> [1] "2023-10-05"
 head(tri, 3)
-#>    isoyearweek_reference isoyearweek_reporting numerator indicator_tag
-#>                   <char>                <char>     <int>        <char>
-#> 1:               2023-01               2023-01        26             x
-#> 2:               2023-01               2023-02        20             x
-#> 3:               2023-01               2023-03         8             x
-#>    location_code    age    sex   time_series_id             time_series_label
-#>           <char> <char> <char>           <char>                        <char>
-#> 1:        nation  total  total d8da72e3fbb5fd29 x\037nation\037total\037total
-#> 2:        nation  total  total d8da72e3fbb5fd29 x\037nation\037total\037total
-#> 3:        nation  total  total d8da72e3fbb5fd29 x\037nation\037total\037total
+#>    isoyearweek_reference reporting_date numerator indicator_tag location_code
+#>                   <char>         <Date>     <int>        <char>        <char>
+#> 1:               2023-01     2023-01-05        26             x        nation
+#> 2:               2023-01     2023-01-12        20             x        nation
+#> 3:               2023-01     2023-01-19         8             x        nation
+#>       age    sex   time_series_id             time_series_label
+#>    <char> <char>           <char>                        <char>
+#> 1:  total  total d8da72e3fbb5fd29 x\037nation\037total\037total
+#> 2:  total  total d8da72e3fbb5fd29 x\037nation\037total\037total
+#> 3:  total  total d8da72e3fbb5fd29 x\037nation\037total\037total
 ```

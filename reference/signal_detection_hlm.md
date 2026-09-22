@@ -101,7 +101,7 @@ It still works and emits no warning, so existing pipelines are
 undisturbed. New work SHOULD call \`signal_detection_hlm()\` on the
 \*\*ensemble\*\*, before \`ens_collapse()\`:
 
-    ens <- nowcast_quasipoisson_v1(triangle, max_delay = 5)
+    ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
     ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")
     out <- ens_collapse(ens, heal = TRUE)
 

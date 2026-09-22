@@ -13,7 +13,7 @@ single draw makes every collapsed quantile equal the observed point.
 ## Usage
 
 ``` r
-nowcast_passthrough_to_ensemble_v1(x, max_delay, denominator_col = NULL)
+nowcast_passthrough_to_ensemble_v1(x, max_delay_days, denominator_col = NULL)
 ```
 
 ## Arguments
@@ -22,9 +22,12 @@ nowcast_passthrough_to_ensemble_v1(x, max_delay, denominator_col = NULL)
 
   A \`csfmt_reporting_triangle_v3\`.
 
-- max_delay:
+- max_delay_days:
 
-  Delay horizon (defines the contiguous reference grid).
+  Delay horizon in DAYS: delay day 0 to \`max_delay_days - 1\`. It
+  defines the contiguous reference grid. \[qc_week_over_week_v1\] takes
+  \`max_delay_weeks\` instead, counted in WEEKS. The two names differ
+  because the two units differ.
 
 - denominator_col:
 
@@ -39,32 +42,33 @@ A \`csfmt_ensemble_v3\` with single-column draw matrices.
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
 races this engine against
-[`nowcast_quasipoisson_v1`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
+[`nowcast_delay_ecdf_v1`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
 on the same triangle. That is the clearest way to see what completion
 buys you over the observed counts passed through unchanged.
 
 Other nowcast engines:
-[`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
+[`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
 
 ## Examples
 
 ``` r
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
+# right-truncated so the newest weeks are still incomplete
+monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 set.seed(1)
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = format(monday, "%G-%V"),
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 tri <- csfmt_reporting_triangle_v3(
   d,
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-ens <- nowcast_passthrough_to_ensemble_v1(tri, max_delay = 3)
+ens <- nowcast_passthrough_to_ensemble_v1(tri, max_delay_days = 21)
 ens
 #> <csfmt_ensemble_v3> 40 rows | 1 series | draws: numerator_nowcasted
 

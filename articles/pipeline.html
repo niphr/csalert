@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.28</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,8 +99,8 @@ could publish.</p>
 <ul>
 <li>
 <strong><code>csfmt_reporting_triangle_v3</code></strong> — the
-input. One cell per reference week and reporting week, so it records
-what was reported <em>when</em>.</li>
+input. One cell per reference week and reporting DATE, so it records
+what was reported <em>when</em>. The delay is a number of days.</li>
 <li>
 <strong><code>csfmt_ensemble_v3</code></strong> — the working
 format. It holds <code>$data</code>, plus one matrix of Monte-Carlo
@@ -123,7 +123,7 @@ draws to quantiles, and a collapsed table is output, never input.</p>
 </blockquote>
 <p>So the canonical pipeline is a single chain through the ensemble:</p>
 <pre><code>csfmt_reporting_triangle_v3
-  -&gt; nowcast_quasipoisson_v1  OR  nowcast_passthrough_to_ensemble_v1
+  -&gt; nowcast_delay_ecdf_v1  OR  nowcast_passthrough_to_ensemble_v1
   -&gt; [ens_add_rate]              # when a denominator exists
   -&gt; [short_term_trend]          # growth rate + P(increasing)
   -&gt; [mem_thresholds_v1]         # MEM intensity
@@ -170,8 +170,8 @@ Keep that split in mind. Anything that asks <em>how the data
 arrives</em> reads the triangle; anything that asks <em>what the data
 says</em> reads the ensemble.</p>
 <p>When you set up a <em>new</em> indicator, run stage 3 first: it is
-what supports the choice of <code>max_delay</code> that everything else
-then uses.</p>
+what supports the choice of <code>max_delay_days</code> that everything
+else then uses.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -180,20 +180,24 @@ then uses.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.8.28</span></span>
+<span><span class="co">#&gt; csalert 2026.9.22</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="a-synthetic-reporting-triangle">A synthetic reporting triangle<a class="anchor" aria-label="anchor" href="#a-synthetic-reporting-triangle"></a>
 </h2>
 <p>Real surveillance data arrives with a delay: a case with reference
-week <code>W</code> may only be <em>reported</em> in week
-<code>W</code>, <code>W+1</code>, <code>W+2</code>, and so on. The
-generator below simulates a laboratory indicator from ISO week 2019-35
-to 2024-18. That span is five winter seasons, which is what stages 6 and
-7 need. It has a <strong>reporting speed-up built in at the start of ISO
-year 2024</strong>. Stage 3 recovers that change from the triangle
-alone.</p>
+week <code>W</code> may only be <em>reported</em> a few days or a few
+weeks later. The generator below simulates a laboratory indicator from
+ISO week 2019-35 to 2024-18. That span is five winter seasons, which is
+what stages 6 and 7 need. It has a <strong>reporting speed-up built in
+at the start of ISO year 2024</strong>. Stage 3 recovers that change
+from the triangle alone.</p>
+<p><strong>The reporting axis is a calendar date, so a delay is a number
+of days.</strong> The generator draws a whole-week delay, then spreads
+the report over the seven days of that reporting week. A report
+therefore lands anywhere from day 0, the reference week’s own Monday, to
+day 34.</p>
 <p>It emits a <strong>numerator and a denominator</strong>: tests taken,
 and how many were positive. Simulating positives as a binomial
 <em>conditional on the tests</em> keeps the numerator a subset of the
@@ -212,6 +216,7 @@ Monte-Carlo noise reads as signal.</p>
 <span>                        <span class="va">seed</span> <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span>                                    <span class="co"># pinned inside, see above</span></span>
 <span>  <span class="va">weeks</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span>
+<span>  <span class="va">monday</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">mon</span><span class="op">)</span>   <span class="co"># each week's own Monday</span></span>
 <span>  <span class="va">i0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">first_ref</span>, <span class="va">weeks</span><span class="op">)</span></span>
 <span>  <span class="va">i1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">last_ref</span>, <span class="va">weeks</span><span class="op">)</span></span>
 <span>  <span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">i0</span><span class="op">:</span><span class="va">i1</span>, <span class="kw">function</span><span class="op">(</span><span class="va">ri</span><span class="op">)</span> <span class="op">{</span></span>
@@ -222,93 +227,109 @@ Monte-Carlo noise reads as signal.</p>
 <span>    <span class="va">p</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu">cstime</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/cstime/man/isoyearweek_to_isoyear_n.html" class="external-link">isoyearweek_to_isoyear_n</a></span><span class="op">(</span><span class="va">ref</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">2023</span><span class="op">)</span> <span class="va">delay_slow</span> <span class="kw">else</span> <span class="va">delay_fast</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span>
 <span>      isoyearweek_reference <span class="op">=</span> <span class="va">ref</span>,</span>
-<span>      isoyearweek_reporting <span class="op">=</span> <span class="va">weeks</span><span class="op">[</span><span class="va">ri</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">4</span>, <span class="va">n_tests</span>, <span class="cn">TRUE</span>, <span class="va">p</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>      <span class="co"># a whole-week delay, then a day inside that reporting week: delay day</span></span>
+<span>      <span class="co"># 7 * weeks_late + day_of_week, so 0 to 34</span></span>
+<span>      reporting_date <span class="op">=</span> <span class="va">monday</span><span class="op">[</span><span class="va">ri</span><span class="op">]</span> <span class="op">+</span> <span class="fl">7L</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">4</span>, <span class="va">n_tests</span>, <span class="cn">TRUE</span>, <span class="va">p</span><span class="op">)</span> <span class="op">+</span></span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">6</span>, <span class="va">n_tests</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>      positive <span class="op">=</span> <span class="va">positive</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="co"># "today" is the last reference week: drop what has not been reported yet, so</span></span>
-<span>  <span class="co"># the most recent weeks are still incomplete -- the problem a nowcast solves</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="va">rows</span><span class="op">)</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">&lt;=</span> <span class="va">weeks</span><span class="op">[</span><span class="va">i1</span><span class="op">]</span><span class="op">]</span></span>
+<span>  <span class="co"># "today" is the last day of the last reference week: drop what has not been</span></span>
+<span>  <span class="co"># reported yet, so the most recent weeks are still incomplete -- the problem a</span></span>
+<span>  <span class="co"># nowcast solves</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="va">rows</span><span class="op">)</span><span class="op">[</span><span class="va">reporting_date</span> <span class="op">&lt;=</span> <span class="va">monday</span><span class="op">[</span><span class="va">i1</span><span class="op">]</span> <span class="op">+</span> <span class="fl">6L</span><span class="op">]</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="va">reports</span> <span class="op">&lt;-</span> <span class="fu">sim_reports</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">triangle_long</span> <span class="op">&lt;-</span> <span class="va">reports</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">positive</span><span class="op">)</span>, denominator <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>,</span>
-<span>                         by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek_reference</span>, <span class="va">isoyearweek_reporting</span><span class="op">)</span><span class="op">]</span></span>
+<span>                         by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek_reference</span>, <span class="va">reporting_date</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">triangle_long</span><span class="op">[</span>, <span class="fu">`:=`</span><span class="op">(</span>indicator_tag <span class="op">=</span> <span class="st">"lab_flu"</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>,</span>
 <span>                     age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">triangle_long</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    isoyearweek_reference isoyearweek_reporting numerator denominator</span></span>
-<span><span class="co">#&gt;                   &lt;char&gt;                &lt;char&gt;     &lt;int&gt;       &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1:               2019-35               2019-35         1         132</span></span>
-<span><span class="co">#&gt; 2:               2019-35               2019-39         0          12</span></span>
-<span><span class="co">#&gt; 3:               2019-35               2019-36         3          78</span></span>
-<span><span class="co">#&gt; 4:               2019-35               2019-38         0          24</span></span>
-<span><span class="co">#&gt;    indicator_tag location_code    age    sex</span></span>
-<span><span class="co">#&gt;           &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1:       lab_flu        nation  total  total</span></span>
-<span><span class="co">#&gt; 2:       lab_flu        nation  total  total</span></span>
-<span><span class="co">#&gt; 3:       lab_flu        nation  total  total</span></span>
-<span><span class="co">#&gt; 4:       lab_flu        nation  total  total</span></span>
+<span><span class="co">#&gt;    isoyearweek_reference reporting_date numerator denominator indicator_tag</span></span>
+<span><span class="co">#&gt;                   &lt;char&gt;         &lt;Date&gt;     &lt;int&gt;       &lt;int&gt;        &lt;char&gt;</span></span>
+<span><span class="co">#&gt; 1:               2019-35     2019-08-30         0          24       lab_flu</span></span>
+<span><span class="co">#&gt; 2:               2019-35     2019-08-26         1          16       lab_flu</span></span>
+<span><span class="co">#&gt; 3:               2019-35     2019-08-29         0          21       lab_flu</span></span>
+<span><span class="co">#&gt; 4:               2019-35     2019-08-27         0          16       lab_flu</span></span>
+<span><span class="co">#&gt;    location_code    age    sex</span></span>
+<span><span class="co">#&gt;           &lt;char&gt; &lt;char&gt; &lt;char&gt;</span></span>
+<span><span class="co">#&gt; 1:        nation  total  total</span></span>
+<span><span class="co">#&gt; 2:        nation  total  total</span></span>
+<span><span class="co">#&gt; 3:        nation  total  total</span></span>
+<span><span class="co">#&gt; 4:        nation  total  total</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cells <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">triangle_long</span><span class="op">)</span>,</span>
 <span>  numerator_never_exceeds_denominator <span class="op">=</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">triangle_long</span><span class="op">$</span><span class="va">numerator</span> <span class="op">&lt;=</span> <span class="va">triangle_long</span><span class="op">$</span><span class="va">denominator</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                               cells numerator_never_exceeds_denominator </span></span>
-<span><span class="co">#&gt;                                1215                                   1</span></span></code></pre></div>
+<span><span class="co">#&gt;                                8079                                   1</span></span></code></pre></div>
 <p>Wrap it as a <code>csfmt_reporting_triangle_v3</code>. The as-of
-boundary is read from the data — it is the newest reporting week
-present, not the system clock.</p>
+boundary is read from the data: it is the newest reporting date present,
+not the system clock. The constructor errors on a reporting column that
+is not a <code>Date</code>, and on a missing reporting date.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tri</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span></span>
 <span>  <span class="va">triangle_long</span>,</span>
 <span>  id_cols       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span>,</span>
 <span>  reference_col <span class="op">=</span> <span class="st">"isoyearweek_reference"</span>,</span>
-<span>  reporting_col <span class="op">=</span> <span class="st">"isoyearweek_reporting"</span>,</span>
+<span>  reporting_col <span class="op">=</span> <span class="st">"reporting_date"</span>,</span>
 <span>  value_col     <span class="op">=</span> <span class="st">"numerator"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>as_of <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span>,</span>
-<span>  newest_reporting_week <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">triangle_long</span><span class="op">$</span><span class="va">isoyearweek_reporting</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                 as_of newest_reporting_week </span></span>
-<span><span class="co">#&gt;             "2024-18"             "2024-18"</span></span></code></pre></div>
-<p><code>max_delay</code> is the delay horizon used by stages 1 to 3
-below. Stage 3 shows how to choose it from the data; 5 weeks is the
-right answer for this series.</p>
+<span>  newest_reporting_date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">triangle_long</span><span class="op">$</span><span class="va">reporting_date</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                 as_of newest_reporting_date </span></span>
+<span><span class="co">#&gt;          "2024-05-05"          "2024-05-05"</span></span></code></pre></div>
+<p><code>max_delay_days</code> is the delay horizon used by stages 1 to
+3 below, in DAYS. Stage 3 shows how to choose it from the data; 35 days
+is the right answer for this series. Those 35 days are delay day 0 to
+delay day 34, which is the five weeks that start on the reference week’s
+Monday.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">max_delay</span> <span class="op">&lt;-</span> <span class="fl">5L</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">max_delay_days</span> <span class="op">&lt;-</span> <span class="fl">35L</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="nowcast">1. Nowcast<a class="anchor" aria-label="anchor" href="#nowcast"></a>
 </h2>
 <p><strong>Estimand.</strong> For each reference week, the total that
-will have been reported at delays <code>0 .. max_delay - 1</code> — that
-is, by the end of ISO week <code>reference_week + max_delay - 1</code>.
-This is a horizon-capped total, <strong>not</strong> the eventual total.
-Anything reported later than <code>max_delay - 1</code> weeks is outside
-the estimand, and no amount of nowcasting recovers it. Stage 3 is how
-you check that the horizon is wide enough for the difference to be
-small. For a settled week the quantity is already observed. For the most
-recent weeks it is not, and the nowcast is a predictive distribution
-over it.</p>
-<p><code><a href="../reference/nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1()</a></code> is a discriminative
-(regression) engine. For each number of weeks a reference week has been
-observed, it fits one regression on the settled weeks. That regression
-is quasipoisson with an identity link, of the settled total on the
-counts reported so far:</p>
-<pre><code>total ~ n[delay 0] + n[delay 1] + ... + n[delay h]</code></pre>
-<p>R’s default intercept is present in that formula and is fitted. There
-is no per-week magnitude parameter, so the recent weeks do not each
-carry their own noisy level. Draws combine the fit’s parameter
-uncertainty with a dispersion-matched negative binomial.
-<code>delay_window</code> (default 26 weeks) restricts training to the
-settled weeks within roughly that span. The partial-to-total mapping can
-then follow a reporting regime that changes — as this series’ does.</p>
+will have been reported at delay days
+<code>0 .. max_delay_days - 1</code>: that is, by the end of the day
+<code>reference Monday + max_delay_days - 1</code>. This is a
+horizon-capped total, <strong>not</strong> the eventual total. Anything
+reported after delay day <code>max_delay_days - 1</code> is outside the
+estimand, and no amount of nowcasting recovers it. Stage 3 is how you
+check that the horizon is wide enough for the difference to be small.
+For a settled week the quantity is already observed. For the most recent
+weeks it is not, and the nowcast is a predictive distribution over
+it.</p>
+<p><code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> completes each incomplete week
+from a pooled <strong>daily delay ECDF</strong>. It asks one question
+per reference week: what share of a week’s eventual total has arrived by
+delay day <code>d</code>? It answers with an empirical cumulative
+distribution pooled over the settled reference weeks, then divides:</p>
+<pre><code><span><span class="fu">p</span><span class="op">(</span><span class="va">d</span><span class="op">)</span>           <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cumsum.html" class="external-link">cumsum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">pool</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">pool</span><span class="op">)</span></span>
+<span><span class="va">total_hat</span><span class="op">[</span><span class="va">ref</span><span class="op">]</span> <span class="op">=</span> <span class="va">observed_so_far</span><span class="op">[</span><span class="va">ref</span><span class="op">]</span> <span class="op">/</span> <span class="fu">p</span><span class="op">(</span><span class="va">d_observed</span><span class="op">[</span><span class="va">ref</span><span class="op">]</span><span class="op">)</span></span></code></pre>
+<p>That pair is the closed-form maximum likelihood estimator of
+<code>n[ref, d] ~ Poisson(lambda[ref] * p[d])</code>. The delay profile
+is estimated saturated, one number per delay day, rather than through a
+regression. A regression on 35 daily delay columns would have more
+predictors than it has settled training rows.</p>
+<p>The interval is empirical. Each settled week in the pool is
+re-completed from its own first <code>d + 1</code> delay days, then
+compared with its settled total. The 5 to 95 band is the point estimate,
+times the 5% and 95% quantiles of that <code>truth / estimate</code>
+ratio. Nothing parametric is added on top. <code>delay_window</code>
+(default 26 WEEKS, the one quantity here that is not days) restricts
+training to the settled weeks within roughly that span. The delay curve
+can then follow a reporting regime that changes, as this series’
+does.</p>
 <p><code>denominator_col</code> nowcasts a second measure alongside the
 numerator, on the same draw axis. Stage 4 needs it: a rate is only
 coherent if both its parts are completed in the same Monte-Carlo
 world.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span>, n_sim <span class="op">=</span> <span class="fl">500</span>,</span>
-<span>                               denominator_col <span class="op">=</span> <span class="st">"denominator"</span><span class="op">)</span></span>
+<span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>, n_sim <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>                             denominator_col <span class="op">=</span> <span class="st">"denominator"</span><span class="op">)</span></span>
 <span><span class="va">ens</span></span>
 <span><span class="co">#&gt; &lt;csfmt_ensemble_v3&gt; 245 rows | 1 series | draws: numerator_nowcasted, denominator_nowcasted</span></span></code></pre></div>
 <p>Collapse the draws to a quantile summary. <code>original</code> is
@@ -320,16 +341,16 @@ recent weeks are completed above it.</p>
 <span>           lo  <span class="op">=</span> <span class="va">numerator_nowcasted_q05x0</span>,</span>
 <span>           med <span class="op">=</span> <span class="va">numerator_nowcasted_q50x0</span>,</span>
 <span>           hi  <span class="op">=</span> <span class="va">numerator_nowcasted_q95x0</span><span class="op">)</span><span class="op">]</span>, <span class="fl">8</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    isoyearweek original    lo   med    hi</span></span>
-<span><span class="co">#&gt;         &lt;char&gt;    &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2024-11      100   100   100   100</span></span>
-<span><span class="co">#&gt; 2:     2024-12       94    94    94    94</span></span>
-<span><span class="co">#&gt; 3:     2024-13       69    69    69    69</span></span>
-<span><span class="co">#&gt; 4:     2024-14       67    67    67    67</span></span>
-<span><span class="co">#&gt; 5:     2024-15       50    50    50    61</span></span>
-<span><span class="co">#&gt; 6:     2024-16       47    47    49    62</span></span>
-<span><span class="co">#&gt; 7:     2024-17       43    43    46    57</span></span>
-<span><span class="co">#&gt; 8:     2024-18       23    29    46    66</span></span></code></pre></div>
+<span><span class="co">#&gt;    isoyearweek original       lo      med       hi</span></span>
+<span><span class="co">#&gt;         &lt;char&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     2024-11       87 87.00000 87.00000 87.00000</span></span>
+<span><span class="co">#&gt; 2:     2024-12       94 94.00000 94.00000 94.00000</span></span>
+<span><span class="co">#&gt; 3:     2024-13       80 80.00000 80.00000 80.00000</span></span>
+<span><span class="co">#&gt; 4:     2024-14       66 66.00000 66.00000 66.00000</span></span>
+<span><span class="co">#&gt; 5:     2024-15       53 53.00000 53.79078 58.10309</span></span>
+<span><span class="co">#&gt; 6:     2024-16       52 52.61077 54.53215 63.12222</span></span>
+<span><span class="co">#&gt; 7:     2024-17       44 47.18014 51.90651 62.87138</span></span>
+<span><span class="co">#&gt; 8:     2024-18       29 38.81167 46.83598 83.81000</span></span></code></pre></div>
 <p>The settled weeks are pinned to their observed total, so they have no
 band at all. Only the incomplete weeks at the right-hand edge carry
 one:</p>
@@ -344,10 +365,17 @@ one:</p>
 <span>        col <span class="op">=</span> <span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/adjustcolor.html" class="external-link">adjustcolor</a></span><span class="op">(</span><span class="st">"steelblue"</span>, <span class="fl">0.25</span><span class="op">)</span>, border <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">xs</span>, <span class="va">show</span><span class="op">$</span><span class="va">numerator_nowcasted_q50x0</span>, lwd <span class="op">=</span> <span class="fl">2</span>, col <span class="op">=</span> <span class="st">"steelblue4"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="pipeline_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="672"></p>
-<p>Keep the reference weeks: the later stages index off them.</p>
+<p>Keep the reference weeks, and the Monday that starts each one. Every
+delay and every age below is a number of days between two dates. The
+later stages therefore need the Mondays, not the week labels.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">weeks</span>     <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span>
-<span><span class="va">ref_weeks</span> <span class="op">&lt;-</span> <span class="va">q</span><span class="op">$</span><span class="va">isoyearweek</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">weeks</span>      <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span>
+<span><span class="va">ref_weeks</span>  <span class="op">&lt;-</span> <span class="va">q</span><span class="op">$</span><span class="va">isoyearweek</span></span>
+<span><span class="va">ref_monday</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">mon</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">ref_weeks</span>, <span class="va">weeks</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">age</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span> <span class="op">-</span> <span class="va">ref_monday</span><span class="op">)</span>   <span class="co"># age in DAYS</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>weeks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">ref_weeks</span><span class="op">)</span>, oldest_age_days <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">age</span><span class="op">)</span>, newest_age_days <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">age</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           weeks oldest_age_days newest_age_days </span></span>
+<span><span class="co">#&gt;             245            1714               6</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="validation-replay-the-method-against-the-past">2. Validation: replay the method against the past<a class="anchor" aria-label="anchor" href="#validation-replay-the-method-against-the-past"></a>
@@ -356,9 +384,9 @@ one:</p>
 ensemble. They ask how the data arrives. That is a property of the
 reporting process, and it is destroyed the moment the delay axis is
 collapsed into weekly totals.</p>
-<p>The triangle records <em>when</em> every count arrived. So you can
-reconstruct what was known at any past week and replay the engine
-against it, without a second dated extract.</p>
+<p>The triangle records <em>when</em> every count arrived, to the day.
+So you can reconstruct what was known on any past date and replay the
+engine against it, without a second dated extract.</p>
 <p>That reconstruction is exact only for an <strong>append-only</strong>
 reporting system: one where a count, once filed, keeps its original
 reporting week forever. Real systems also issue retrospective
@@ -367,29 +395,32 @@ trace in the current triangle. A case reclassified last month looks as
 though it was always classified that way. Where such revisions matter,
 replay understates how much the published numbers actually moved. A
 dated archive of extracts is the only way to measure it.</p>
-<p><code><a href="../reference/nowcast_censor.html">nowcast_censor()</a></code> does the rewind. It returns a
+<p><code><a href="../reference/nowcast_censor.html">nowcast_censor()</a></code> does the rewind. It takes a
+<code>Date</code>, and returns a
 <code>csfmt_reporting_triangle_v3</code> with every cell reported after
-the given week dropped, and its as-of boundary moved back:</p>
+that date dropped and its as-of boundary moved back:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">past</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_censor.html">nowcast_censor</a></span><span class="op">(</span><span class="va">tri</span>, as_of <span class="op">=</span> <span class="va">ref_weeks</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">ref_weeks</span><span class="op">)</span> <span class="op">-</span> <span class="fl">8L</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>now  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span>,  then      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">past</span>, <span class="st">"as_of"</span><span class="op">)</span>,</span>
-<span>  rows_now <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">tri</span><span class="op">)</span>,       rows_then <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">past</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;       now      then  rows_now rows_then </span></span>
-<span><span class="co">#&gt; "2024-18" "2024-10"    "1215"    "1175"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">week_end</span> <span class="op">&lt;-</span> <span class="va">ref_monday</span> <span class="op">+</span> <span class="fl">6L</span>                       <span class="co"># the Sunday that ends each week</span></span>
+<span><span class="va">past</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_censor.html">nowcast_censor</a></span><span class="op">(</span><span class="va">tri</span>, as_of <span class="op">=</span> <span class="va">week_end</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">week_end</span><span class="op">)</span> <span class="op">-</span> <span class="fl">8L</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co"># format() first: c() on a Date and an integer coerces the integer to a Date</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>now  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span><span class="op">)</span>, then     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">past</span>, <span class="st">"as_of"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rows_now <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">tri</span><span class="op">)</span><span class="op">)</span>,      rows_then <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">past</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          now         then     rows_now    rows_then </span></span>
+<span><span class="co">#&gt; "2024-05-05" "2024-03-10"       "8079"       "7836"</span></span></code></pre></div>
 <p><code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code> supplies the target. It returns a
 two-column data.table (<code>reference</code>, <code>truth</code>) of
-each reference week’s total summed over delays
-<code>0 .. max_delay - 1</code>, keeping only the weeks old enough for
-that total to be settled. The newest weeks are absent by design: they
-have no truth to be scored against yet.</p>
+each reference week’s total summed over delay days
+<code>0 .. max_delay_days - 1</code>, keeping only the weeks old enough
+for that total to be settled. The newest weeks are absent by design:
+they have no truth to be scored against yet.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">truth</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    reference truth</span></span>
 <span><span class="co">#&gt;       &lt;char&gt; &lt;num&gt;</span></span>
 <span><span class="co">#&gt; 1:   2024-12    94</span></span>
-<span><span class="co">#&gt; 2:   2024-13    69</span></span>
-<span><span class="co">#&gt; 3:   2024-14    67</span></span>
+<span><span class="co">#&gt; 2:   2024-13    80</span></span>
+<span><span class="co">#&gt; 3:   2024-14    66</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>reference_weeks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">ref_weeks</span><span class="op">)</span>, settled <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">truth</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; reference_weeks         settled </span></span>
 <span><span class="co">#&gt;             245             241</span></span></code></pre></div>
@@ -397,31 +428,36 @@ have no truth to be scored against yet.</p>
 <code>f(triangle) -&gt; csfmt_ensemble_v3</code> with its own parameters
 baked in. That one-argument contract is what lets engines with different
 signatures be replayed and compared through the same harness.</p>
+<p><code>as_of_weeks</code> is a <code>Date</code> vector, and the
+function errors on anything else. Replay as of the Sunday that ends each
+week, which is what “as of week W” used to mean.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">method_qp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="../reference/nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1</a></span><span class="op">(</span><span class="va">x</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span>, n_sim <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
-<span><span class="va">as_of_weeks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">ref_weeks</span>, <span class="fl">30</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">method_ecdf</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1</a></span><span class="op">(</span><span class="va">x</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>, n_sim <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">as_of_dates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">week_end</span>, <span class="fl">30</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/nowcast_backtest.html">nowcast_backtest()</a></code> runs the replay and returns the raw
 scored quantiles: one long row per <code>reference</code> x
 <code>as_of</code> x <code>horizon</code> x <code>quantile_level</code>,
-with the predicted value. <code>horizon</code> is weeks between the
-reference week and the as-of week, so horizon 0 is the current,
+with the predicted value. <code>horizon</code> is whole weeks between
+the reference week and the as-of date, so horizon 0 is the current,
 least-observed week.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_backtest.html">nowcast_backtest</a></span><span class="op">(</span></span>
-<span>  <span class="va">tri</span>, <span class="va">method_qp</span>,</span>
-<span>  max_delay   <span class="op">=</span> <span class="va">max_delay</span>,</span>
-<span>  as_of_weeks <span class="op">=</span> <span class="va">as_of_weeks</span>,</span>
-<span>  horizons    <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>,</span>
-<span>  probs       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="fl">0.95</span><span class="op">)</span>,</span>
-<span>  seed        <span class="op">=</span> <span class="fl">1</span></span>
+<span>  <span class="va">tri</span>, <span class="va">method_ecdf</span>,</span>
+<span>  max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
+<span>  as_of_weeks    <span class="op">=</span> <span class="va">as_of_dates</span>,</span>
+<span>  horizons       <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>,</span>
+<span>  probs          <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="fl">0.95</span><span class="op">)</span>,</span>
+<span>  seed           <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">bt</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    reference   as_of horizon quantile_level predicted</span></span>
-<span><span class="co">#&gt;       &lt;char&gt;  &lt;char&gt;   &lt;int&gt;          &lt;num&gt;     &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:   2023-38 2023-41       3           0.05     24.00</span></span>
-<span><span class="co">#&gt; 2:   2023-39 2023-41       2           0.05     19.00</span></span>
-<span><span class="co">#&gt; 3:   2023-40 2023-41       1           0.05     14.00</span></span>
-<span><span class="co">#&gt; 4:   2023-41 2023-41       0           0.05     22.95</span></span>
+<span><span class="co">#&gt;    reference      as_of horizon quantile_level predicted</span></span>
+<span><span class="co">#&gt;       &lt;char&gt;     &lt;Date&gt;   &lt;int&gt;          &lt;num&gt;     &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:   2023-38 2023-10-15       3           0.05  19.00000</span></span>
+<span><span class="co">#&gt; 2:   2023-39 2023-10-15       2           0.05  14.00000</span></span>
+<span><span class="co">#&gt; 3:   2023-40 2023-10-15       1           0.05  17.62526</span></span>
+<span><span class="co">#&gt; 4:   2023-41 2023-10-15       0           0.05  15.80000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">bt</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 600</span></span></code></pre></div>
 <p><code><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code> wraps that replay and scores it,
@@ -462,25 +498,27 @@ republishes the counts reported so far — makes the numbers readable:</p>
 <code class="sourceCode R"><span><span class="va">ev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></span><span class="op">(</span></span>
 <span>  <span class="va">tri</span>,</span>
 <span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    quasipoisson <span class="op">=</span> <span class="va">method_qp</span>,</span>
-<span>    passthrough  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1</a></span><span class="op">(</span><span class="va">x</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span></span>
+<span>    delay_ecdf  <span class="op">=</span> <span class="va">method_ecdf</span>,</span>
+<span>    passthrough <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="fu"><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1</a></span><span class="op">(</span><span class="va">x</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  max_delay   <span class="op">=</span> <span class="va">max_delay</span>,</span>
-<span>  as_of_weeks <span class="op">=</span> <span class="va">as_of_weeks</span>,</span>
-<span>  horizons    <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>,</span>
-<span>  seed        <span class="op">=</span> <span class="fl">1</span></span>
+<span>  max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
+<span>  as_of_weeks    <span class="op">=</span> <span class="va">as_of_dates</span>,</span>
+<span>  horizons       <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>,</span>
+<span>  seed           <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">ev</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">method</span>, <span class="va">horizon</span>, <span class="va">n</span>, <span class="va">coverage_50</span>, <span class="va">coverage_90</span>, <span class="va">median_signed</span>, <span class="va">median_abs</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;          method horizon     n coverage_50 coverage_90 median_signed median_abs</span></span>
-<span><span class="co">#&gt;          &lt;char&gt;   &lt;int&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1: quasipoisson       3    29       1.000       1.000        0.0000     0.0161</span></span>
-<span><span class="co">#&gt; 2: quasipoisson       2    28       0.893       1.000        0.0039     0.0371</span></span>
-<span><span class="co">#&gt; 3: quasipoisson       1    27       0.630       0.963        0.0448     0.0660</span></span>
-<span><span class="co">#&gt; 4: quasipoisson       0    26       0.346       0.692        0.1421     0.1937</span></span>
-<span><span class="co">#&gt; 5:  passthrough       3    29       0.310       0.310       -0.0100     0.0100</span></span>
-<span><span class="co">#&gt; 6:  passthrough       2    28       0.036       0.036       -0.0594     0.0594</span></span>
-<span><span class="co">#&gt; 7:  passthrough       1    27       0.000       0.000       -0.1544     0.1544</span></span>
-<span><span class="co">#&gt; 8:  passthrough       0    26       0.000       0.000       -0.3842     0.3842</span></span></code></pre></div>
+<span><span class="co">#&gt;         method horizon     n coverage_50 coverage_90 median_signed median_abs</span></span>
+<span><span class="co">#&gt;         &lt;char&gt;   &lt;int&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:  delay_ecdf       3    29       0.828       1.000        0.0089     0.0154</span></span>
+<span><span class="co">#&gt; 2:  delay_ecdf       2    28       0.536       0.857        0.0328     0.0612</span></span>
+<span><span class="co">#&gt; 3:  delay_ecdf       1    27       0.444       0.741        0.1135     0.1252</span></span>
+<span><span class="co">#&gt; 4:  delay_ecdf       0    26       0.346       0.731        0.3889     0.4376</span></span>
+<span><span class="co">#&gt; 5: passthrough       3    29       0.241       0.241       -0.0147     0.0147</span></span>
+<span><span class="co">#&gt; 6: passthrough       2    28       0.036       0.036       -0.0630     0.0630</span></span>
+<span><span class="co">#&gt; 7: passthrough       1    27       0.000       0.000       -0.1515     0.1515</span></span>
+<span><span class="co">#&gt; 8: passthrough       0    26       0.000       0.000       -0.3543     0.3543</span></span></code></pre></div>
 <p>Read that table as a measurement on <strong>this</strong> sample and
 no further. Each row rests on 26 to 29 scored weeks of one synthetic
 series. That is far too few to characterise either engine. A coverage
@@ -502,34 +540,35 @@ construction.</p>
 because a single draw gives it no interval at all. The “interval” is a
 point. It covers the truth only when the republished count already
 equals it. At horizon 3 that happens on the weeks where nothing arrived
-at delay 4.</p>
+on delay days 28 to 34.</p>
 <div class="section level3">
 <h3 id="the-engines-horizon-0-row-is-worth-stopping-on">The engine’s horizon-0 row is worth stopping on<a class="anchor" aria-label="anchor" href="#the-engines-horizon-0-row-is-worth-stopping-on"></a>
 </h3>
-<p>The quasipoisson engine’s horizon-0 coverage is well below nominal,
-and its <code>median_signed</code> is <em>positive</em> — it is
-over-completing. That is not a random dip. The replay window above ends
-at the as-of week, so it straddles the reporting speed-up this series
-has at the start of ISO 2024. The engine trains on the 26 preceding
-settled weeks. Learn the completion factors of a slow regime, then apply
-them to partial counts from a fast one. You scale up counts that were
-already nearly complete.</p>
+<p>The <code>delay_ecdf</code> engine covers 0.731 of the settled truths
+at horizon 0 against a nominal 0.90, and its <code>median_signed</code>
+is <em>positive</em> at 0.389. It is over-completing. That is not a
+random dip. The replay window above ends at the as-of date, so it
+straddles the reporting speed-up this series has at the start of ISO
+2024. <code>delay_window</code> holds training to the settled weeks of
+roughly the preceding 26 weeks. Learn the delay curve of a slow regime,
+then apply it to partial counts from a fast one. You scale up counts
+that were already nearly complete.</p>
 <p>The contrast is visible if the replay is restricted to as-of weeks
 that sit entirely inside the slow regime:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">slow_weeks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">ref_weeks</span><span class="op">[</span><span class="fu">cstime</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/cstime/man/isoyearweek_to_isoyear_n.html" class="external-link">isoyearweek_to_isoyear_n</a></span><span class="op">(</span><span class="va">ref_weeks</span><span class="op">)</span> <span class="op">==</span> <span class="fl">2023</span><span class="op">]</span>, <span class="fl">30</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>from <span class="op">=</span> <span class="va">slow_weeks</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, to <span class="op">=</span> <span class="va">slow_weeks</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">slow_weeks</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      from        to </span></span>
-<span><span class="co">#&gt; "2023-23" "2023-52"</span></span>
-<span><span class="fu"><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">method_qp</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span>,</span>
-<span>                    as_of_weeks <span class="op">=</span> <span class="va">slow_weeks</span>, horizons <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">[</span></span>
+<code class="sourceCode R"><span><span class="va">slow_dates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">week_end</span><span class="op">[</span><span class="fu">cstime</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/cstime/man/isoyearweek_to_isoyear_n.html" class="external-link">isoyearweek_to_isoyear_n</a></span><span class="op">(</span><span class="va">ref_weeks</span><span class="op">)</span> <span class="op">==</span> <span class="fl">2023</span><span class="op">]</span>, <span class="fl">30</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>from <span class="op">=</span> <span class="va">slow_dates</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, to <span class="op">=</span> <span class="va">slow_dates</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">slow_dates</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         from           to </span></span>
+<span><span class="co">#&gt; "2023-06-11" "2023-12-31"</span></span>
+<span><span class="fu"><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">method_ecdf</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
+<span>                    as_of_weeks <span class="op">=</span> <span class="va">slow_dates</span>, horizons <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">[</span></span>
 <span>  , <span class="fu">.</span><span class="op">(</span><span class="va">horizon</span>, <span class="va">n</span>, <span class="va">coverage_50</span>, <span class="va">coverage_90</span>, <span class="va">median_signed</span>, <span class="va">median_abs</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    horizon     n coverage_50 coverage_90 median_signed median_abs</span></span>
 <span><span class="co">#&gt;      &lt;int&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:       3    30       1.000       1.000        0.0000     0.0000</span></span>
-<span><span class="co">#&gt; 2:       2    30       0.933       1.000        0.0000     0.0596</span></span>
-<span><span class="co">#&gt; 3:       1    30       0.833       1.000        0.0665     0.0909</span></span>
-<span><span class="co">#&gt; 4:       0    30       0.533       0.867        0.1056     0.1909</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:       3    30       0.367       0.733        0.0141     0.0394</span></span>
+<span><span class="co">#&gt; 2:       2    30       0.467       0.767       -0.0154     0.0453</span></span>
+<span><span class="co">#&gt; 3:       1    30       0.500       0.800       -0.0027     0.0451</span></span>
+<span><span class="co">#&gt; 4:       0    30       0.467       0.800       -0.0072     0.1896</span></span></code></pre></div>
 <p>Horizon 0 recovers, and the bias changes sign. Read that as a
 demonstration of the mechanism, not as a measured effect size. The two
 windows also differ in which weeks and which part of the season they
@@ -552,68 +591,69 @@ arrive?<a class="anchor" aria-label="anchor" href="#reporting-completion-how-fas
 <div class="section level3">
 <h3 id="what-pct_delayd-counts">What <code>pct_delayD</code> counts<a class="anchor" aria-label="anchor" href="#what-pct_delayd-counts"></a>
 </h3>
-<p><strong><code>pct_delay0</code> is the share of a reference week’s
-cases that were reported during that same ISO week</strong>. Delay 0 is
-the reference week itself, not the week after it. In general:</p>
+<p><strong>The delay axis is DAYS.</strong> <code>pct_delay0</code> is
+the share of a reference week’s cases reported on that week’s own
+Monday. In general:</p>
 <blockquote>
 <p><code>pct_delayD</code> is the pooled share of a reference week’s
-cases reported by the end of ISO week
-<code>reference_week + D</code>.</p>
+cases reported by the end of the day
+<code>reference Monday + D</code>.</p>
 </blockquote>
-<p>The columns are indexed by <strong>delay</strong>, 0-based, so the
-index in the name is the delay it reports. There are
-<code>max_delay</code> of them and the highest is
-<code>pct_delay&lt;max_delay - 1&gt;</code>, matching the triangle’s own
-delay axis. Each is the delay ECDF read at one delay, with no
-interpolation. <code>mean_delay</code> is on the same axis and in whole
-weeks, so a week whose cases all arrive at delay 0 has
-<code>mean_delay</code> 0, not 1.</p>
+<p>The columns are indexed by <strong>delay day</strong>, 0-based, so
+the index in the name is the delay it reports. There are exactly
+<code>max_delay_days</code> of them, and the highest is
+<code>pct_delay&lt;max_delay_days - 1&gt;</code>. Each is the delay ECDF
+read at one day, with no interpolation. <code>mean_delay</code> is on
+the same axis and in DAYS.</p>
+<p>Five of the 35 columns fall on the end of an ISO week, and those are
+the ones a weekly reader wants: <code>pct_delay6</code>,
+<code>pct_delay13</code>, <code>pct_delay20</code>,
+<code>pct_delay27</code> and <code>pct_delay34</code>.
+<code>pct_delay6</code> is the share in by the end of the reference week
+itself. The other four are the ends of the four weeks after it.</p>
 <p>A triangle with a known answer settles it. Below, each reference week
-generates exactly 50 at delay 0, 30 at delay 1 and 20 at delay 2. The
-result is right-truncated at the newest reporting week, the way real
-data is:</p>
+generates exactly 50 on delay day 0, 30 on delay day 7 and 20 on delay
+day 14. The result is right-truncated at the newest reporting date, the
+way real data is:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="va">weeks</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">pin_monday</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-01-02"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">7</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">29</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">pin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span>
-<span>  isoyearweek_reference <span class="op">=</span> <span class="va">weeks</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">29</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>  isoyearweek_reporting <span class="op">=</span> <span class="va">weeks</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">29</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">30</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  isoyearweek_reference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">pin_monday</span>, <span class="st">"%G-%V"</span><span class="op">)</span>,</span>
+<span>  reporting_date <span class="op">=</span> <span class="va">pin_monday</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">7</span>, <span class="fl">14</span><span class="op">)</span>, <span class="fl">30</span><span class="op">)</span>,</span>
 <span>  numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">30</span>, <span class="fl">20</span><span class="op">)</span>, <span class="fl">30</span><span class="op">)</span>,</span>
 <span>  indicator <span class="op">=</span> <span class="st">"pinned"</span>, location <span class="op">=</span> <span class="st">"nation"</span>, age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">pin</span> <span class="op">&lt;-</span> <span class="va">pin</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">&lt;=</span> <span class="va">weeks</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">29</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">pin</span> <span class="op">&lt;-</span> <span class="va">pin</span><span class="op">[</span><span class="va">reporting_date</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-01-02"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">7</span> <span class="op">*</span> <span class="fl">29</span><span class="op">]</span></span>
 <span><span class="va">tri_pin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span></span>
 <span>  <span class="va">pin</span>, id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator"</span>, <span class="st">"location"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri_pin</span>, max_delay <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">[</span></span>
-<span>  , <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">complete_by_md</span>, <span class="va">pct_delay0</span>, <span class="va">pct_delay1</span>, <span class="va">pct_delay2</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    n_settled mean_delay complete_by_md pct_delay0 pct_delay1 pct_delay2</span></span>
-<span><span class="co">#&gt;        &lt;int&gt;      &lt;num&gt;          &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:        28        0.7              1         50         80        100</span></span></code></pre></div>
-<p><code>pct_delay0</code> is 50, not 80: it is the delay-0 share, the
-reports that arrived in the reference week itself.
-<code>pct_delay1</code> is 80 — cumulative through delay 1.
-<code>mean_delay</code> is
-<code>0*0.50 + 1*0.30 + 2*0.20 = 0.70</code>.</p>
+<span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri_pin</span>, max_delay_days <span class="op">=</span> <span class="fl">15</span><span class="op">)</span><span class="op">[</span></span>
+<span>  , <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">complete_by_md</span>, <span class="va">pct_delay0</span>, <span class="va">pct_delay7</span>, <span class="va">pct_delay14</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    n_settled mean_delay complete_by_md pct_delay0 pct_delay7 pct_delay14</span></span>
+<span><span class="co">#&gt;        &lt;int&gt;      &lt;num&gt;          &lt;num&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:        28        4.9              1         50         80         100</span></span></code></pre></div>
+<p><code>pct_delay0</code> is 50, not 80: it is the delay-day-0 share,
+the reports that arrived on the reference week’s own Monday.
+<code>pct_delay7</code> is 80, cumulative through delay day 7.
+<code>mean_delay</code> is <code>0*0.50 + 7*0.30 + 14*0.20 = 4.9</code>
+days.</p>
 <p><strong>Coming from an older script?</strong> These columns used to
-be named <code>pct_w1</code>, <code>pct_w2</code>, …, which counted
-weeks-observed from 1. So no number in a column name ever equalled the
-delay it stood for. Your <code>pct_w1</code> is now
-<code>pct_delay0</code>, <code>pct_w2</code> is <code>pct_delay1</code>,
-and so on. The old names are gone rather than redefined, so old code
-errors on a missing column instead of quietly returning a different
-week.</p>
+be indexed by WEEK. A <code>pct_delay1</code> on the old weekly axis
+meant “in by the end of the week after the reference week”, which is now
+<code>pct_delay13</code>. The column names did not change shape, only
+their unit, so old code reads a column that exists and gets a different
+quantity. Re-read every <code>pct_delayD</code> you use.</p>
 <p><code>n_settled</code> is 28, not 30. Age eligibility is the first
 filter. A reference week is eligible once
-<code>as_of_week - reference_week &gt;= max_delay - 1</code>, which
-excludes the two most recent of those 30. A second filter then drops any
-eligible week whose total within the horizon is zero, and
+<code>as_of - reference Monday &gt;= max_delay_days - 1</code> days,
+which excludes the two most recent of those 30. A second filter then
+drops any eligible week whose total within the horizon is zero, and
 <code>n_settled</code> counts what survives both. Here no week is empty,
-so the age rule alone accounts for the number — and the same holds on
-the working triangle:</p>
+so the age rule alone accounts for the number, and the same holds on the
+working triangle:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">age</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span>, <span class="va">weeks</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">ref_weeks</span>, <span class="va">weeks</span><span class="op">)</span></span>
-<span><span class="va">completion</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>age_eligible <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="va">max_delay</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span>, reported <span class="op">=</span> <span class="va">completion</span><span class="op">$</span><span class="va">n_settled</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">completion</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>age_eligible <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="va">max_delay_days</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span>, reported <span class="op">=</span> <span class="va">completion</span><span class="op">$</span><span class="va">n_settled</span><span class="op">)</span></span>
 <span><span class="co">#&gt; age_eligible     reported </span></span>
 <span><span class="co">#&gt;          241          241</span></span></code></pre></div>
 <p>They agree only because this series has no zero-count weeks. On an
@@ -647,172 +687,139 @@ gives its calendar dates, and the two weeks after it:</p>
 <tbody>
 <tr class="odd">
 <td><code>pct_delay0</code></td>
+<td>the reference week’s own Monday</td>
+<td>Monday 2023-02-13</td>
+</tr>
+<tr class="even">
+<td><code>pct_delay6</code></td>
 <td>end of ISO week 2023-07</td>
 <td>Sunday 2023-02-19</td>
 </tr>
-<tr class="even">
-<td><code>pct_delay1</code></td>
+<tr class="odd">
+<td><code>pct_delay13</code></td>
 <td>end of ISO week 2023-08</td>
 <td>Sunday 2023-02-26</td>
 </tr>
-<tr class="odd">
-<td><code>pct_delay2</code></td>
+<tr class="even">
+<td><code>pct_delay20</code></td>
 <td>end of ISO week 2023-09</td>
 <td>Sunday 2023-03-05</td>
 </tr>
 </tbody>
 </table>
-<p>So <code>pct_delay0</code> is a statement about the seven days from
-Monday 2023-02-13. <code>pct_delay1</code> is about the
+<p>So <code>pct_delay6</code> is a statement about the seven days from
+Monday 2023-02-13. <code>pct_delay13</code> is about the
 <strong>14</strong> days from that same Monday, not the seven days of
 week 2023-08 on their own. The columns are cumulative.</p>
 </div>
 <div class="section level3">
 <h3 id="which-day-of-the-week-you-run-it-on">Which day of the week you run it on<a class="anchor" aria-label="anchor" href="#which-day-of-the-week-you-run-it-on"></a>
 </h3>
-<p><strong>The day of the week does not change the delay arithmetic at
-all</strong>. Delay is computed from the two ISO-week labels only. So
-every day of a week carries the same label and lands in the same delay
-bucket:</p>
+<p><strong>The day of the week now changes the delay
+arithmetic.</strong> Delay is the number of days from the reference
+week’s Monday to the reporting date. The seven days of one reporting
+week land in seven different delay buckets:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">days</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-02-13"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-02-19"</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"day"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>date <span class="op">=</span> <span class="va">days</span>, weekday <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/weekday.POSIXt.html" class="external-link">weekdays</a></span><span class="op">(</span><span class="va">days</span><span class="op">)</span>,</span>
-<span>           isoyearweek <span class="op">=</span> <span class="fu">cstime</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/cstime/man/date_to_isoyearweek_c.html" class="external-link">date_to_isoyearweek_c</a></span><span class="op">(</span><span class="va">days</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          date   weekday isoyearweek</span></span>
-<span><span class="co">#&gt;        &lt;Date&gt;    &lt;char&gt;      &lt;char&gt;</span></span>
-<span><span class="co">#&gt; 1: 2023-02-13    Monday     2023-07</span></span>
-<span><span class="co">#&gt; 2: 2023-02-14   Tuesday     2023-07</span></span>
-<span><span class="co">#&gt; 3: 2023-02-15 Wednesday     2023-07</span></span>
-<span><span class="co">#&gt; 4: 2023-02-16  Thursday     2023-07</span></span>
-<span><span class="co">#&gt; 5: 2023-02-17    Friday     2023-07</span></span>
-<span><span class="co">#&gt; 6: 2023-02-18  Saturday     2023-07</span></span>
-<span><span class="co">#&gt; 7: 2023-02-19    Sunday     2023-07</span></span></code></pre></div>
-<p>Both runs put a report filed that week at delay 0 for reference week
-2023-07, at delay 1 for 2023-06, and so on. Nothing in the pipeline
-reads the system clock: the as-of boundary comes from the newest
-reporting week <em>present in the data</em>.</p>
-<p>The phrase <em>present in the data</em> carries a condition worth
-stating. <code>as_of</code> is <code>max(reporting_week)</code>. A
-Monday run and a Friday run therefore agree on
-<code>as_of = "2023-07"</code> under one condition. <strong>The Monday
-extract must already contain at least one report filed in week
-2023-07</strong>.</p>
-<p>If it contains none — a plausible Monday morning on a slow indicator
-— <code>as_of</code> silently falls back to <code>"2023-06"</code>.
-Every week’s age shifts by one, and one more reference week is treated
-as settled. That is a different analysis, not a smaller one, and nothing
-in the output announces it.</p>
-<p>What the day <em>does</em> change is <strong>how much of the current
-week’s reporting has landed</strong>. On Monday almost none of it has
-landed. In this illustration all of it is in by Sunday. That assumes the
-extract is taken after the week closes, and that the system files
-everything within the week it belongs to. Neither is guaranteed in
-general.</p>
-<p>In a Monday extract every cell whose reporting week is the current
-week is still filling. That is the delay-0 cell of the current reference
-week most visibly. The same holds for the delay-1 cell of last week, the
-delay-2 cell of the week before, and so on.</p>
-<p>That matters for the completion table in one narrow place, and it is
-worth being precise about which. Thin the current week’s reports down to
-15%, as a Monday extract would see them, and rebuild:</p>
+<span>           delay_day_for_2023_07 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">days</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-02-13"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          date   weekday delay_day_for_2023_07</span></span>
+<span><span class="co">#&gt;        &lt;Date&gt;    &lt;char&gt;                 &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1: 2023-02-13    Monday                     0</span></span>
+<span><span class="co">#&gt; 2: 2023-02-14   Tuesday                     1</span></span>
+<span><span class="co">#&gt; 3: 2023-02-15 Wednesday                     2</span></span>
+<span><span class="co">#&gt; 4: 2023-02-16  Thursday                     3</span></span>
+<span><span class="co">#&gt; 5: 2023-02-17    Friday                     4</span></span>
+<span><span class="co">#&gt; 6: 2023-02-18  Saturday                     5</span></span>
+<span><span class="co">#&gt; 7: 2023-02-19    Sunday                     6</span></span></code></pre></div>
+<p>That is what the daily axis changed. On the old weekly axis all seven
+of those days carried one label and shared one bucket.</p>
+<p>Nothing in the pipeline reads the system clock: the as-of boundary
+comes from the newest reporting date <em>present in the data</em>.
+<code>as_of</code> is <code>max(reporting_date)</code>. A Monday extract
+and the Sunday extract of the same week give two different as-of dates.
+Every reference week’s age in DAYS moves with them.</p>
+<p><code><a href="../reference/nowcast_censor.html">nowcast_censor()</a></code> is the exact way to see what a Monday
+extract would have held. It drops every cell reported after the given
+date:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>
-<span><span class="va">monday</span> <span class="op">&lt;-</span> <span class="va">reports</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">!=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span> <span class="op">|</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">.N</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.15</span><span class="op">]</span></span>
-<span><span class="va">tl_mon</span> <span class="op">&lt;-</span> <span class="va">monday</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">positive</span><span class="op">)</span>, denominator <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>,</span>
-<span>                 by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek_reference</span>, <span class="va">isoyearweek_reporting</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">tl_mon</span><span class="op">[</span>, <span class="fu">`:=`</span><span class="op">(</span>indicator_tag <span class="op">=</span> <span class="st">"lab_flu"</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>,</span>
-<span>              age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">tri_mon</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span></span>
-<span>  <span class="va">tl_mon</span>, id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">monday_as_of</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span> <span class="op">-</span> <span class="fl">6L</span>         <span class="co"># the Monday of the as-of week</span></span>
+<span><span class="va">tri_mon</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_censor.html">nowcast_censor</a></span><span class="op">(</span><span class="va">tri</span>, as_of <span class="op">=</span> <span class="va">monday_as_of</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>extract <span class="op">=</span> <span class="st">"Sunday (week complete)"</span>,</span>
-<span>        <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span><span class="op">[</span></span>
-<span>          , <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay0</span>, <span class="va">pct_delay1</span>, <span class="va">pct_delay2</span>, <span class="va">pct_delay3</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>extract <span class="op">=</span> <span class="st">"Monday (15% of the week in)"</span>,</span>
-<span>        <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri_mon</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span><span class="op">)</span><span class="op">[</span></span>
-<span>          , <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay0</span>, <span class="va">pct_delay1</span>, <span class="va">pct_delay2</span>, <span class="va">pct_delay3</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span>        <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span><span class="op">[</span></span>
+<span>          , <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay6</span>, <span class="va">pct_delay13</span>, <span class="va">pct_delay20</span>, <span class="va">pct_delay27</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>extract <span class="op">=</span> <span class="st">"Monday (six days earlier)"</span>,</span>
+<span>        <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri_mon</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span><span class="op">[</span></span>
+<span>          , <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay6</span>, <span class="va">pct_delay13</span>, <span class="va">pct_delay20</span>, <span class="va">pct_delay27</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt;                        extract n_settled mean_delay pct_delay0 pct_delay1</span></span>
-<span><span class="co">#&gt;                         &lt;char&gt;     &lt;int&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:      Sunday (week complete)       241       0.88       47.3       76.7</span></span>
-<span><span class="co">#&gt; 2: Monday (15% of the week in)       241       0.88       47.3       76.7</span></span>
-<span><span class="co">#&gt;    pct_delay2 pct_delay3</span></span>
-<span><span class="co">#&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:       90.6       97.1</span></span>
-<span><span class="co">#&gt; 2:       90.6       97.1</span></span></code></pre></div>
-<p>The pooled curve barely moves, and <code>n_settled</code> is
-identical, because the current reference week is never in the settled
-set. For any <code>max_delay</code> of 2 or more its age is 0, which is
-below the <code>max_delay - 1</code> threshold. So it contributes
-nothing to <code>pct_delayD</code> whichever day you run on. (A
-<code>max_delay</code> of 1 leaves a single delay bucket, no completion
-to measure, and no useful summary; use 2 or more).</p>
-<p>At most <strong>one</strong> reference week can have its settled
-total affected: the newest settled one. Its last delay cell — delay
-<code>max_delay - 1</code> — is still being reported during the current
-week. Every older week finished reporting earlier; every newer week is
-not settled. Count the weeks that actually moved, rather than assuming
-it is one:</p>
+<span><span class="co">#&gt;                      extract n_settled mean_delay pct_delay6 pct_delay13</span></span>
+<span><span class="co">#&gt;                       &lt;char&gt;     &lt;int&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:    Sunday (week complete)       241       9.15       47.9        76.8</span></span>
+<span><span class="co">#&gt; 2: Monday (six days earlier)       240       9.16       47.8        76.7</span></span>
+<span><span class="co">#&gt;    pct_delay20 pct_delay27</span></span>
+<span><span class="co">#&gt;          &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:        90.6          97</span></span>
+<span><span class="co">#&gt; 2:        90.6          97</span></span></code></pre></div>
+<p>The pooled curve barely moves. <code>n_settled</code> does move, and
+that is the age test working rather than failing. A week is eligible
+once <code>as_of - reference Monday &gt;= max_delay_days - 1</code>.
+Pulling <code>as_of</code> back six days pulls the settled boundary back
+with it.</p>
+<p>One reference week is at risk of an understated total, and it is the
+newest settled one. Its age is exactly <code>max_delay_days - 1</code>,
+so its last delay cell falls on the extract day itself and is still
+filling. Every older week finished reporting earlier; every newer week
+is not settled. Count the weeks that actually moved, rather than
+assuming it is one:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">max_delay</span><span class="op">)</span>, <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri_mon</span>, <span class="va">max_delay</span><span class="op">)</span>,</span>
-<span>             by <span class="op">=</span> <span class="st">"reference"</span>, suffixes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_sunday"</span>, <span class="st">"_monday"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">cmp</span><span class="op">[</span><span class="op">(</span><span class="va">.N</span> <span class="op">-</span> <span class="fl">2</span><span class="op">)</span><span class="op">:</span><span class="va">.N</span><span class="op">]</span></span>
-<span><span class="co">#&gt; Key: &lt;reference&gt;</span></span>
-<span><span class="co">#&gt;    reference truth_sunday truth_monday</span></span>
-<span><span class="co">#&gt;       &lt;char&gt;        &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:   2024-12           94           94</span></span>
-<span><span class="co">#&gt; 2:   2024-13           69           69</span></span>
-<span><span class="co">#&gt; 3:   2024-14           67           67</span></span>
-<span><span class="va">cmp</span><span class="op">[</span><span class="va">truth_sunday</span> <span class="op">!=</span> <span class="va">truth_monday</span><span class="op">]</span></span>
-<span><span class="co">#&gt; Key: &lt;reference&gt;</span></span>
-<span><span class="co">#&gt; Empty data.table (0 rows and 3 cols): reference,truth_sunday,truth_monday</span></span></code></pre></div>
-<p>On this series, none did — and the reason is worth seeing, because it
-bounds the whole effect. The only cell at risk is the delay-4 numerator
-of the newest settled week. In the fast 2024 regime, delay 4 carries 1%
-of a week’s tests:</p>
+<code class="sourceCode R"><span><span class="va">truth_sun</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">max_delay_days</span><span class="op">)</span></span>
+<span><span class="va">truth_mon</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri_mon</span>, <span class="va">max_delay_days</span><span class="op">)</span></span>
+<span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">truth_sun</span>, <span class="va">truth_mon</span>, by <span class="op">=</span> <span class="st">"reference"</span>,</span>
+<span>             suffixes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"_sunday"</span>, <span class="st">"_monday"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>settled_sunday <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">truth_sun</span><span class="op">)</span>, settled_monday <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">truth_mon</span><span class="op">)</span>,</span>
+<span>  in_both <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">)</span>, totals_that_moved <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">[</span><span class="va">truth_sunday</span> <span class="op">!=</span> <span class="va">truth_monday</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    settled_sunday    settled_monday           in_both totals_that_moved </span></span>
+<span><span class="co">#&gt;               241               240               240                 0</span></span></code></pre></div>
+<p>The reason is worth seeing, because it bounds the whole effect. The
+only cell at risk is the delay-34 numerator of the newest settled week,
+which is what arrived on the extract day itself:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">newest_settled</span> <span class="op">&lt;-</span> <span class="va">weeks</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span>, <span class="va">weeks</span><span class="op">)</span> <span class="op">-</span> <span class="op">(</span><span class="va">max_delay</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="va">newest_settled</span> <span class="op">&lt;-</span> <span class="va">ref_weeks</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="va">max_delay_days</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">triangle_long</span><span class="op">[</span><span class="va">isoyearweek_reference</span> <span class="op">==</span> <span class="va">newest_settled</span> <span class="op">&amp;</span></span>
-<span>              <span class="va">isoyearweek_reporting</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span>,</span>
-<span>              <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek_reference</span>, <span class="va">isoyearweek_reporting</span>, <span class="va">numerator</span>, <span class="va">denominator</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    isoyearweek_reference isoyearweek_reporting numerator denominator</span></span>
-<span><span class="co">#&gt;                   &lt;char&gt;                &lt;char&gt;     &lt;int&gt;       &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1:               2024-14               2024-18         0           3</span></span></code></pre></div>
-<p>Five tests, none of them positive. Thinning zero positives leaves
-zero, so the numerator’s settled total cannot move. <strong>The weekday
-effect is bounded by the mass sitting in the last delay bucket</strong>.
-Widen <code>max_delay</code> past where reporting actually finishes and
-that bucket empties. That is why the effect vanishes here, and why it
-did not vanish on a series with a heavier tail.</p>
-<p><strong>None of this generalises, and the two reasons it vanishes
-here are both about scale</strong>. The at-risk cell is one week’s last
-delay bucket, diluted into a pool of 241 settled weeks. That bucket is
-also nearly empty, because <code>max_delay</code> is wide enough. Shrink
-the series, shrink the horizon, or give the indicator a heavier
-reporting tail, and the same mechanism becomes material. A period slice
-with the minimum three qualifying weeks gives that one cell a third of
-the weight.</p>
+<span>              <span class="va">reporting_date</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tri</span>, <span class="st">"as_of"</span><span class="op">)</span>,</span>
+<span>              <span class="fu">.</span><span class="op">(</span><span class="va">isoyearweek_reference</span>, <span class="va">reporting_date</span>, <span class="va">numerator</span>, <span class="va">denominator</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; Empty data.table (0 rows and 4 cols): isoyearweek_reference,reporting_date,numerator,denominator</span></span></code></pre></div>
+<p>Nothing arrived in that cell, so this week’s settled total cannot
+move at all. <strong>The weekday effect is bounded by the mass sitting
+in the last delay cell</strong>. Widen <code>max_delay_days</code> past
+where reporting actually finishes and that cell empties. A daily axis
+makes the cell one day wide rather than one week wide, so there is less
+mass in it to lose.</p>
+<p><strong>None of this generalises, and the reason it is small here is
+about scale</strong>. The at-risk cell is one week’s last delay day,
+diluted into a pool of hundreds of settled weeks. Shrink the series,
+shrink the horizon, or give the indicator a heavier reporting tail, and
+the same mechanism becomes material. A period slice with the minimum
+three qualifying weeks gives that one cell a third of the weight.</p>
 <p>The general statement is the conditional one. A mid-week extract
 undercounts the newest settled week’s total by whatever share of its
-last delay bucket has not arrived. That total is what
+last delay cell has not arrived. That total is what
 <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code> scores a backtest against. So run the
-backtest off an end-of-week extract. The alternative is to measure the
-gap on your own series, rather than assuming it is as small as it is
-here.</p>
+backtest off an end-of-day extract, and record which day it was.</p>
 </div>
 <div class="section level3">
 <h3 id="as-of-today-for-the-weeks-on-screen">“As of today”, for the weeks on screen<a class="anchor" aria-label="anchor" href="#as-of-today-for-the-weeks-on-screen"></a>
 </h3>
-<p>With <code>as_of</code> = 2024-18 and <code>max_delay</code> = 5, the
-reference weeks split three ways:</p>
+<p>With <code>as_of</code> = 2024-05-05 and <code>max_delay_days</code>
+= 35, the reference weeks split three ways:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span>
 <span>  isoyearweek <span class="op">=</span> <span class="va">ref_weeks</span>,</span>
-<span>  weeks_observed <span class="op">=</span> <span class="va">age</span> <span class="op">+</span> <span class="fl">1L</span>,</span>
-<span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fifelse.html" class="external-link">fifelse</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="va">max_delay</span> <span class="op">-</span> <span class="fl">1L</span>, <span class="st">"settled"</span>,</span>
-<span>           <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fifelse.html" class="external-link">fifelse</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;</span> <span class="fl">0L</span>, <span class="st">"still filling"</span>, <span class="st">"current week"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  days_observed <span class="op">=</span> <span class="va">age</span> <span class="op">+</span> <span class="fl">1L</span>,</span>
+<span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fifelse.html" class="external-link">fifelse</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="va">max_delay_days</span> <span class="op">-</span> <span class="fl">1L</span>, <span class="st">"settled"</span>,</span>
+<span>           <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fifelse.html" class="external-link">fifelse</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="fl">7L</span>, <span class="st">"still filling"</span>, <span class="st">"current week"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span><span class="op">[</span>, <span class="va">.N</span>, keyby <span class="op">=</span> <span class="va">status</span><span class="op">]</span></span>
 <span><span class="co">#&gt; Key: &lt;status&gt;</span></span>
 <span><span class="co">#&gt;           status     N</span></span>
@@ -820,11 +827,10 @@ reference weeks split three ways:</p>
 <span><span class="co">#&gt; 1:  current week     1</span></span>
 <span><span class="co">#&gt; 2:       settled   241</span></span>
 <span><span class="co">#&gt; 3: still filling     3</span></span></code></pre></div>
-<p>Four weeks are not settled: three still filling, plus the current
-week, which has only its delay-0 reports. Those are the weeks the
-nowcast in stage 1 completed, and the weeks the completion table
-declines to learn from. The completed weeks are the ones whose nowcast
-rises above the count reported so far:</p>
+<p>The weeks that are not settled are the ones the nowcast in stage 1
+completed, and the ones the completion table declines to learn from. The
+completed weeks are the ones whose nowcast rises above the count
+reported so far:</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">q</span><span class="op">[</span><span class="va">numerator_nowcasted_q95x0</span> <span class="op">&gt;</span> <span class="va">original</span>, <span class="va">isoyearweek</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "2024-15" "2024-16" "2024-17" "2024-18"</span></span></code></pre></div>
@@ -843,29 +849,29 @@ year at the edge of the series — the one your data starts or ends in —
 is the usual casualty. A missing year means too few weeks, never zero
 delay.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span>, period <span class="op">=</span> <span class="st">"year"</span><span class="op">)</span><span class="op">[</span></span>
-<span>  , <span class="fu">.</span><span class="op">(</span><span class="va">period</span>, <span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay0</span>, <span class="va">pct_delay1</span>, <span class="va">pct_delay2</span>, <span class="va">pct_delay3</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    period n_settled mean_delay pct_delay0 pct_delay1 pct_delay2 pct_delay3</span></span>
-<span><span class="co">#&gt;    &lt;char&gt;     &lt;int&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:   2019        18       0.96       44.4       73.5       89.4       96.4</span></span>
-<span><span class="co">#&gt; 2:   2020        53       0.95       44.2       75.0       89.8       96.3</span></span>
-<span><span class="co">#&gt; 3:   2021        52       0.92       45.5       75.6       89.8       97.0</span></span>
-<span><span class="co">#&gt; 4:   2022        52       0.90       45.1       76.0       91.4       97.2</span></span>
-<span><span class="co">#&gt; 5:   2023        52       0.95       44.4       74.5       89.0       97.0</span></span>
-<span><span class="co">#&gt; 6:   2024        14       0.49       67.7       89.1       95.7       98.8</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>, period <span class="op">=</span> <span class="st">"year"</span><span class="op">)</span><span class="op">[</span></span>
+<span>  , <span class="fu">.</span><span class="op">(</span><span class="va">period</span>, <span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay6</span>, <span class="va">pct_delay13</span>, <span class="va">pct_delay20</span>, <span class="va">pct_delay27</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    period n_settled mean_delay pct_delay6 pct_delay13 pct_delay20 pct_delay27</span></span>
+<span><span class="co">#&gt;    &lt;char&gt;     &lt;int&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;       &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:   2019        18       9.38       47.3        73.8        91.0        96.9</span></span>
+<span><span class="co">#&gt; 2:   2020        53       9.61       44.7        74.8        89.7        96.8</span></span>
+<span><span class="co">#&gt; 3:   2021        52       9.27       45.9        76.5        90.7        97.1</span></span>
+<span><span class="co">#&gt; 4:   2022        52       9.67       44.3        74.5        89.6        96.8</span></span>
+<span><span class="co">#&gt; 5:   2023        52       9.65       44.6        75.0        89.1        96.3</span></span>
+<span><span class="co">#&gt; 6:   2024        14       6.06       70.7        90.2        96.4        98.9</span></span></code></pre></div>
 <p>That is the change built into <code>sim_reports()</code>, recovered
-from the triangle. Five consecutive ISO years sit within a couple of
-points of each other — <code>pct_delay0</code> around 43 to 45,
-<code>mean_delay</code> around 0.95. Then 2024 steps to about 69% and
-0.45. A flat run followed by a step is what a genuine regime change
+from the triangle. Read <code>pct_delay6</code>, the share in by the end
+of the reference week itself. It runs 47.3, 44.7, 45.9, 44.3 and 44.6
+across ISO 2019 to 2023, then steps to 70.7 in 2024.
+<code>mean_delay</code> steps the other way, from about 9.5 days to
+6.06. A flat run followed by a step is what a genuine regime change
 looks like. A single year out of line with its neighbours is usually
 noise.</p>
-<p>The pooled row from the previous table reports
-<code>pct_delay0</code> of 47.3. That is close to the five slow years
-only because they outnumber the fast one five to one. It is not a
-compromise between the regimes. It is the old regime with a little
-contamination, and it will drift year by year as 2024 accumulates
-weeks.</p>
+<p>The pooled <code>pct_delay6</code> of 47.9 sits just above every one
+of those slow years. The slow weeks outnumber the fast ones 227 to 14.
+So the pooled curve is the old regime with a little contamination, not a
+compromise between the two. It will drift year by year as 2024
+accumulates weeks.</p>
 <p>The stratification is by <strong>ISO year</strong>, not calendar
 year, and the ISO year of a week is the calendar year of its Thursday.
 That decides which year owns a boundary week:</p>
@@ -884,26 +890,26 @@ ISO week 2023-01 has its Thursday on 2023-01-05 and belongs to 2023.</p>
 <em>when</em> a change happened. It uses the same Thursday rule to
 decide which calendar month owns a week that straddles two:</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span>, period <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span><span class="op">[</span></span>
-<span>  , <span class="fu">.</span><span class="op">(</span><span class="va">period</span>, <span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay0</span>, <span class="va">pct_delay1</span><span class="op">)</span><span class="op">]</span>, <span class="fl">6</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     period n_settled mean_delay pct_delay0 pct_delay1</span></span>
-<span><span class="co">#&gt;     &lt;char&gt;     &lt;int&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1: 2023-10         4       0.83       51.0       76.0</span></span>
-<span><span class="co">#&gt; 2: 2023-11         5       0.88       46.5       79.7</span></span>
-<span><span class="co">#&gt; 3: 2023-12         4       1.02       43.8       71.2</span></span>
-<span><span class="co">#&gt; 4: 2024-01         4       0.52       66.3       89.1</span></span>
-<span><span class="co">#&gt; 5: 2024-02         5       0.48       67.4       89.0</span></span>
-<span><span class="co">#&gt; 6: 2024-03         4       0.50       68.0       88.2</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>, period <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span><span class="op">[</span></span>
+<span>  , <span class="fu">.</span><span class="op">(</span><span class="va">period</span>, <span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay6</span>, <span class="va">pct_delay13</span><span class="op">)</span><span class="op">]</span>, <span class="fl">6</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     period n_settled mean_delay pct_delay6 pct_delay13</span></span>
+<span><span class="co">#&gt;     &lt;char&gt;     &lt;int&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1: 2023-10         4      10.36       39.1        73.9</span></span>
+<span><span class="co">#&gt; 2: 2023-11         5      10.10       39.4        71.6</span></span>
+<span><span class="co">#&gt; 3: 2023-12         4       9.77       43.5        75.4</span></span>
+<span><span class="co">#&gt; 4: 2024-01         4       5.68       72.9        92.4</span></span>
+<span><span class="co">#&gt; 5: 2024-02         5       6.40       69.3        88.7</span></span>
+<span><span class="co">#&gt; 6: 2024-03         4       5.90       70.1        90.7</span></span></code></pre></div>
 <p>The step lands between 2023-12 and 2024-01. Note the small
-<code>n_settled</code> per month — four or five weeks — so a single
-month’s row is noisy; read the sequence, not one row.</p>
+<code>n_settled</code> per month, four or five weeks, so a single
+month’s row is noisy. Read the sequence, not one row.</p>
 </div>
 <div class="section level3">
-<h3 id="every-number-here-is-conditional-on-max_delay">Every number here is conditional on <code>max_delay</code><a class="anchor" aria-label="anchor" href="#every-number-here-is-conditional-on-max_delay"></a>
+<h3 id="every-number-here-is-conditional-on-max_delay_days">Every number here is conditional on <code>max_delay_days</code><a class="anchor" aria-label="anchor" href="#every-number-here-is-conditional-on-max_delay_days"></a>
 </h3>
 <p>This is the trap, and it is structural rather than a tuning subtlety.
 <code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> works from a triangle that has
-already had every cell with delay <code>&gt;= max_delay</code>
+already had every cell with delay <code>&gt;= max_delay_days</code>
 discarded. So the denominator is the total that arrived <em>within the
 horizon</em>, not the eventual total. Two consequences follow, and they
 hold whatever the real reporting tail looks like:</p>
@@ -911,42 +917,43 @@ hold whatever the real reporting tail looks like:</p>
 <li>
 <code>complete_by_md</code> is the last cumulative fraction of that
 same truncated total, so it is 1.</li>
-<li>the last column, <code>pct_delay&lt;max_delay - 1&gt;</code>, is
-that fraction as a percentage, so it is 100.</li>
+<li>the last column, <code>pct_delay&lt;max_delay_days - 1&gt;</code>,
+is that fraction as a percentage, so it is 100.</li>
 </ul>
 <p>Neither can detect reporting that dribbles in past the horizon.
-Rather than assert that, check it — here across <code>max_delay</code> 2
-through 8 on this triangle, reading the last column by name each
+Rather than assert that, check it. The sweep below runs one to eight
+weeks of horizon, in days, and reads the last column by name each
 time:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sens</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">2</span><span class="op">:</span><span class="fl">8</span>, <span class="kw">function</span><span class="op">(</span><span class="va">md</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">md</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>max_delay <span class="op">=</span> <span class="va">md</span>, n_settled <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">n_settled</span>, mean_delay <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">mean_delay</span>,</span>
-<span>             complete_by_md <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">complete_by_md</span>,</span>
+<code class="sourceCode R"><span><span class="va">sens</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">7L</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">md</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">md</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>max_delay_days <span class="op">=</span> <span class="va">md</span>, n_settled <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">n_settled</span>,</span>
+<span>             mean_delay <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">mean_delay</span>, complete_by_md <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">complete_by_md</span>,</span>
 <span>             last_col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"pct_delay"</span>, <span class="va">md</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span>,</span>
 <span>             last_pct <span class="op">=</span> <span class="va">r</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"pct_delay"</span>, <span class="va">md</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>             pct_delay0 <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">pct_delay0</span>, pct_delay1 <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">pct_delay1</span>,</span>
-<span>             pct_delay2 <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">pct_delay2</span><span class="op">)</span></span>
+<span>             pct_delay6 <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">pct_delay6</span>, pct_delay13 <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">pct_delay13</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span>, fill <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">sens</span></span>
-<span><span class="co">#&gt;    max_delay n_settled mean_delay complete_by_md   last_col last_pct pct_delay0</span></span>
-<span><span class="co">#&gt;        &lt;int&gt;     &lt;int&gt;      &lt;num&gt;          &lt;num&gt;     &lt;char&gt;    &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:         2       244       0.38              1 pct_delay1      100       62.0</span></span>
-<span><span class="co">#&gt; 2:         3       243       0.63              1 pct_delay2      100       52.4</span></span>
-<span><span class="co">#&gt; 3:         4       242       0.79              1 pct_delay3      100       48.9</span></span>
-<span><span class="co">#&gt; 4:         5       241       0.88              1 pct_delay4      100       47.3</span></span>
-<span><span class="co">#&gt; 5:         6       240       0.89              1 pct_delay5      100       47.2</span></span>
-<span><span class="co">#&gt; 6:         7       239       0.89              1 pct_delay6      100       47.1</span></span>
-<span><span class="co">#&gt; 7:         8       238       0.89              1 pct_delay7      100       46.9</span></span>
-<span><span class="co">#&gt;    pct_delay1 pct_delay2</span></span>
-<span><span class="co">#&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:      100.0         NA</span></span>
-<span><span class="co">#&gt; 2:       84.7      100.0</span></span>
-<span><span class="co">#&gt; 3:       79.0       93.3</span></span>
-<span><span class="co">#&gt; 4:       76.7       90.6</span></span>
-<span><span class="co">#&gt; 5:       76.6       90.6</span></span>
-<span><span class="co">#&gt; 6:       76.6       90.5</span></span>
-<span><span class="co">#&gt; 7:       76.4       90.5</span></span>
+<span><span class="co">#&gt;    max_delay_days n_settled mean_delay complete_by_md    last_col last_pct</span></span>
+<span><span class="co">#&gt;             &lt;int&gt;     &lt;int&gt;      &lt;num&gt;          &lt;num&gt;      &lt;char&gt;    &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:              7       244       2.98              1  pct_delay6      100</span></span>
+<span><span class="co">#&gt; 2:             14       244       5.60              1 pct_delay13      100</span></span>
+<span><span class="co">#&gt; 3:             21       243       7.34              1 pct_delay20      100</span></span>
+<span><span class="co">#&gt; 4:             28       242       8.45              1 pct_delay27      100</span></span>
+<span><span class="co">#&gt; 5:             35       241       9.15              1 pct_delay34      100</span></span>
+<span><span class="co">#&gt; 6:             42       240       9.16              1 pct_delay41      100</span></span>
+<span><span class="co">#&gt; 7:             49       239       9.18              1 pct_delay48      100</span></span>
+<span><span class="co">#&gt; 8:             56       238       9.20              1 pct_delay55      100</span></span>
+<span><span class="co">#&gt;    pct_delay6 pct_delay13</span></span>
+<span><span class="co">#&gt;         &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:      100.0          NA</span></span>
+<span><span class="co">#&gt; 2:       62.6       100.0</span></span>
+<span><span class="co">#&gt; 3:       53.1        84.8</span></span>
+<span><span class="co">#&gt; 4:       49.5        79.2</span></span>
+<span><span class="co">#&gt; 5:       47.9        76.8</span></span>
+<span><span class="co">#&gt; 6:       47.8        76.7</span></span>
+<span><span class="co">#&gt; 7:       47.7        76.6</span></span>
+<span><span class="co">#&gt; 8:       47.6        76.6</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>complete_by_md_always_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">sens</span><span class="op">$</span><span class="va">complete_by_md</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  last_pct_always_100     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">sens</span><span class="op">$</span><span class="va">last_pct</span> <span class="op">==</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; complete_by_md_always_1     last_pct_always_100 </span></span>
@@ -955,24 +962,25 @@ time:</p>
 easiest to mistake for a finding:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">per</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"all"</span>, <span class="st">"year"</span>, <span class="st">"month"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="va">max_delay</span>, period <span class="op">=</span> <span class="va">p</span><span class="op">)</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>, period <span class="op">=</span> <span class="va">p</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>period_arg <span class="op">=</span> <span class="va">p</span>, rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span>,</span>
 <span>             complete_by_md_all_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">complete_by_md</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>             pct_delay4_all_100 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">pct_delay4</span> <span class="op">==</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span>             pct_delay34_all_100 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">r</span><span class="op">$</span><span class="va">pct_delay34</span> <span class="op">==</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">per</span></span>
-<span><span class="co">#&gt;    period_arg  rows complete_by_md_all_1 pct_delay4_all_100</span></span>
-<span><span class="co">#&gt;        &lt;char&gt; &lt;int&gt;               &lt;lgcl&gt;             &lt;lgcl&gt;</span></span>
-<span><span class="co">#&gt; 1:        all     1                 TRUE               TRUE</span></span>
-<span><span class="co">#&gt; 2:       year     6                 TRUE               TRUE</span></span>
-<span><span class="co">#&gt; 3:      month    55                 TRUE               TRUE</span></span></code></pre></div>
-<p><strong>The diagnostic that does work is the <code>max_delay</code>
-sweep itself</strong>. Read the <code>sens</code> table above down its
-rows. <code>mean_delay</code> rises from 0.38 at <code>max_delay</code>
-2 to 0.88 at 5, then moves only to 0.89 at 8. <code>pct_delay0</code>
-falls from 61.8 to 47.3 and then drifts to 46.8. That flattening is what
-<em>supports</em> <code>max_delay &lt;- 5L</code> here — it is a
-sensitivity analysis, not a proof.</p>
+<span><span class="co">#&gt;    period_arg  rows complete_by_md_all_1 pct_delay34_all_100</span></span>
+<span><span class="co">#&gt;        &lt;char&gt; &lt;int&gt;               &lt;lgcl&gt;              &lt;lgcl&gt;</span></span>
+<span><span class="co">#&gt; 1:        all     1                 TRUE                TRUE</span></span>
+<span><span class="co">#&gt; 2:       year     6                 TRUE                TRUE</span></span>
+<span><span class="co">#&gt; 3:      month    55                 TRUE                TRUE</span></span></code></pre></div>
+<p><strong>The diagnostic that does work is the
+<code>max_delay_days</code> sweep itself</strong>. Read the
+<code>sens</code> table above down its rows. <code>mean_delay</code>
+climbs from 2.98 days at a 7-day horizon to 9.15 at 35 days, then moves
+only to 9.20 at 56. <code>pct_delay6</code> falls from 100 to 47.9 and
+then drifts to 47.6. That flattening is what <em>supports</em>
+<code>max_delay_days &lt;- 35L</code> here. It is a sensitivity
+analysis, not a proof.</p>
 <p>A <code>mean_delay</code> that kept climbing would be clear evidence
 the tail was still being cut off. A plateau is weaker evidence in the
 other direction, because a genuinely sparse tail and a shifting
@@ -980,21 +988,21 @@ settled-week composition both flatten the curve too.</p>
 <p>Two cautions on reading that sweep:</p>
 <ul>
 <li>The short horizons are not merely imprecise, they are biased
-optimistic. <code>pct_delay0</code> at <code>max_delay</code> 2 reads
-61.8% because it conditions on the cases that arrived within two weeks.
-That is a smaller denominator, so a larger share.</li>
-<li>Not all of the residual movement past 5 is about the tail.
-<code>n_settled</code> falls from 244 to 238 across those rows, because
-a longer horizon settles fewer weeks. The weeks it drops are the newest,
-which on this series are the fast-reporting ones. That pulls the pooled
-<code>pct_delay0</code> down slightly on composition alone. Compare rows
+optimistic. <code>pct_delay6</code> at a 7-day horizon conditions on the
+cases that arrived within one week. That is a smaller denominator, so a
+larger share.</li>
+<li>Not all of the residual movement past 35 days is about the tail.
+<code>n_settled</code> falls across those rows, because a longer horizon
+settles fewer weeks. The weeks it drops are the newest, which on this
+series are the fast-reporting ones. That pulls the pooled
+<code>pct_delay6</code> down slightly on composition alone. Compare rows
 at equal <code>n_settled</code>, or read <code>period = "year"</code>
 instead, before calling a small drift a tail.</li>
 </ul>
-<p><code>sim_reports()</code> emits no delay beyond 4. So on
-<em>this</em> triangle a horizon of 5 truncates nothing, and the
-flattening really is exact — but only because we can read the generator.
-On a real series that check is unavailable. Widen until
+<p><code>sim_reports()</code> emits no delay beyond day 34. So on
+<em>this</em> triangle a horizon of 35 days truncates nothing, and the
+flattening really is exact. That is only knowable because we can read
+the generator. On a real series that check is unavailable. Widen until
 <code>mean_delay</code> stops moving, then treat the remaining tail as
 bounded by what a still-wider horizon would have shown, not as zero.</p>
 </div>
@@ -1035,14 +1043,14 @@ it the same way rather than typing it out:</p>
 <span>            pct_lo    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">rate</span>, q <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>            pct       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">rate</span>, q <span class="op">=</span> <span class="fl">0.50</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>            pct_hi    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">rate</span>, q <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>, <span class="fl">6</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    isoyearweek positives tests pct_lo   pct pct_hi</span></span>
-<span><span class="co">#&gt;         &lt;char&gt;     &lt;num&gt; &lt;num&gt;  &lt;num&gt; &lt;num&gt;  &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2024-13        69   433  15.94 15.94  15.94</span></span>
-<span><span class="co">#&gt; 2:     2024-14        67   464  14.44 14.44  14.44</span></span>
-<span><span class="co">#&gt; 3:     2024-15        50   452  10.46 11.11  13.33</span></span>
-<span><span class="co">#&gt; 4:     2024-16        49   427  10.33 11.45  14.45</span></span>
-<span><span class="co">#&gt; 5:     2024-17        46   387  10.39 11.98  15.21</span></span>
-<span><span class="co">#&gt; 6:     2024-18        46   464   6.20 10.02  14.59</span></span></code></pre></div>
+<span><span class="co">#&gt;    isoyearweek positives    tests pct_lo   pct pct_hi</span></span>
+<span><span class="co">#&gt;         &lt;char&gt;     &lt;num&gt;    &lt;num&gt;  &lt;num&gt; &lt;num&gt;  &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     2024-13  80.00000 482.0000  16.60 16.60  16.60</span></span>
+<span><span class="co">#&gt; 2:     2024-14  66.00000 440.0000  15.00 15.00  15.00</span></span>
+<span><span class="co">#&gt; 3:     2024-15  53.79078 433.1894  12.05 12.41  13.28</span></span>
+<span><span class="co">#&gt; 4:     2024-16  54.53215 445.1033  11.23 12.39  14.23</span></span>
+<span><span class="co">#&gt; 5:     2024-17  51.90651 392.3792  10.26 12.88  16.19</span></span>
+<span><span class="co">#&gt; 6:     2024-18  46.83598 427.9788   6.04 10.42  20.19</span></span></code></pre></div>
 <p>Two guards are worth knowing about. A denominator of zero gives
 <code>NA</code>, not a fabricated 0% that would read as a real drop. The
 numerator is a subset of the denominator, so the rate is capped at
@@ -1109,23 +1117,24 @@ lives on <code>$data</code> and is not collapsed.</li>
 <span>                p_increasing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/get.html" class="external-link">get</a></span><span class="op">(</span><span class="fu"><a href="../reference/csfmt_var.html">csfmt_var</a></span><span class="op">(</span><span class="va">rate</span>, role <span class="op">=</span> <span class="st">"trend"</span>,</span>
 <span>                                             suffix <span class="op">=</span> <span class="st">"_increasing_pr"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">trend</span>, <span class="fl">10</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     isoyearweek     gr  gr_lo  gr_hi p_increasing</span></span>
-<span><span class="co">#&gt;          &lt;char&gt;  &lt;num&gt;  &lt;num&gt;  &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt;  1:     2024-09  -2.26  -5.47   2.28        0.154</span></span>
-<span><span class="co">#&gt;  2:     2024-10  -4.24 -10.82   1.61        0.106</span></span>
-<span><span class="co">#&gt;  3:     2024-11  -6.37 -10.21  -2.63        0.012</span></span>
-<span><span class="co">#&gt;  4:     2024-12  -6.06 -10.14  -2.20        0.008</span></span>
-<span><span class="co">#&gt;  5:     2024-13 -10.61 -17.32  -5.37        0.008</span></span>
-<span><span class="co">#&gt;  6:     2024-14 -11.57 -18.02  -5.73        0.008</span></span>
-<span><span class="co">#&gt;  7:     2024-15 -16.48 -25.73  -7.83        0.006</span></span>
-<span><span class="co">#&gt;  8:     2024-16 -19.54 -25.78 -10.25        0.004</span></span>
-<span><span class="co">#&gt;  9:     2024-17 -13.16 -22.68  -2.61        0.028</span></span>
-<span><span class="co">#&gt; 10:     2024-18 -10.06 -27.12   2.13        0.078</span></span></code></pre></div>
-<p>The last four rows are the nowcast weeks. Their point estimates are
-negative and their 5-95% bands sit entirely below zero, with
-<code>p_increasing</code> at 0. The series is on the spring side of its
-winter peak, and the nowcast uncertainty is not wide enough to admit a
-rise.</p>
+<span><span class="co">#&gt;     isoyearweek     gr  gr_lo gr_hi p_increasing</span></span>
+<span><span class="co">#&gt;          &lt;char&gt;  &lt;num&gt;  &lt;num&gt; &lt;num&gt;        &lt;num&gt;</span></span>
+<span><span class="co">#&gt;  1:     2024-09  -1.95  -7.86  4.07        0.262</span></span>
+<span><span class="co">#&gt;  2:     2024-10  -5.17 -11.05  1.34        0.082</span></span>
+<span><span class="co">#&gt;  3:     2024-11  -7.37 -13.76 -1.13        0.036</span></span>
+<span><span class="co">#&gt;  4:     2024-12  -8.59 -14.58 -2.67        0.016</span></span>
+<span><span class="co">#&gt;  5:     2024-13 -10.82 -18.05 -5.02        0.002</span></span>
+<span><span class="co">#&gt;  6:     2024-14  -7.51  -9.94 -4.99        0.004</span></span>
+<span><span class="co">#&gt;  7:     2024-15 -12.62 -16.07 -9.25        0.000</span></span>
+<span><span class="co">#&gt;  8:     2024-16 -12.99 -17.25 -8.51        0.002</span></span>
+<span><span class="co">#&gt;  9:     2024-17 -10.71 -18.07 -2.22        0.022</span></span>
+<span><span class="co">#&gt; 10:     2024-18  -9.10 -31.17  5.14        0.138</span></span></code></pre></div>
+<p>The last four rows are the nowcast weeks. Every one of their point
+estimates is negative. The bands widen toward the right-hand edge: three
+of the four sit entirely below zero, and the newest week’s runs from
+-31.17 to 5.14 with <code>p_increasing</code> at 0.138. The series is on
+the spring side of its winter peak. Only on the newest week is the
+nowcast uncertainty wide enough to admit a rise.</p>
 <p>Note what that statement is and is not: it says the
 <em>completed</em> rate fell over each six-week window, given this
 nowcast. It does not say the fall will continue. It is conditional on
@@ -1167,7 +1176,7 @@ indicator.</p>
 <span><span class="co">#&gt; 1:                             236                   FALSE</span></span>
 <span><span class="co">#&gt;    p_increasing_strictly_inside_0_1 p_increasing_at_a_boundary</span></span>
 <span><span class="co">#&gt;                               &lt;int&gt;                      &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1:                              211                         25</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:                              223                         13</span></span></code></pre></div>
 <p>Every settled week now has a real interval. Most also have a
 <code>p_increasing</code> strictly between 0 and 1. The remainder sit at
 exactly 0 or 1, and that is a different thing from the old degeneracy:
@@ -1254,9 +1263,9 @@ rather than last year.</p>
 <span>                  <span class="va">mem_medium</span>, <span class="va">mem_high</span>, <span class="va">mem_veryhigh</span><span class="op">)</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    isoyearweek mem_n_seasons mem_preepidemic mem_medium mem_high mem_veryhigh</span></span>
 <span><span class="co">#&gt;         &lt;char&gt;         &lt;int&gt;           &lt;num&gt;      &lt;num&gt;    &lt;num&gt;        &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2024-16             4        17.05336   24.31637   27.181     28.55243</span></span>
-<span><span class="co">#&gt; 2:     2024-17             4        17.05336   24.31637   27.181     28.55243</span></span>
-<span><span class="co">#&gt; 3:     2024-18             4        17.05336   24.31637   27.181     28.55243</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     2024-16             4        15.82896   24.07276 26.55251     27.72845</span></span>
+<span><span class="co">#&gt; 2:     2024-17             4        15.82896   24.07276 26.55251     27.72845</span></span>
+<span><span class="co">#&gt; 3:     2024-18             4        15.82896   24.07276 26.55251     27.72845</span></span></code></pre></div>
 <p>The <strong>message</strong> is not noise to skip past. It says some
 seasons were fit on fewer than <code>prefer_seasons</code> training
 seasons, and <code>mem_n_seasons</code> records how many each one
@@ -1273,12 +1282,12 @@ collapse:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">intensity</span>, <span class="fl">6</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    isoyearweek preepidemic   low medium  high veryhigh</span></span>
 <span><span class="co">#&gt;         &lt;char&gt;       &lt;num&gt; &lt;num&gt;  &lt;num&gt; &lt;num&gt;    &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2024-13        1.00  0.00      0     0        0</span></span>
-<span><span class="co">#&gt; 2:     2024-14        1.00  0.00      0     0        0</span></span>
-<span><span class="co">#&gt; 3:     2024-15        1.00  0.00      0     0        0</span></span>
-<span><span class="co">#&gt; 4:     2024-16        1.00  0.00      0     0        0</span></span>
-<span><span class="co">#&gt; 5:     2024-17        1.00  0.00      0     0        0</span></span>
-<span><span class="co">#&gt; 6:     2024-18        0.99  0.01      0     0        0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     2024-13       0.000 1.000  0.000 0.000        0</span></span>
+<span><span class="co">#&gt; 2:     2024-14       1.000 0.000  0.000 0.000        0</span></span>
+<span><span class="co">#&gt; 3:     2024-15       1.000 0.000  0.000 0.000        0</span></span>
+<span><span class="co">#&gt; 4:     2024-16       1.000 0.000  0.000 0.000        0</span></span>
+<span><span class="co">#&gt; 5:     2024-17       0.900 0.100  0.000 0.000        0</span></span>
+<span><span class="co">#&gt; 6:     2024-18       0.826 0.164  0.008 0.002        0</span></span></code></pre></div>
 <p>Some weeks belong to a season with no thresholds — the early seasons,
 which have no prior seasons to learn from. Those weeks get
 <code>NA</code> for every draw and are not classified at all:</p>
@@ -1317,12 +1326,12 @@ new indicator faces:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">signal</span>, <span class="fl">6</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    isoyearweek hlm_threshold p_null p_high</span></span>
 <span><span class="co">#&gt;         &lt;char&gt;         &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2024-13      24.15171  1.000  0.000</span></span>
-<span><span class="co">#&gt; 2:     2024-14      23.31266  1.000  0.000</span></span>
-<span><span class="co">#&gt; 3:     2024-15      22.69595  1.000  0.000</span></span>
-<span><span class="co">#&gt; 4:     2024-16      20.59243  1.000  0.000</span></span>
-<span><span class="co">#&gt; 5:     2024-17      16.33812  0.988  0.012</span></span>
-<span><span class="co">#&gt; 6:     2024-18      16.47576  0.980  0.020</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     2024-13      23.88968  1.000  0.000</span></span>
+<span><span class="co">#&gt; 2:     2024-14      19.26117  1.000  0.000</span></span>
+<span><span class="co">#&gt; 3:     2024-15      18.20797  1.000  0.000</span></span>
+<span><span class="co">#&gt; 4:     2024-16      16.16278  1.000  0.000</span></span>
+<span><span class="co">#&gt; 5:     2024-17      16.16115  0.946  0.054</span></span>
+<span><span class="co">#&gt; 6:     2024-18      15.66598  0.818  0.182</span></span></code></pre></div>
 <p><code>p_high</code> is the share of draws above the threshold. It is
 a statement about <em>nowcast</em> uncertainty — how likely the
 completed rate exceeds the historical limit. It is not a p-value, a

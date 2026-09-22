@@ -1,7 +1,7 @@
 # Collapse a csfmt_ensemble_v3 to a quantile-summary
 
 An ensemble operation (\`ens\_\` family): dispatches on the ensemble
-class, matching \[nowcast_quasipoisson_v1()\] / \[short_term_trend()\].
+class, matching \[nowcast_delay_ecdf_v1()\] / \[short_term_trend()\].
 
 ## Usage
 

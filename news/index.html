@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.28</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,52 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.9.22" id="version-2026922">Version 2026.9.22<a class="anchor" aria-label="anchor" href="#version-2026922"></a></h2>
+<p>The nowcast stack moves from a weekly delay axis to a daily one, and the default engine changes. Two of the six breaking changes below return wrong numbers rather than an error.</p>
+<div class="section level3">
+<h3 id="breaking-the-reporting-axis-is-a-date-2026-9-22">Breaking: the reporting axis is a <code>Date</code>
+<a class="anchor" aria-label="anchor" href="#breaking-the-reporting-axis-is-a-date-2026-9-22"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3()</a></code> defaults <code>reporting_col</code> to <code>reporting_date</code>, and that column MUST be a <code>Date</code>.</strong> <code>isoyearweek_reporting</code> is gone. A character column raises an error naming the class it got.</li>
+<li>
+<strong>The <code>as_of</code> attribute is a <code>Date</code>.</strong> It held the largest ISO-week string before. Code that compared <code>as_of</code> against an ISO week now compares two types.</li>
+<li>
+<strong>The constructor errors on a missing reporting date, and the message names the count.</strong> One <code>NA</code> used to set <code>as_of</code> to <code>NA</code>. No reference week then settled, no delay pool built, and every engine returned the observed totals while labelling them a nowcast. Densification dropped the row as well, so the week’s own count was understated too. Map every missing reporting date to a date, or drop those rows, before you build the triangle.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-max_delay-is-now-max_delay_days-and-it-counts-days-2026-9-22">Breaking: <code>max_delay</code> is now <code>max_delay_days</code>, and it counts DAYS<a class="anchor" aria-label="anchor" href="#breaking-max_delay-is-now-max_delay_days-and-it-counts-days-2026-9-22"></a></h3>
+<ul><li>
+<strong><code>max_delay_days = 35</code> keeps delay days 0 to 34 inclusive, which is 35 columns.</strong> That is the span the old <code>max_delay = 5</code> weekly columns covered. Multiply an old weekly value by 7.</li>
+<li>
+<strong>A caller who renames the argument and keeps the value gets a 5-day horizon where they meant 5 weeks. Nothing warns.</strong> The call runs and returns numbers, and those numbers are wrong.</li>
+<li>Eight exported functions take <code>max_delay_days</code>: <code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code>, <code><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1()</a></code>, <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code>, <code><a href="../reference/nowcast_backtest.html">nowcast_backtest()</a></code>, <code><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code>, <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code>, <code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> and <code><a href="../reference/reporting_completion_trend_v1.html">reporting_completion_trend_v1()</a></code>.</li>
+<li>
+<strong><code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> returns one <code>pct_delay</code> column per delay day.</strong> A call that returned <code>pct_delay0</code> to <code>pct_delay4</code> now returns <code>pct_delay0</code> to <code>pct_delay34</code>, so 5 columns become 35. There are exactly <code>max_delay_days</code> of them.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-qc_week_over_week_v1-takes-max_delay_weeks-in-weeks-2026-9-22">Breaking: <code>qc_week_over_week_v1()</code> takes <code>max_delay_weeks</code>, in WEEKS<a class="anchor" aria-label="anchor" href="#breaking-qc_week_over_week_v1-takes-max_delay_weeks-in-weeks-2026-9-22"></a></h3>
+<ul><li>
+<strong>Two parameter names, two units, on purpose.</strong> This function windows reference weeks, never delay. Its horizon sets the boundary between the settled weeks and the frontier, and that boundary counts reference weeks.</li>
+<li>The nowcast engines take <code>max_delay_days</code>, because their axis is the delay in days. One name across both would mean days here and weeks there.</li>
+<li>Do not rename <code>max_delay_weeks</code> to match the engines. The old name was <code>max_delay</code>, and each new name states its own unit.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-nowcast_quasipoisson_v1-is-now-nowcast_delay_ecdf_v1-and-it-is-a-different-estimator-2026-9-22">Breaking: <code>nowcast_quasipoisson_v1()</code> is now <code>nowcast_delay_ecdf_v1()</code>, and it is a different estimator<a class="anchor" aria-label="anchor" href="#breaking-nowcast_quasipoisson_v1-is-now-nowcast_delay_ecdf_v1-and-it-is-a-different-estimator-2026-9-22"></a></h3>
+<ul><li>
+<strong>Its numbers move.</strong> The new engine completes each incomplete reference week from a pooled daily delay ECDF. The old engine regressed the settled total on the observed delay columns. The interval is empirical now, taken from the pool’s own <code>truth / estimate</code> ratios, and no longer parametric.</li>
+<li>
+<code>nowcast_quasipoisson_v1()</code> no longer exists. A call to it raises “could not find function”.</li>
+<li>The model family is unchanged. The ECDF is the closed-form maximum likelihood estimator of <code>n[ref, d] ~ Poisson(lambda[ref] * p[d])</code>, the same Poisson delay model. It estimates the delay profile saturated, one number per delay day, rather than through a regression.</li>
+<li>
+<strong>The old engine failed silently on complete data.</strong> Where every settled week’s delay columns sum exactly to its total, the design matrix is perfectly collinear and <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns <code>NA</code>. The engine then fell back to the observed count and labelled it a nowcast. Measured on <code>lab_hospitalised_influensavirus</code>: 27 of 27 replays at horizon 2.</li>
+<li>The delay ECDF was measured against a quasi-Poisson GAM with a smooth in delay and a weekday term. Under a log link the two agree: every difference sits inside 0.5 percentage points over 30 replays. Under the identity link, which the old engine used, the GAM failed to converge on 30 of 30.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="version-2026-9-22">Version<a class="anchor" aria-label="anchor" href="#version-2026-9-22"></a></h3>
+<ul><li>r-universe publishes 2026.8.28 from commit <code>670fe584</code>, which is this tree’s parent. One version must never name two trees, so this tree takes a number above it. 2026.9.22 is the release date of this tree.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.8.28" id="version-2026828">Version 2026.8.28<a class="anchor" aria-label="anchor" href="#version-2026828"></a></h2>
 <div class="section level3">
@@ -264,7 +310,7 @@
 <h3 id="corrected-statistical-documentation-2026-8-4">Corrected statistical documentation<a class="anchor" aria-label="anchor" href="#corrected-statistical-documentation-2026-8-4"></a></h3>
 <p>No behaviour changed. Each of these help pages described a model, or a guarantee, that the code does not implement. An adversarial review found them.</p>
 <ul><li>
-<strong><code><a href="../reference/nowcast_quasipoisson_v1.html">nowcast_quasipoisson_v1()</a></code> is not fitted without an intercept.</strong> The documentation said “no intercept” in two places. But the formula is built as <code>y ~ d1 + d2 + ...</code>, which carries R’s default intercept. An inline comment in the source already said <code># + intercept</code>. The documented model now matches the fitted one.</li>
+<strong><code>nowcast_quasipoisson_v1()</code> is not fitted without an intercept.</strong> The documentation said “no intercept” in two places. But the formula is built as <code>y ~ d1 + d2 + ...</code>, which carries R’s default intercept. An inline comment in the source already said <code># + intercept</code>. The documented model now matches the fitted one.</li>
 <li>
 <strong>“Honestly dispersed” removed from the same engine.</strong> Simulating from a fitted model and truncating at the observed count does not establish calibrated coverage. The documentation now says calibration is an empirical question about a given series and points at <code><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code>, which exists to measure it.</li>
 <li>

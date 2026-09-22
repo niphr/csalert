@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.28</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">reporting_completion_v1</span><span class="op">(</span></span>
 <span>  <span class="va">triangle</span>,</span>
-<span>  <span class="va">max_delay</span>,</span>
+<span>  <span class="va">max_delay_days</span>,</span>
 <span>  delay_window <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  period <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"all"</span>, <span class="st">"year"</span>, <span class="st">"month"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -73,14 +73,19 @@
 <dd><p>A `csfmt_reporting_triangle_v3`.</p></dd>
 
 
-<dt id="arg-max-delay">max_delay<a class="anchor" aria-label="anchor" href="#arg-max-delay"></a></dt>
-<dd><p>Delay horizon in weeks.</p></dd>
+<dt id="arg-max-delay-days">max_delay_days<a class="anchor" aria-label="anchor" href="#arg-max-delay-days"></a></dt>
+<dd><p>Delay horizon in DAYS: delay day 0 to
+`max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
+reference week's Monday, and matches the 5 weekly delay columns of the
+pre-Date format.</p></dd>
 
 
 <dt id="arg-delay-window">delay_window<a class="anchor" aria-label="anchor" href="#arg-delay-window"></a></dt>
 <dd><p>Optional: use only settled weeks within roughly this many
-weeks (drift-aware). `NULL` uses all settled weeks. Ignored for the shape of
-`period` stratification, which slices time itself.</p></dd>
+WEEKS (drift-aware). This one is weeks, not days, because it selects
+reference weeks and the reference axis is still an ISO week. `NULL` uses all
+settled weeks. Ignored for the shape of `period` stratification, which
+slices time itself.</p></dd>
 
 
 <dt id="arg-period">period<a class="anchor" aria-label="anchor" href="#arg-period"></a></dt>
@@ -94,12 +99,13 @@ default), `"year"`, or `"month"` (one row per period). Use `"year"` or
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>One row per series, and per period when stratified. The columns are
   identity columns + `period` + `n_settled`, `mean_delay`, `complete_by_md`,
-  and `pct_delay0`..`pct_delay&lt;max_delay-1&gt;`. Each `pct_delayD` is the pooled
-  % of cases reported by the end of week reference + D – the delay ECDF, no
-  interpolation. `pct_delay0`
-  is the reference week itself, NOT the week after. Every one of these is
-  computed AFTER delays `&gt;= max_delay` are discarded. They describe
-  the cases that arrive within the horizon, not all eventual cases.</p>
+  and `pct_delay0`..`pct_delay&lt;max_delay_days-1&gt;`. There are exactly
+  `max_delay_days` of those `pct_delayD` columns. Each one is the pooled
+  % of cases reported by the end of day reference Monday + D, the delay ECDF,
+  no interpolation. `pct_delay0` is the reference week's own Monday.
+  `mean_delay` is in DAYS. Every one of these is computed AFTER delays
+  `&gt;= max_delay_days` are discarded. They describe the cases that arrive
+  within the horizon, not all eventual cases.</p>
     </div>
     <div class="section level2">
     <h2 id="complete-by-md-is-always-">complete_by_md is always 1<a class="anchor" aria-label="anchor" href="#complete-by-md-is-always-"></a></h2>
@@ -107,9 +113,10 @@ default), `"year"`, or `"month"` (one row per period). Use `"year"` or
 
 <p>`complete_by_md` is the last cumulative fraction of a total that was itself
 summed over the truncated delay axis. So it equals 1 for every series and every
-period, and `pct_delay&lt;max_delay-1&gt;` equals 100. It does NOT measure whether
-reporting continues past `max_delay`. To look for a tail, re-run with a larger
-`max_delay` and compare `mean_delay` and the `pct_delayD` curve.</p>
+period, and `pct_delay&lt;max_delay_days-1&gt;` equals 100. It does NOT measure
+whether reporting continues past `max_delay_days`. To look for a tail, re-run
+with a larger `max_delay_days` and compare `mean_delay` and the `pct_delayD`
+curve.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -121,42 +128,44 @@ reporting continues past `max_delay`. To look for a tail, re-run with a larger
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span></span>
-<span class="r-in"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="va">w</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">monday</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-01-02"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">7</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  isoyearweek_reference <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>  isoyearweek_reporting <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">40</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  isoyearweek_reference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">monday</span>, <span class="st">"%G-%V"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  reporting_date <span class="op">=</span> <span class="va">monday</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">10</span>, <span class="fl">17</span><span class="op">)</span>, <span class="fl">40</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">15</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  indicator_tag <span class="op">=</span> <span class="st">"x"</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>, age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">&lt;=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">39</span><span class="op">]</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">reporting_date</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2023-01-02"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">7</span> <span class="op">*</span> <span class="fl">39</span> <span class="op">+</span> <span class="fl">6</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">tri</span> <span class="op">&lt;-</span> <span class="fu"><a href="csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">d</span>,</span></span>
 <span class="r-in"><span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># one pooled curve: pct_delay0 is the share in during the reference week itself</span></span></span>
-<span class="r-in"><span><span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    indicator_tag location_code    age    sex period n_settled mean_delay</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt; &lt;char&gt;     &lt;int&gt;      &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x        nation  total  total    all        38       0.51</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_delay0 pct_delay1 pct_delay2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1       58.8       89.9        100</span>
+<span class="r-in"><span><span class="co"># one pooled curve over 21 delay days. This series reports on days 3, 10 and</span></span></span>
+<span class="r-in"><span><span class="co"># 17 after the reference Monday, so the curve steps at those three days.</span></span></span>
+<span class="r-in"><span><span class="va">rc</span> <span class="op">&lt;-</span> <span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="fl">21</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">rc</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay3</span>, <span class="va">pct_delay10</span>, <span class="va">pct_delay17</span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    n_settled mean_delay pct_delay3 pct_delay10 pct_delay17</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;int&gt;      &lt;num&gt;      &lt;num&gt;       &lt;num&gt;       &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        37       6.59       58.9        89.8         100</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># there is one pct_delay column per delay day</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^pct_delay"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">rc</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 21</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># sliced by month, to expose drift in how fast reporting arrives</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span>, period <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    indicator_tag location_code    age    sex  period n_settled mean_delay</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;char&gt;        &lt;char&gt; &lt;char&gt; &lt;char&gt;  &lt;char&gt;     &lt;int&gt;      &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:             x        nation  total  total 2023-01         4       0.50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:             x        nation  total  total 2023-02         4       0.50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:             x        nation  total  total 2023-03         5       0.53</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    complete_by_md pct_delay0 pct_delay1 pct_delay2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;      &lt;num&gt;      &lt;num&gt;      &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:              1       59.3       91.0        100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:              1       60.2       90.0        100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:              1       58.5       88.4        100</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu">reporting_completion_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="fl">21</span>, period <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span><span class="op">[</span>,</span></span>
+<span class="r-in"><span>    <span class="fu">.</span><span class="op">(</span><span class="va">period</span>, <span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay10</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">]</span>,</span></span>
+<span class="r-in"><span>  <span class="fl">3</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     period n_settled mean_delay pct_delay10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     &lt;char&gt;     &lt;int&gt;      &lt;num&gt;       &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: 2023-01         4       6.48        91.0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: 2023-02         4       6.48        90.0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: 2023-03         5       6.72        88.4</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

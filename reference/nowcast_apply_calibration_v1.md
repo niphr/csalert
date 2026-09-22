@@ -41,28 +41,29 @@ Other nowcast calibration functions:
 ## Examples
 
 ``` r
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday
+monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 set.seed(1)
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = format(monday, "%G-%V"),
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 tri <- csfmt_reporting_triangle_v3(
   d,
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-method <- function(x) nowcast_quasipoisson_v1(x, max_delay = 3, n_sim = 200)
+method <- function(x) nowcast_delay_ecdf_v1(x, max_delay_days = 21, n_sim = 200)
 bt <- nowcast_backtest(
   tri, method,
-  max_delay = 3, as_of_weeks = w[i + 20:38], horizons = 0:1,
-  probs = c(0.05, 0.5, 0.95), seed = 1
+  max_delay_days = 21,
+  as_of_weeks = as.Date("2023-01-02") + 7 * (20:38) + 6,
+  horizons = 0:1, probs = c(0.05, 0.5, 0.95), seed = 1
 )
-cal <- nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay = 3))
+cal <- nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay_days = 21))
 
 adj <- nowcast_apply_calibration_v1(bt, cal)
 
@@ -72,15 +73,15 @@ width <- function(x) {
   x[horizon == 0, .(width = diff(range(predicted))), by = reference][1:3]
 }
 width(bt)
-#>    reference width
-#>       <char> <num>
-#> 1:   2023-21 23.00
-#> 2:   2023-22 23.05
-#> 3:   2023-23 24.05
+#>    reference    width
+#>       <char>    <num>
+#> 1:   2023-21 16.70415
+#> 2:   2023-22 14.79321
+#> 3:   2023-23 19.03695
 width(adj)
 #>    reference    width
 #>       <char>    <num>
-#> 1:   2023-21 13.59300
-#> 2:   2023-22 13.62255
-#> 3:   2023-23 14.21355
+#> 1:   2023-21 12.81208
+#> 2:   2023-22 11.34639
+#> 3:   2023-23 14.60134
 ```

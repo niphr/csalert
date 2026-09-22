@@ -75,9 +75,8 @@ quantile summary (optionally healed into a cstidy csfmt_rts_data_v3).
 
 Complete a right-truncated reporting triangle into a csfmt_ensemble_v3.
 
-- [`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
-  : Nowcast a reporting triangle into an ensemble (quasipoisson
-  reporting regression)
+- [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
+  : Nowcast a reporting triangle into an ensemble (daily delay ECDF)
 - [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
   : Build an ensemble from a reporting triangle WITHOUT nowcasting
   (passthrough)
@@ -88,11 +87,11 @@ Replay a method against what was known in the past and score it:
 interval coverage, point-estimate revision, and reporting completion.
 
 - [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md)
-  : Censor a reporting triangle to what was known "as of" a past week
+  : Censor a reporting triangle to what was known "as of" a past date
 - [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
   : The settled (eventually-observed) total per reference week
 - [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
-  : Replay a nowcast method across as-of weeks (backtest)
+  : Replay a nowcast method across as-of dates (backtest)
 - [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
   : Evaluate nowcast method(s): interval coverage + point-estimate
   revision

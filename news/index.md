@@ -1,5 +1,96 @@
 # Changelog
 
+## Version 2026.9.22
+
+The nowcast stack moves from a weekly delay axis to a daily one, and the
+default engine changes. Two of the six breaking changes below return
+wrong numbers rather than an error.
+
+### Breaking: the reporting axis is a `Date`
+
+- **[`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md)
+  defaults `reporting_col` to `reporting_date`, and that column MUST be
+  a `Date`.** `isoyearweek_reporting` is gone. A character column raises
+  an error naming the class it got.
+- **The `as_of` attribute is a `Date`.** It held the largest ISO-week
+  string before. Code that compared `as_of` against an ISO week now
+  compares two types.
+- **The constructor errors on a missing reporting date, and the message
+  names the count.** One `NA` used to set `as_of` to `NA`. No reference
+  week then settled, no delay pool built, and every engine returned the
+  observed totals while labelling them a nowcast. Densification dropped
+  the row as well, so the week’s own count was understated too. Map
+  every missing reporting date to a date, or drop those rows, before you
+  build the triangle.
+
+### Breaking: `max_delay` is now `max_delay_days`, and it counts DAYS
+
+- **`max_delay_days = 35` keeps delay days 0 to 34 inclusive, which is
+  35 columns.** That is the span the old `max_delay = 5` weekly columns
+  covered. Multiply an old weekly value by 7.
+- **A caller who renames the argument and keeps the value gets a 5-day
+  horizon where they meant 5 weeks. Nothing warns.** The call runs and
+  returns numbers, and those numbers are wrong.
+- Eight exported functions take `max_delay_days`:
+  [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md),
+  [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md),
+  [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md),
+  [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
+  [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+  [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md),
+  [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+  and
+  [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md).
+- **[`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+  returns one `pct_delay` column per delay day.** A call that returned
+  `pct_delay0` to `pct_delay4` now returns `pct_delay0` to
+  `pct_delay34`, so 5 columns become 35. There are exactly
+  `max_delay_days` of them.
+
+### Breaking: `qc_week_over_week_v1()` takes `max_delay_weeks`, in WEEKS
+
+- **Two parameter names, two units, on purpose.** This function windows
+  reference weeks, never delay. Its horizon sets the boundary between
+  the settled weeks and the frontier, and that boundary counts reference
+  weeks.
+- The nowcast engines take `max_delay_days`, because their axis is the
+  delay in days. One name across both would mean days here and weeks
+  there.
+- Do not rename `max_delay_weeks` to match the engines. The old name was
+  `max_delay`, and each new name states its own unit.
+
+### Breaking: `nowcast_quasipoisson_v1()` is now `nowcast_delay_ecdf_v1()`, and it is a different estimator
+
+- **Its numbers move.** The new engine completes each incomplete
+  reference week from a pooled daily delay ECDF. The old engine
+  regressed the settled total on the observed delay columns. The
+  interval is empirical now, taken from the pool’s own
+  `truth / estimate` ratios, and no longer parametric.
+- `nowcast_quasipoisson_v1()` no longer exists. A call to it raises
+  “could not find function”.
+- The model family is unchanged. The ECDF is the closed-form maximum
+  likelihood estimator of `n[ref, d] ~ Poisson(lambda[ref] * p[d])`, the
+  same Poisson delay model. It estimates the delay profile saturated,
+  one number per delay day, rather than through a regression.
+- **The old engine failed silently on complete data.** Where every
+  settled week’s delay columns sum exactly to its total, the design
+  matrix is perfectly collinear and
+  [`coef()`](https://rdrr.io/r/stats/coef.html) returns `NA`. The engine
+  then fell back to the observed count and labelled it a nowcast.
+  Measured on `lab_hospitalised_influensavirus`: 27 of 27 replays at
+  horizon 2.
+- The delay ECDF was measured against a quasi-Poisson GAM with a smooth
+  in delay and a weekday term. Under a log link the two agree: every
+  difference sits inside 0.5 percentage points over 30 replays. Under
+  the identity link, which the old engine used, the GAM failed to
+  converge on 30 of 30.
+
+### Version
+
+- r-universe publishes 2026.8.28 from commit `670fe584`, which is this
+  tree’s parent. One version must never name two trees, so this tree
+  takes a number above it. 2026.9.22 is the release date of this tree.
+
 ## Version 2026.8.28
 
 ### Installation points at the r-universe
@@ -508,12 +599,11 @@ No behaviour changed. Each of these help pages described a model, or a
 guarantee, that the code does not implement. An adversarial review found
 them.
 
-- **[`nowcast_quasipoisson_v1()`](https://niphr.github.io/csalert/reference/nowcast_quasipoisson_v1.md)
-  is not fitted without an intercept.** The documentation said “no
-  intercept” in two places. But the formula is built as
-  `y ~ d1 + d2 + ...`, which carries R’s default intercept. An inline
-  comment in the source already said `# + intercept`. The documented
-  model now matches the fitted one.
+- **`nowcast_quasipoisson_v1()` is not fitted without an intercept.**
+  The documentation said “no intercept” in two places. But the formula
+  is built as `y ~ d1 + d2 + ...`, which carries R’s default intercept.
+  An inline comment in the source already said `# + intercept`. The
+  documented model now matches the fitted one.
 - **“Honestly dispersed” removed from the same engine.** Simulating from
   a fitted model and truncating at the observed count does not establish
   calibrated coverage. The documentation now says calibration is an

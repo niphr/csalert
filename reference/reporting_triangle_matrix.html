@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.8.28</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">reporting_triangle_matrix</span><span class="op">(</span></span>
 <span>  <span class="va">triangle</span>,</span>
-<span>  <span class="va">max_delay</span>,</span>
+<span>  <span class="va">max_delay_days</span>,</span>
 <span>  value_col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">triangle</span>, <span class="st">"value_col"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -72,8 +72,10 @@
 <dd><p>A `csfmt_reporting_triangle_v3`.</p></dd>
 
 
-<dt id="arg-max-delay">max_delay<a class="anchor" aria-label="anchor" href="#arg-max-delay"></a></dt>
-<dd><p>Number of delay columns (delay 0 .. max_delay-1, in weeks).</p></dd>
+<dt id="arg-max-delay-days">max_delay_days<a class="anchor" aria-label="anchor" href="#arg-max-delay-days"></a></dt>
+<dd><p>Number of delay columns, in DAYS: delay 0 to
+`max_delay_days - 1`. `max_delay_days = 35` keeps delay days 0 to 34, the
+35 days that start on the reference week's Monday.</p></dd>
 
 
 <dt id="arg-value-col">value_col<a class="anchor" aria-label="anchor" href="#arg-value-col"></a></dt>
@@ -84,7 +86,8 @@
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Named list (by time_series_id) of `list(reference, mat)`, where `mat`
-  is a reference x delay count matrix (zeros filled within the observed region).</p>
+  is a reference-week x delay-day count matrix (zeros filled within the
+  observed region). The rows stay ISO weeks; only the columns are days.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -97,40 +100,45 @@
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span></span>
-<span class="r-in"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="va">w</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span></span></span>
+<span class="r-in"><span><span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"2023-01"</span>, <span class="va">cal</span><span class="op">$</span><span class="va">isoyearweek</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">monday</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="va">cal</span><span class="op">$</span><span class="va">mon</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  isoyearweek_reference <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>  isoyearweek_reporting <span class="op">=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">2</span>, <span class="fl">40</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  isoyearweek_reference <span class="op">=</span> <span class="va">cal</span><span class="op">$</span><span class="va">isoyearweek</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">39</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>  reporting_date <span class="op">=</span> <span class="va">monday</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">10</span>, <span class="fl">17</span><span class="op">)</span>, <span class="fl">40</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  numerator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">15</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  indicator_tag <span class="op">=</span> <span class="st">"x"</span>, location_code <span class="op">=</span> <span class="st">"nation"</span>, age <span class="op">=</span> <span class="st">"total"</span>, sex <span class="op">=</span> <span class="st">"total"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">isoyearweek_reporting</span> <span class="op">&lt;=</span> <span class="va">w</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">39</span><span class="op">]</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="va">reporting_date</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="va">cal</span><span class="op">$</span><span class="va">mon</span><span class="op">[</span><span class="va">i</span> <span class="op">+</span> <span class="fl">39</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span> <span class="fl">6</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">tri</span> <span class="op">&lt;-</span> <span class="fu"><a href="csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">d</span>,</span></span>
 <span class="r-in"><span>  id_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"indicator_tag"</span>, <span class="st">"location_code"</span>, <span class="st">"age"</span>, <span class="st">"sex"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">reporting_triangle_matrix</span><span class="op">(</span><span class="va">tri</span>, max_delay <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">reporting_triangle_matrix</span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="fl">21</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "d8da72e3fbb5fd29"</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># rows are reference weeks, columns are delays 0, 1, 2</span></span></span>
+<span class="r-in"><span><span class="co"># rows are reference weeks, columns are delay days 0 to 20</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">m</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">mat</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 40 21</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">m</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">reference</span>, <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "2023-01" "2023-02" "2023-03"</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">m</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">mat</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       0  1 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 26 20 8</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 38 16 3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 24 17 6</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># this series reports on days 3, 10 and 17 after the reference Monday</span></span></span>
+<span class="r-in"><span><span class="va">m</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">mat</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"3"</span>, <span class="st">"10"</span>, <span class="st">"17"</span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       3 10 17</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 26 20  8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 38 16  3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 24 17  6</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the newest weeks are only partly reported: the later delays are still zero</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">m</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">mat</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        0  1 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [38,] 27 21 3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [39,] 24 20 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [40,] 20  0 0</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">m</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">mat</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"3"</span>, <span class="st">"10"</span>, <span class="st">"17"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        3 10 17</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [38,] 27 21  3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [39,] 24 20  0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [40,] 20  0  0</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
