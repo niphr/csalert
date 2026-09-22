@@ -5,11 +5,15 @@ skip_if_not_installed("mem")
 
 test_that("num + denom nowcast -> rate -> MEM -> collapse runs end-to-end", {
   set.seed(1)
-  # ~10 complete seasons of weekly sentinel data, passthrough (reports at delay 0)
-  iyw_all <- cstime::date_to_isoyearweek_c(as.Date("2008-08-04") + 7 * (0:(12 * 53 - 1)))
+  # ~10 complete seasons of weekly sentinel data, every report at delay day 0
+  # 2008-08-04 is a Monday, so every date below is a reference week's own
+  # Monday. Reporting on that Monday is delay day 0.
+  mondays_all <- as.Date("2008-08-04") + 7 * (0:(12 * 53 - 1))
+  iyw_all <- cstime::date_to_isoyearweek_c(mondays_all)
   season <- cstime::isoyearweek_to_season_c(iyw_all)
   cnt <- table(season); keep <- sort(names(cnt)[cnt >= 50])[1:10]
-  iyw <- iyw_all[season %in% keep]
+  sel <- season %in% keep
+  iyw <- iyw_all[sel]; monday <- mondays_all[sel]
 
   w <- as.integer(substr(iyw, 6, 7)); dist <- pmin(abs(w - 1), abs(w - 53))
   prevalence <- 0.02 + 0.40 * exp(-(dist^2) / 50)        # seasonal % positive, winter peak
@@ -19,11 +23,12 @@ test_that("num + denom nowcast -> rate -> MEM -> collapse runs end-to-end", {
   d <- data.table::data.table(
     indicator_tag = "fyrtarn_influensa_a_b", location_code = "norge",
     age = "total", sex = "total",
-    isoyearweek_reference = iyw, isoyearweek_reporting = iyw,   # delay 0 (passthrough)
+    isoyearweek_reference = iyw, reporting_date = monday,   # delay day 0
     numerator = num, denominator = denom)
 
   tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator_tag", "location_code", "age", "sex"))
-  ens <- nowcast_quasipoisson_v1(tri, max_delay = 4, n_sim = 50, denominator_col = "denominator")
+  ens <- nowcast_delay_ecdf_v1(
+    tri, max_delay_days = 28, n_sim = 50, denominator_col = "denominator")
   expect_true(all(c("numerator_nowcasted", "denominator_nowcasted") %in% names(ens$draws)))
 
   ens <- ens_add_rate(ens, "numerator_nowcasted", "denominator_nowcasted", per = 100)

@@ -7,10 +7,18 @@
 # columns and their roles via csfmt_interpret, so nothing is hardcoded.
 #
 # qc_week_over_week_v1 splits that diff at the nowcast horizon:
-#   A) integrity: settled weeks (>= max_delay behind last run's frontier) should
-#      be identical -- any continuous-median change is flagged. Ideally empty.
+#   A) integrity: settled weeks (>= max_delay_weeks behind last run's frontier)
+#      should be identical -- any continuous-median change is flagged. Ideally
+#      empty.
 #   B) signal: frontier weeks (the still-revising window + the new week) -- the
 #      ordinal status transitions, including the new week.
+#
+# THE HORIZON HERE IS IN WEEKS, and the parameter is named max_delay_weeks for
+# that reason. It indexes an ISO-week vector, so it windows REFERENCE WEEKS and
+# never delay days. The nowcast engines take max_delay_days, in DAYS, because
+# the triangle's reporting axis is a calendar date. Two names for two units is
+# deliberate: one name meaning days in one function and weeks in another is the
+# defect the whole rename exists to prevent.
 
 #' Compare two collapsed csfmt result sets
 #' @param current,previous data.tables (or csfmt_rts_data_v3) from two runs.
@@ -39,16 +47,16 @@
 #'   \code{\link{qc_week_over_week_v1}} is the usual entry point; it splits this
 #'   diff at the nowcast horizon.
 #' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek
-#' i <- match("2023-01", w)
+#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
+#' mondays <- as.Date("2023-01-02") + 7 * (0:39)
 #' set.seed(1)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   isoyearweek_reference = format(rep(mondays, each = 3), "%G-%V"),
+#'   reporting_date = rep(mondays, each = 3) + rep(c(3, 10, 17), 40),
 #'   numerator = rpois(120, c(30, 15, 5)),
 #'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 #' )
-#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' d <- d[reporting_date <= mondays[40] + 6]
 #'
 #' id <- c("indicator_tag", "location_code", "age", "sex")
 #'
@@ -57,16 +65,19 @@
 #' # confound sampling noise with the actual data revision.
 #' run <- function(x) {
 #'   set.seed(2)
-#'   ens_collapse(nowcast_quasipoisson_v1(
+#'   ens_collapse(nowcast_delay_ecdf_v1(
 #'     csfmt_reporting_triangle_v3(x, id_cols = id),
-#'     max_delay = 3, n_sim = 200
+#'     max_delay_days = 21, n_sim = 200
 #'   ))
 #' }
 #'
 #' # last week's run saw one reference week before it was corrected upward
 #' cur <- run(d)
 #' d_prv <- data.table::copy(d)
-#' d_prv[isoyearweek_reference == w[i + 10], numerator := numerator - 5]
+#' d_prv[
+#'   isoyearweek_reference == format(mondays[11], "%G-%V"),
+#'   numerator := numerator - 5
+#' ]
 #' prv <- run(d_prv)
 #'
 #' # one row per (series, week, value column). With the seed held fixed, the only
@@ -114,7 +125,11 @@ compare_results <- function(current, previous) {
 
 #' Week-over-week QC: settled-data integrity (A) + frontier status signal (B)
 #' @param current,previous Two runs' collapsed csfmt.
-#' @param max_delay Nowcast horizon (weeks); sets the settled/frontier boundary.
+#' @param max_delay_weeks Nowcast horizon in reference WEEKS. It sets the
+#'   settled/frontier boundary on the ISO-week axis, so it windows reference
+#'   weeks and never delay days. The nowcast engines take `max_delay_days`
+#'   instead, counted in DAYS. The two names differ because the two units
+#'   differ, and one name for both is the defect this rename removes.
 #' @param status_roles Naming-grammar roles treated as ORDINAL STATUS rather than
 #'   as continuous medians: excluded from `$integrity`, and the only roles whose
 #'   transitions appear in `$signal`. Defaults to both status-writing roles in the
@@ -131,16 +146,16 @@ compare_results <- function(current, previous) {
 #'   \code{\link{qc_surveillance_data_v1}} answers a different question, about one
 #'   input feed rather than two finished runs.
 #' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek
-#' i <- match("2023-01", w)
+#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
+#' mondays <- as.Date("2023-01-02") + 7 * (0:39)
 #' set.seed(1)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   isoyearweek_reference = format(rep(mondays, each = 3), "%G-%V"),
+#'   reporting_date = rep(mondays, each = 3) + rep(c(3, 10, 17), 40),
 #'   numerator = rpois(120, c(30, 15, 5)),
 #'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 #' )
-#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' d <- d[reporting_date <= mondays[40] + 6]
 #'
 #' id <- c("indicator_tag", "location_code", "age", "sex")
 #'
@@ -148,18 +163,22 @@ compare_results <- function(current, previous) {
 #' # not by their Monte-Carlo draws
 #' run <- function(x) {
 #'   set.seed(2)
-#'   ens_collapse(nowcast_quasipoisson_v1(
+#'   ens_collapse(nowcast_delay_ecdf_v1(
 #'     csfmt_reporting_triangle_v3(x, id_cols = id),
-#'     max_delay = 3, n_sim = 200
+#'     max_delay_days = 21, n_sim = 200
 #'   ))
 #' }
 #'
 #' cur <- run(d)
 #' d_prv <- data.table::copy(d)
-#' d_prv[isoyearweek_reference == w[i + 10], numerator := numerator - 5]
+#' d_prv[
+#'   isoyearweek_reference == format(mondays[11], "%G-%V"),
+#'   numerator := numerator - 5
+#' ]
 #' prv <- run(d_prv)
 #'
-#' qc <- qc_week_over_week_v1(cur, prv, max_delay = 3)
+#' # the engine horizon is 21 DAYS; this one is 3 WEEKS, and the names say so
+#' qc <- qc_week_over_week_v1(cur, prv, max_delay_weeks = 3)
 #'
 #' # A settled week whose published median moved between runs. This table is
 #' # ideally empty; a row in it means history was rewritten.
@@ -174,7 +193,7 @@ compare_results <- function(current, previous) {
 qc_week_over_week_v1 <- function(
   current,
   previous,
-  max_delay,
+  max_delay_weeks,
   tol = 1e-6,
   status_roles = c("status", "hlmstatus")
 ) {
@@ -183,7 +202,7 @@ qc_week_over_week_v1 <- function(
   long <- compare_results(current, previous)
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   latest_prev <- max(data.table::as.data.table(previous)$isoyearweek)
-  cutoff <- weeks[match(latest_prev, weeks) - max_delay] # weeks <= this are settled
+  cutoff <- weeks[match(latest_prev, weeks) - max_delay_weeks] # weeks <= this are settled
 
   # A) integrity: settled weeks, continuous medians, changed beyond tol -> flag
   A <- long[

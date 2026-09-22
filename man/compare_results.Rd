@@ -39,16 +39,16 @@ needs `indicator_tag` and `location_code`.
 }
 
 \examples{
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday
+mondays <- as.Date("2023-01-02") + 7 * (0:39)
 set.seed(1)
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = format(rep(mondays, each = 3), "\%G-\%V"),
+  reporting_date = rep(mondays, each = 3) + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= mondays[40] + 6]
 
 id <- c("indicator_tag", "location_code", "age", "sex")
 
@@ -57,16 +57,19 @@ id <- c("indicator_tag", "location_code", "age", "sex")
 # confound sampling noise with the actual data revision.
 run <- function(x) {
   set.seed(2)
-  ens_collapse(nowcast_quasipoisson_v1(
+  ens_collapse(nowcast_delay_ecdf_v1(
     csfmt_reporting_triangle_v3(x, id_cols = id),
-    max_delay = 3, n_sim = 200
+    max_delay_days = 21, n_sim = 200
   ))
 }
 
 # last week's run saw one reference week before it was corrected upward
 cur <- run(d)
 d_prv <- data.table::copy(d)
-d_prv[isoyearweek_reference == w[i + 10], numerator := numerator - 5]
+d_prv[
+  isoyearweek_reference == format(mondays[11], "\%G-\%V"),
+  numerator := numerator - 5
+]
 prv <- run(d_prv)
 
 # one row per (series, week, value column). With the seed held fixed, the only

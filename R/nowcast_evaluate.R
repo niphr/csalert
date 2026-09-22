@@ -35,7 +35,10 @@
     )
   }
 
-  # one row per forecast unit (reference x horizon x ...) with the quantiles needed
+  # One row per forecast unit (reference x as_of x horizon) with the quantiles
+  # needed. `as_of` is a Date and it is a merge key here, so it has to survive
+  # every merge below and any group-by the caller asks for through `by`.
+  # data.table keeps the Date class through both, and the tests pin that.
   unit <- intersect(c("reference", "as_of", "horizon"), names(d))
   qcol <- function(p, nm) {
     # NSE column names, declared so R CMD check does not read them as undefined globals
@@ -110,18 +113,20 @@
 #' honest; revision asks how much the number will still move. The scores are
 #' stacked into one per-horizon table with a `method`
 #' column. Pass a single method or a named list. Every method replays the same
-#' as-of weeks from the same starting RNG state, so the comparison is paired.
+#' as-of dates from the same starting RNG state, so the comparison is paired.
 #' Coverage is read straight off the interval quantiles, so this needs no
 #' `scoringutils`.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param methods A method `f(triangle) -> csfmt_ensemble_v3`, or a NAMED list of
 #'   them (each with its parameters baked in, e.g. via a closure).
-#' @param max_delay Delay horizon in weeks.
-#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest]. Every
-#'   method gets the same `seed`, so each one starts from the same RNG state on
-#'   each as-of week. That pairs the comparison. It does not by itself give
-#'   common random numbers, which would also need the methods to consume
-#'   compatible variates.
+#' @param max_delay_days Delay horizon in DAYS. Passed to [nowcast_truth] and
+#'   [nowcast_backtest]. `max_delay_days = 35` is the 35 days that start on the
+#'   reference week's Monday.
+#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest].
+#'   `as_of_weeks` is a `Date` vector. Every method gets the same `seed`, so each
+#'   one starts from the same RNG state on each as-of date. That pairs the
+#'   comparison. It does not by itself give common random numbers, which would
+#'   also need the methods to consume compatible variates.
 #' @param by Grouping for the evaluation summary (default "horizon").
 #' @param thresholds Absolute-revision cut-offs to report the exceedance
 #'   probability for (default 25\% and 50\%).
@@ -133,25 +138,26 @@
 #'   function on its synthetic triangle and reads the coverage and revision
 #'   columns off the result.
 #' @examples
-#' # a small reporting triangle: 30 weeks, each reported over delays 0-2
-#' w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+#' # a small reporting triangle: 30 weeks, each reported 3, 10 and 17 days after
+#' # its own Monday
+#' monday <- as.Date("2023-01-02") + 7 * rep(0:29, each = 3)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:29, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:29, each = 3) + rep(0:2, 30)],
+#'   isoyearweek_reference = format(monday, "%G-%V"),
+#'   reporting_date = monday + rep(c(3, 10, 17), 30),
 #'   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
 #' tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
 #'
 #' # one method:
-#' nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3),
-#'                     max_delay = 3, horizons = 0:2, seed = 1)
-#' # several methods, paired by as-of week, stacked with a `method` column:
-#' nowcast_evaluate_v1(tri, max_delay = 3, horizons = 0:2, seed = 1, methods = list(
-#'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = 3)))
+#' nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21),
+#'                     max_delay_days = 21, horizons = 0:2, seed = 1)
+#' # several methods, paired by as-of date, stacked with a `method` column:
+#' nowcast_evaluate_v1(tri, max_delay_days = 21, horizons = 0:2, seed = 1, methods = list(
+#'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21)))
 #' @export
 nowcast_evaluate_v1 <- function(
   triangle,
   methods,
-  max_delay,
+  max_delay_days,
   as_of_weeks = NULL,
   horizons = 1:2,
   probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
@@ -165,14 +171,14 @@ nowcast_evaluate_v1 <- function(
     methods <- list(method = methods)
   } # single -> one-element menu
   stopifnot(is.list(methods), length(methods) > 0, !is.null(names(methods)))
-  truth <- nowcast_truth(triangle, max_delay)
+  truth <- nowcast_truth(triangle, max_delay_days)
   out <- list()
   for (nm in names(methods)) {
     bt <- nowcast_backtest(
       triangle,
       methods[[nm]],
       as_of_weeks = as_of_weeks,
-      max_delay = max_delay,
+      max_delay_days = max_delay_days,
       horizons = horizons,
       probs = probs,
       seed = seed

@@ -58,7 +58,7 @@ The canonical chain:
 # Not run here. See vignette("pipeline", package = "csalert").
 #
 # csfmt_reporting_triangle_v3   the input: what was reported when
-#   nowcast_quasipoisson_v1()   fill in the weeks still arriving
+#   nowcast_delay_ecdf_v1()     fill in the weeks still arriving
 #   ens_add_rate()              a rate, per simulation
 #   short_term_trend()          recent direction, per simulation
 #   mem_thresholds_v1()         seasonal intensity level, per simulation

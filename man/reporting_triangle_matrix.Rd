@@ -6,50 +6,57 @@
 \usage{
 reporting_triangle_matrix(
   triangle,
-  max_delay,
+  max_delay_days,
   value_col = attr(triangle, "value_col")
 )
 }
 \arguments{
 \item{triangle}{A `csfmt_reporting_triangle_v3`.}
 
-\item{max_delay}{Number of delay columns (delay 0 .. max_delay-1, in weeks).}
+\item{max_delay_days}{Number of delay columns, in DAYS: delay 0 to
+`max_delay_days - 1`. `max_delay_days = 35` keeps delay days 0 to 34, the
+35 days that start on the reference week's Monday.}
 
 \item{value_col}{Which value column to reshape (default the triangle's
 `value_col`; pass a denominator column to reshape that instead).}
 }
 \value{
 Named list (by time_series_id) of `list(reference, mat)`, where `mat`
-  is a reference x delay count matrix (zeros filled within the observed region).
+  is a reference-week x delay-day count matrix (zeros filled within the
+  observed region). The rows stay ISO weeks; only the columns are days.
 }
 \description{
 Densify a reporting triangle into per-series reference x delay count matrices
 }
 \examples{
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+cal <- cstime::dates_by_isoyearweek
+i <- match("2023-01", cal$isoyearweek)
 set.seed(1)
+monday <- as.Date(cal$mon[i + rep(0:39, each = 3)])
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = cal$isoyearweek[i + rep(0:39, each = 3)],
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= as.Date(cal$mon[i + 39]) + 6]
 tri <- csfmt_reporting_triangle_v3(
   d,
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-m <- reporting_triangle_matrix(tri, max_delay = 3)
+m <- reporting_triangle_matrix(tri, max_delay_days = 21)
 names(m)
 
-# rows are reference weeks, columns are delays 0, 1, 2
+# rows are reference weeks, columns are delay days 0 to 20
+dim(m[[1]]$mat)
 head(m[[1]]$reference, 3)
-head(m[[1]]$mat, 3)
+
+# this series reports on days 3, 10 and 17 after the reference Monday
+m[[1]]$mat[1:3, c("3", "10", "17")]
 
 # the newest weeks are only partly reported: the later delays are still zero
-tail(m[[1]]$mat, 3)
+tail(m[[1]]$mat[, c("3", "10", "17")], 3)
 }
 \seealso{
 Neither package vignette covers this function. It is the densification

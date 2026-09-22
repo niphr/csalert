@@ -26,7 +26,8 @@ ends with numbers you could publish.
 Three shapes carry the run.
 
 - **`csfmt_reporting_triangle_v3`** — the input. One cell per reference week and
-  reporting week, so it records what was reported *when*.
+  reporting DATE, so it records what was reported *when*. The delay is a number
+  of days.
 - **`csfmt_ensemble_v3`** — the working format. It holds `$data`, plus one matrix
   of Monte-Carlo `$draws` per measure (rows = weeks, columns = simulations). Each
   stage adds columns to the draws, so the uncertainty is carried forward rather
@@ -46,7 +47,7 @@ So the canonical pipeline is a single chain through the ensemble:
 
 ```
 csfmt_reporting_triangle_v3
-  -> nowcast_quasipoisson_v1  OR  nowcast_passthrough_to_ensemble_v1
+  -> nowcast_delay_ecdf_v1  OR  nowcast_passthrough_to_ensemble_v1
   -> [ens_add_rate]              # when a denominator exists
   -> [short_term_trend]          # growth rate + P(increasing)
   -> [mem_thresholds_v1]         # MEM intensity
@@ -79,7 +80,7 @@ asks *how the data arrives* reads the triangle; anything that asks *what the dat
 says* reads the ensemble.
 
 When you set up a *new* indicator, run stage 3 first: it is what supports the
-choice of `max_delay` that everything else then uses.
+choice of `max_delay_days` that everything else then uses.
 
 ```{r}
 library(data.table)
@@ -89,11 +90,16 @@ library(csalert)
 ## A synthetic reporting triangle
 
 Real surveillance data arrives with a delay: a case with reference week `W` may
-only be *reported* in week `W`, `W+1`, `W+2`, and so on. The generator below
+only be *reported* a few days or a few weeks later. The generator below
 simulates a laboratory indicator from ISO week 2019-35 to 2024-18. That span is
 five winter seasons, which is what stages 6 and 7 need. It has a **reporting
 speed-up built in at the start of ISO year 2024**. Stage 3 recovers that change
 from the triangle alone.
+
+**The reporting axis is a calendar date, so a delay is a number of days.** The
+generator draws a whole-week delay, then spreads the report over the seven days
+of that reporting week. A report therefore lands anywhere from day 0, the
+reference week's own Monday, to day 34.
 
 It emits a **numerator and a denominator**: tests taken, and how many were
 positive. Simulating positives as a binomial *conditional on the tests* keeps the
@@ -113,6 +119,7 @@ sim_reports <- function(first_ref = "2019-35",
                         seed = 1L) {
   set.seed(seed)                                    # pinned inside, see above
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
+  monday <- as.Date(cstime::dates_by_isoyearweek$mon)   # each week's own Monday
   i0 <- match(first_ref, weeks)
   i1 <- match(last_ref, weeks)
   rows <- lapply(i0:i1, function(ri) {
@@ -123,18 +130,22 @@ sim_reports <- function(first_ref = "2019-35",
     p <- if (cstime::isoyearweek_to_isoyear_n(ref) <= 2023) delay_slow else delay_fast
     data.table(
       isoyearweek_reference = ref,
-      isoyearweek_reporting = weeks[ri + sample(0:4, n_tests, TRUE, p)],
+      # a whole-week delay, then a day inside that reporting week: delay day
+      # 7 * weeks_late + day_of_week, so 0 to 34
+      reporting_date = monday[ri] + 7L * sample(0:4, n_tests, TRUE, p) +
+        sample(0:6, n_tests, TRUE),
       positive = positive
     )
   })
-  # "today" is the last reference week: drop what has not been reported yet, so
-  # the most recent weeks are still incomplete -- the problem a nowcast solves
-  rbindlist(rows)[isoyearweek_reporting <= weeks[i1]]
+  # "today" is the last day of the last reference week: drop what has not been
+  # reported yet, so the most recent weeks are still incomplete -- the problem a
+  # nowcast solves
+  rbindlist(rows)[reporting_date <= monday[i1] + 6L]
 }
 
 reports <- sim_reports()
 triangle_long <- reports[, .(numerator = sum(positive), denominator = .N),
-                         by = .(isoyearweek_reference, isoyearweek_reporting)]
+                         by = .(isoyearweek_reference, reporting_date)]
 triangle_long[, `:=`(indicator_tag = "lab_flu", location_code = "nation",
                      age = "total", sex = "total")]
 head(triangle_long, 4)
@@ -144,53 +155,65 @@ c(cells = nrow(triangle_long),
 ```
 
 Wrap it as a `csfmt_reporting_triangle_v3`. The as-of boundary is read from the
-data — it is the newest reporting week present, not the system clock.
+data: it is the newest reporting date present, not the system clock. The
+constructor errors on a reporting column that is not a `Date`, and on a missing
+reporting date.
 
 ```{r}
 tri <- csfmt_reporting_triangle_v3(
   triangle_long,
   id_cols       = c("indicator_tag", "location_code", "age", "sex"),
   reference_col = "isoyearweek_reference",
-  reporting_col = "isoyearweek_reporting",
+  reporting_col = "reporting_date",
   value_col     = "numerator"
 )
 c(as_of = attr(tri, "as_of"),
-  newest_reporting_week = max(triangle_long$isoyearweek_reporting))
+  newest_reporting_date = max(triangle_long$reporting_date))
 ```
 
-`max_delay` is the delay horizon used by stages 1 to 3 below. Stage 3 shows how
-to choose it from the data; 5 weeks is the right answer for this series.
+`max_delay_days` is the delay horizon used by stages 1 to 3 below, in DAYS.
+Stage 3 shows how to choose it from the data; 35 days is the right answer for
+this series. Those 35 days are delay day 0 to delay day 34, which is the five
+weeks that start on the reference week's Monday.
 
 ```{r}
-max_delay <- 5L
+max_delay_days <- 35L
 ```
 
 ## 1. Nowcast
 
 **Estimand.** For each reference week, the total that will have been reported at
-delays `0 .. max_delay - 1` — that is, by the end of ISO week
-`reference_week + max_delay - 1`. This is a horizon-capped total, **not** the
-eventual total. Anything reported later than `max_delay - 1` weeks is outside the
-estimand, and no amount of nowcasting recovers it. Stage 3 is how you check that
-the horizon is wide enough for the difference to be small. For a settled week the
-quantity is already observed. For the most recent weeks it is not, and the
-nowcast is a predictive distribution over it.
+delay days `0 .. max_delay_days - 1`: that is, by the end of the day
+`reference Monday + max_delay_days - 1`. This is a horizon-capped total, **not**
+the eventual total. Anything reported after delay day `max_delay_days - 1` is
+outside the estimand, and no amount of nowcasting recovers it. Stage 3 is how you
+check that the horizon is wide enough for the difference to be small. For a
+settled week the quantity is already observed. For the most recent weeks it is
+not, and the nowcast is a predictive distribution over it.
 
-`nowcast_quasipoisson_v1()` is a discriminative (regression) engine. For each
-number of weeks a reference week has been observed, it fits one regression on the
-settled weeks. That regression is quasipoisson with an identity link, of the
-settled total on the counts reported so far:
+`nowcast_delay_ecdf_v1()` completes each incomplete week from a pooled **daily
+delay ECDF**. It asks one question per reference week: what share of a week's
+eventual total has arrived by delay day `d`? It answers with an empirical
+cumulative distribution pooled over the settled reference weeks, then divides:
 
 ```
-total ~ n[delay 0] + n[delay 1] + ... + n[delay h]
+p(d)           = cumsum(colSums(pool)) / sum(pool)
+total_hat[ref] = observed_so_far[ref] / p(d_observed[ref])
 ```
 
-R's default intercept is present in that formula and is fitted. There is no
-per-week magnitude parameter, so the recent weeks do not each carry their own
-noisy level. Draws combine the fit's parameter uncertainty with a
-dispersion-matched negative binomial. `delay_window` (default 26 weeks) restricts
-training to the settled weeks within roughly that span. The partial-to-total
-mapping can then follow a reporting regime that changes — as this series' does.
+That pair is the closed-form maximum likelihood estimator of
+`n[ref, d] ~ Poisson(lambda[ref] * p[d])`. The delay profile is estimated
+saturated, one number per delay day, rather than through a regression. A
+regression on 35 daily delay columns would have more predictors than it has
+settled training rows.
+
+The interval is empirical. Each settled week in the pool is re-completed from its
+own first `d + 1` delay days, then compared with its settled total. The 5 to 95
+band is the point estimate, times the 5% and 95% quantiles of that
+`truth / estimate` ratio. Nothing parametric is added on top. `delay_window`
+(default 26 WEEKS, the one quantity here that is not days) restricts training to
+the settled weeks within roughly that span. The delay curve can then follow a
+reporting regime that changes, as this series' does.
 
 `denominator_col` nowcasts a second measure alongside the numerator, on the same
 draw axis. Stage 4 needs it: a rate is only coherent if both its parts are
@@ -198,8 +221,8 @@ completed in the same Monte-Carlo world.
 
 ```{r}
 set.seed(2)
-ens <- nowcast_quasipoisson_v1(tri, max_delay = max_delay, n_sim = 500,
-                               denominator_col = "denominator")
+ens <- nowcast_delay_ecdf_v1(tri, max_delay_days = max_delay_days, n_sim = 500,
+                             denominator_col = "denominator")
 ens
 ```
 
@@ -230,11 +253,16 @@ polygon(c(xs, rev(xs)),
 lines(xs, show$numerator_nowcasted_q50x0, lwd = 2, col = "steelblue4")
 ```
 
-Keep the reference weeks: the later stages index off them.
+Keep the reference weeks, and the Monday that starts each one. Every delay and
+every age below is a number of days between two dates. The later stages
+therefore need the Mondays, not the week labels.
 
 ```{r}
-weeks     <- cstime::dates_by_isoyearweek$isoyearweek
-ref_weeks <- q$isoyearweek
+weeks      <- cstime::dates_by_isoyearweek$isoyearweek
+ref_weeks  <- q$isoyearweek
+ref_monday <- as.Date(cstime::dates_by_isoyearweek$mon[match(ref_weeks, weeks)])
+age        <- as.integer(attr(tri, "as_of") - ref_monday)   # age in DAYS
+c(weeks = length(ref_weeks), oldest_age_days = max(age), newest_age_days = min(age))
 ```
 
 ## 2. Validation: replay the method against the past
@@ -243,9 +271,9 @@ This stage and the next take the **triangle**, not the ensemble. They ask how th
 data arrives. That is a property of the reporting process, and it is destroyed
 the moment the delay axis is collapsed into weekly totals.
 
-The triangle records *when* every count arrived. So you can reconstruct what was
-known at any past week and replay the engine against it, without a second dated
-extract.
+The triangle records *when* every count arrived, to the day. So you can
+reconstruct what was known on any past date and replay the engine against it,
+without a second dated extract.
 
 That reconstruction is exact only for an **append-only** reporting system: one
 where a count, once filed, keeps its original reporting week forever. Real
@@ -255,24 +283,26 @@ last month looks as though it was always classified that way.
 Where such revisions matter, replay understates how much the published numbers
 actually moved. A dated archive of extracts is the only way to measure it.
 
-`nowcast_censor()` does the rewind. It returns a `csfmt_reporting_triangle_v3`
-with every cell reported after the given week dropped, and its as-of boundary
-moved back:
+`nowcast_censor()` does the rewind. It takes a `Date`, and returns a
+`csfmt_reporting_triangle_v3` with every cell reported after that date dropped
+and its as-of boundary moved back:
 
 ```{r}
-past <- nowcast_censor(tri, as_of = ref_weeks[length(ref_weeks) - 8L])
-c(now  = attr(tri, "as_of"),  then      = attr(past, "as_of"),
-  rows_now = nrow(tri),       rows_then = nrow(past))
+week_end <- ref_monday + 6L                       # the Sunday that ends each week
+past <- nowcast_censor(tri, as_of = week_end[length(week_end) - 8L])
+# format() first: c() on a Date and an integer coerces the integer to a Date
+c(now  = format(attr(tri, "as_of")), then     = format(attr(past, "as_of")),
+  rows_now = format(nrow(tri)),      rows_then = format(nrow(past)))
 ```
 
 `nowcast_truth()` supplies the target. It returns a two-column data.table
-(`reference`, `truth`) of each reference week's total summed over delays
-`0 .. max_delay - 1`, keeping only the weeks old enough for that total to be
+(`reference`, `truth`) of each reference week's total summed over delay days
+`0 .. max_delay_days - 1`, keeping only the weeks old enough for that total to be
 settled. The newest weeks are absent by design: they have no truth to be scored
 against yet.
 
 ```{r}
-truth <- nowcast_truth(tri, max_delay = max_delay)
+truth <- nowcast_truth(tri, max_delay_days = max_delay_days)
 tail(truth, 3)
 c(reference_weeks = length(ref_weeks), settled = nrow(truth))
 ```
@@ -281,24 +311,30 @@ A *method* is any function `f(triangle) -> csfmt_ensemble_v3` with its own
 parameters baked in. That one-argument contract is what lets engines with
 different signatures be replayed and compared through the same harness.
 
+`as_of_weeks` is a `Date` vector, and the function errors on anything else.
+Replay as of the Sunday that ends each week, which is what "as of week W" used to
+mean.
+
 ```{r}
-method_qp <- function(x) nowcast_quasipoisson_v1(x, max_delay = max_delay, n_sim = 500)
-as_of_weeks <- tail(ref_weeks, 30)
+method_ecdf <- function(x) {
+  nowcast_delay_ecdf_v1(x, max_delay_days = max_delay_days, n_sim = 500)
+}
+as_of_dates <- tail(week_end, 30)
 ```
 
 `nowcast_backtest()` runs the replay and returns the raw scored quantiles: one
 long row per `reference` x `as_of` x `horizon` x `quantile_level`, with the
-predicted value. `horizon` is weeks between the reference week and the as-of
-week, so horizon 0 is the current, least-observed week.
+predicted value. `horizon` is whole weeks between the reference week and the
+as-of date, so horizon 0 is the current, least-observed week.
 
 ```{r}
 bt <- nowcast_backtest(
-  tri, method_qp,
-  max_delay   = max_delay,
-  as_of_weeks = as_of_weeks,
-  horizons    = 0:3,
-  probs       = c(0.05, 0.25, 0.5, 0.75, 0.95),
-  seed        = 1
+  tri, method_ecdf,
+  max_delay_days = max_delay_days,
+  as_of_weeks    = as_of_dates,
+  horizons       = 0:3,
+  probs          = c(0.05, 0.25, 0.5, 0.75, 0.95),
+  seed           = 1
 )
 head(bt, 4)
 nrow(bt)
@@ -332,13 +368,15 @@ the counts reported so far — makes the numbers readable:
 ev <- nowcast_evaluate_v1(
   tri,
   methods = list(
-    quasipoisson = method_qp,
-    passthrough  = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay = max_delay)
+    delay_ecdf  = method_ecdf,
+    passthrough = function(x) {
+      nowcast_passthrough_to_ensemble_v1(x, max_delay_days = max_delay_days)
+    }
   ),
-  max_delay   = max_delay,
-  as_of_weeks = as_of_weeks,
-  horizons    = 0:3,
-  seed        = 1
+  max_delay_days = max_delay_days,
+  as_of_weeks    = as_of_dates,
+  horizons       = 0:3,
+  seed           = 1
 )
 ev[, .(method, horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
 ```
@@ -363,26 +401,27 @@ consequences of the construction.
 Its `coverage_50` and `coverage_90` are equal because a single draw gives it no
 interval at all. The "interval" is a point. It covers the truth only when the
 republished count already equals it. At horizon 3 that happens on the weeks
-where nothing arrived at delay 4.
+where nothing arrived on delay days 28 to 34.
 
 ### The engine's horizon-0 row is worth stopping on
 
-The quasipoisson engine's horizon-0 coverage is well below nominal, and its
-`median_signed` is *positive* — it is over-completing. That is not a random dip.
-The replay window above ends at the as-of week, so it straddles the reporting
-speed-up this series has at the start of ISO 2024. The engine trains on the
-26 preceding settled weeks. Learn the completion factors of a slow regime, then
-apply them to partial counts from a fast one. You scale up counts that were
-already nearly complete.
+The `delay_ecdf` engine covers 0.731 of the settled truths at horizon 0 against a
+nominal 0.90, and its `median_signed` is *positive* at 0.389. It is
+over-completing. That is not a random dip. The replay window above ends at the
+as-of date, so it straddles the reporting speed-up this series has at the start
+of ISO 2024. `delay_window` holds training to the settled weeks of roughly the
+preceding 26 weeks. Learn the delay curve of a slow regime, then apply it to
+partial counts from a fast one. You scale up counts that were already nearly
+complete.
 
 The contrast is visible if the replay is restricted to as-of weeks that sit
 entirely inside the slow regime:
 
 ```{r}
-slow_weeks <- tail(ref_weeks[cstime::isoyearweek_to_isoyear_n(ref_weeks) == 2023], 30)
-c(from = slow_weeks[1], to = slow_weeks[length(slow_weeks)])
-nowcast_evaluate_v1(tri, method_qp, max_delay = max_delay,
-                    as_of_weeks = slow_weeks, horizons = 0:3, seed = 1)[
+slow_dates <- tail(week_end[cstime::isoyearweek_to_isoyear_n(ref_weeks) == 2023], 30)
+c(from = slow_dates[1], to = slow_dates[length(slow_dates)])
+nowcast_evaluate_v1(tri, method_ecdf, max_delay_days = max_delay_days,
+                    as_of_weeks = slow_dates, horizons = 0:3, seed = 1)[
   , .(horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
 ```
 
@@ -403,61 +442,62 @@ factor carries no finite-sample coverage guarantee.
 
 ### What `pct_delayD` counts
 
-**`pct_delay0` is the share of a reference week's cases that were reported during
-that same ISO week**. Delay 0 is the reference week itself, not the week after
-it. In general:
+**The delay axis is DAYS.** `pct_delay0` is the share of a reference week's cases
+reported on that week's own Monday. In general:
 
 > `pct_delayD` is the pooled share of a reference week's cases reported by the
-> end of ISO week `reference_week + D`.
+> end of the day `reference Monday + D`.
 
-The columns are indexed by **delay**, 0-based, so the index in the name is the
-delay it reports. There are `max_delay` of them and the highest is
-`pct_delay<max_delay - 1>`, matching the triangle's own delay axis. Each is the
-delay ECDF read at one delay, with no interpolation. `mean_delay` is on the same
-axis and in whole weeks, so a week whose cases all arrive at delay 0 has
-`mean_delay` 0, not 1.
+The columns are indexed by **delay day**, 0-based, so the index in the name is
+the delay it reports. There are exactly `max_delay_days` of them, and the highest
+is `pct_delay<max_delay_days - 1>`. Each is the delay ECDF read at one day, with
+no interpolation. `mean_delay` is on the same axis and in DAYS.
+
+Five of the 35 columns fall on the end of an ISO week, and those are the ones a
+weekly reader wants: `pct_delay6`, `pct_delay13`, `pct_delay20`, `pct_delay27`
+and `pct_delay34`. `pct_delay6` is the share in by the end of the reference week
+itself. The other four are the ends of the four weeks after it.
 
 A triangle with a known answer settles it. Below, each reference week generates
-exactly 50 at delay 0, 30 at delay 1 and 20 at delay 2. The result is
-right-truncated at the newest reporting week, the way real data is:
+exactly 50 on delay day 0, 30 on delay day 7 and 20 on delay day 14. The result
+is right-truncated at the newest reporting date, the way real data is:
 
 ```{r}
-i <- match("2023-01", weeks)
+pin_monday <- as.Date("2023-01-02") + 7 * rep(0:29, each = 3)
 pin <- data.table(
-  isoyearweek_reference = weeks[i + rep(0:29, each = 3)],
-  isoyearweek_reporting = weeks[i + rep(0:29, each = 3) + rep(0:2, 30)],
+  isoyearweek_reference = format(pin_monday, "%G-%V"),
+  reporting_date = pin_monday + rep(c(0, 7, 14), 30),
   numerator = rep(c(50, 30, 20), 30),
   indicator = "pinned", location = "nation", age = "total", sex = "total"
 )
-pin <- pin[isoyearweek_reporting <= weeks[i + 29]]
+pin <- pin[reporting_date <= as.Date("2023-01-02") + 7 * 29]
 tri_pin <- csfmt_reporting_triangle_v3(
   pin, id_cols = c("indicator", "location", "age", "sex")
 )
-reporting_completion_v1(tri_pin, max_delay = 3)[
-  , .(n_settled, mean_delay, complete_by_md, pct_delay0, pct_delay1, pct_delay2)]
+reporting_completion_v1(tri_pin, max_delay_days = 15)[
+  , .(n_settled, mean_delay, complete_by_md, pct_delay0, pct_delay7, pct_delay14)]
 ```
 
-`pct_delay0` is 50, not 80: it is the delay-0 share, the reports that arrived in
-the reference week itself. `pct_delay1` is 80 — cumulative through delay 1.
-`mean_delay` is `0*0.50 + 1*0.30 + 2*0.20 = 0.70`.
+`pct_delay0` is 50, not 80: it is the delay-day-0 share, the reports that arrived
+on the reference week's own Monday. `pct_delay7` is 80, cumulative through delay
+day 7. `mean_delay` is `0*0.50 + 7*0.30 + 14*0.20 = 4.9` days.
 
-**Coming from an older script?** These columns used to be named `pct_w1`,
-`pct_w2`, ..., which counted weeks-observed from 1. So no number in a column name
-ever equalled the delay it stood for. Your `pct_w1` is now `pct_delay0`, `pct_w2` is
-`pct_delay1`, and so on. The old names are gone rather than redefined, so old
-code errors on a missing column instead of quietly returning a different week.
+**Coming from an older script?** These columns used to be indexed by WEEK. A
+`pct_delay1` on the old weekly axis meant "in by the end of the week after the
+reference week", which is now `pct_delay13`. The column names did not change
+shape, only their unit, so old code reads a column that exists and gets a
+different quantity. Re-read every `pct_delayD` you use.
 
 `n_settled` is 28, not 30. Age eligibility is the first filter. A reference week
-is eligible once `as_of_week - reference_week >= max_delay - 1`, which excludes
-the two most recent of those 30. A second filter then drops any eligible week
-whose total within the horizon is zero, and `n_settled` counts what survives
-both. Here no week is empty, so the age rule alone accounts for the number — and
+is eligible once `as_of - reference Monday >= max_delay_days - 1` days, which
+excludes the two most recent of those 30. A second filter then drops any eligible
+week whose total within the horizon is zero, and `n_settled` counts what survives
+both. Here no week is empty, so the age rule alone accounts for the number, and
 the same holds on the working triangle:
 
 ```{r}
-age <- match(attr(tri, "as_of"), weeks) - match(ref_weeks, weeks)
-completion <- reporting_completion_v1(tri, max_delay = max_delay)
-c(age_eligible = sum(age >= max_delay - 1L), reported = completion$n_settled)
+completion <- reporting_completion_v1(tri, max_delay_days = max_delay_days)
+c(age_eligible = sum(age >= max_delay_days - 1L), reported = completion$n_settled)
 ```
 
 They agree only because this series has no zero-count weeks. On an indicator
@@ -481,143 +521,118 @@ For a case whose reference week is 2023-07:
 
 | statistic | covers reports up to | which is |
 |---|---|---|
-| `pct_delay0` | end of ISO week 2023-07 | Sunday 2023-02-19 |
-| `pct_delay1` | end of ISO week 2023-08 | Sunday 2023-02-26 |
-| `pct_delay2` | end of ISO week 2023-09 | Sunday 2023-03-05 |
+| `pct_delay0` | the reference week's own Monday | Monday 2023-02-13 |
+| `pct_delay6` | end of ISO week 2023-07 | Sunday 2023-02-19 |
+| `pct_delay13` | end of ISO week 2023-08 | Sunday 2023-02-26 |
+| `pct_delay20` | end of ISO week 2023-09 | Sunday 2023-03-05 |
 
-So `pct_delay0` is a statement about the seven days from Monday 2023-02-13.
-`pct_delay1` is about the **14** days from that same Monday, not the seven days
+So `pct_delay6` is a statement about the seven days from Monday 2023-02-13.
+`pct_delay13` is about the **14** days from that same Monday, not the seven days
 of week 2023-08 on their own. The columns are cumulative.
 
 ### Which day of the week you run it on
 
-**The day of the week does not change the delay arithmetic at all**. Delay is
-computed from the two ISO-week labels only. So every day of a week carries the
-same label and lands in the same delay bucket:
+**The day of the week now changes the delay arithmetic.** Delay is the number of
+days from the reference week's Monday to the reporting date. The seven days of
+one reporting week land in seven different delay buckets:
 
 ```{r}
 days <- seq(as.Date("2023-02-13"), as.Date("2023-02-19"), by = "day")
 data.table(date = days, weekday = weekdays(days),
-           isoyearweek = cstime::date_to_isoyearweek_c(days))
+           delay_day_for_2023_07 = as.integer(days - as.Date("2023-02-13")))
 ```
 
-Both runs put a report filed that week at delay 0 for reference week 2023-07, at
-delay 1 for 2023-06, and so on. Nothing in the pipeline reads the system clock:
-the as-of boundary comes from the newest reporting week *present in the data*.
+That is what the daily axis changed. On the old weekly axis all seven of those
+days carried one label and shared one bucket.
 
-The phrase *present in the data* carries a condition worth stating. `as_of` is
-`max(reporting_week)`. A Monday run and a Friday run therefore agree on
-`as_of = "2023-07"` under one condition. **The Monday extract must already
-contain at least one report filed in week 2023-07**.
+Nothing in the pipeline reads the system clock: the as-of boundary comes from the
+newest reporting date *present in the data*. `as_of` is `max(reporting_date)`. A
+Monday extract and the Sunday extract of the same week give two different as-of
+dates. Every reference week's age in DAYS moves with them.
 
-If it contains none — a plausible Monday morning on a slow indicator — `as_of`
-silently falls back to `"2023-06"`. Every week's age shifts by one, and one more
-reference week is treated as settled. That is a
-different analysis, not a smaller one, and nothing in the output announces it.
-
-What the day *does* change is **how much of the current week's reporting has
-landed**. On Monday almost none of it has landed. In this illustration all of it
-is in by Sunday. That assumes the extract is taken after the week closes, and
-that the system files everything within the week it belongs to. Neither is
-guaranteed in general.
-
-In a Monday extract every cell whose reporting week is the current week is still
-filling. That is the delay-0 cell of the current reference week most visibly. The
-same holds for the delay-1 cell of last week, the delay-2 cell of the week
-before, and so on.
-
-That matters for the completion table in one narrow place, and it is worth being
-precise about which. Thin the current week's reports down to 15%, as a Monday
-extract would see them, and rebuild:
+`nowcast_censor()` is the exact way to see what a Monday extract would have held.
+It drops every cell reported after the given date:
 
 ```{r}
-set.seed(5)
-monday <- reports[isoyearweek_reporting != attr(tri, "as_of") | runif(.N) < 0.15]
-tl_mon <- monday[, .(numerator = sum(positive), denominator = .N),
-                 by = .(isoyearweek_reference, isoyearweek_reporting)]
-tl_mon[, `:=`(indicator_tag = "lab_flu", location_code = "nation",
-              age = "total", sex = "total")]
-tri_mon <- csfmt_reporting_triangle_v3(
-  tl_mon, id_cols = c("indicator_tag", "location_code", "age", "sex")
-)
+monday_as_of <- attr(tri, "as_of") - 6L         # the Monday of the as-of week
+tri_mon <- nowcast_censor(tri, as_of = monday_as_of)
 
 rbind(
   cbind(extract = "Sunday (week complete)",
-        reporting_completion_v1(tri, max_delay = max_delay)[
-          , .(n_settled, mean_delay, pct_delay0, pct_delay1, pct_delay2, pct_delay3)]),
-  cbind(extract = "Monday (15% of the week in)",
-        reporting_completion_v1(tri_mon, max_delay = max_delay)[
-          , .(n_settled, mean_delay, pct_delay0, pct_delay1, pct_delay2, pct_delay3)])
+        reporting_completion_v1(tri, max_delay_days = max_delay_days)[
+          , .(n_settled, mean_delay, pct_delay6, pct_delay13, pct_delay20, pct_delay27)]),
+  cbind(extract = "Monday (six days earlier)",
+        reporting_completion_v1(tri_mon, max_delay_days = max_delay_days)[
+          , .(n_settled, mean_delay, pct_delay6, pct_delay13, pct_delay20, pct_delay27)])
 )
 ```
 
-The pooled curve barely moves, and `n_settled` is identical, because the current
-reference week is never in the settled set. For any `max_delay` of 2 or more its
-age is 0, which is below the `max_delay - 1` threshold. So it contributes nothing
-to `pct_delayD` whichever day you run on. (A `max_delay` of 1 leaves a single delay
-bucket, no completion to measure, and no useful summary; use 2 or more).
+The pooled curve barely moves. `n_settled` does move, and that is the age test
+working rather than failing. A week is eligible once
+`as_of - reference Monday >= max_delay_days - 1`. Pulling `as_of` back six days
+pulls the settled boundary back with it.
 
-At most **one** reference week can have its settled total affected: the newest
-settled one. Its last delay cell — delay `max_delay - 1` — is still being
-reported during the current week. Every older week finished reporting earlier;
-every newer week is not settled. Count the weeks that actually moved, rather than
-assuming it is one:
+One reference week is at risk of an understated total, and it is the newest
+settled one. Its age is exactly `max_delay_days - 1`, so its last delay cell falls
+on the extract day itself and is still filling. Every older week finished
+reporting earlier; every newer week is not settled. Count the weeks that actually
+moved, rather than assuming it is one:
 
 ```{r}
-cmp <- merge(nowcast_truth(tri, max_delay), nowcast_truth(tri_mon, max_delay),
-             by = "reference", suffixes = c("_sunday", "_monday"))
-cmp[(.N - 2):.N]
-cmp[truth_sunday != truth_monday]
+truth_sun <- nowcast_truth(tri, max_delay_days)
+truth_mon <- nowcast_truth(tri_mon, max_delay_days)
+cmp <- merge(truth_sun, truth_mon, by = "reference",
+             suffixes = c("_sunday", "_monday"))
+c(settled_sunday = nrow(truth_sun), settled_monday = nrow(truth_mon),
+  in_both = nrow(cmp), totals_that_moved = nrow(cmp[truth_sunday != truth_monday]))
 ```
 
-On this series, none did — and the reason is worth seeing, because it bounds the
-whole effect. The only cell at risk is the delay-4 numerator of the newest
-settled week. In the fast 2024 regime, delay 4 carries 1% of a week's tests:
+The reason is worth seeing, because it bounds the whole effect. The only cell at
+risk is the delay-34 numerator of the newest settled week, which is what arrived
+on the extract day itself:
 
 ```{r}
-newest_settled <- weeks[match(attr(tri, "as_of"), weeks) - (max_delay - 1L)]
+newest_settled <- ref_weeks[max(which(age >= max_delay_days - 1L))]
 triangle_long[isoyearweek_reference == newest_settled &
-              isoyearweek_reporting == attr(tri, "as_of"),
-              .(isoyearweek_reference, isoyearweek_reporting, numerator, denominator)]
+              reporting_date == attr(tri, "as_of"),
+              .(isoyearweek_reference, reporting_date, numerator, denominator)]
 ```
 
-Five tests, none of them positive. Thinning zero positives leaves zero, so the
-numerator's settled total cannot move. **The weekday effect is bounded by the
-mass sitting in the last delay bucket**. Widen `max_delay` past where reporting
-actually finishes and that bucket empties. That is why the effect vanishes here,
-and why it did not vanish on a series with a heavier tail.
+Nothing arrived in that cell, so this week's settled total cannot move at all.
+**The weekday effect is bounded by the mass sitting in the last delay cell**.
+Widen `max_delay_days` past where reporting actually finishes and that cell
+empties. A daily axis makes the cell one day wide rather than one week wide, so
+there is less mass in it to lose.
 
-**None of this generalises, and the two reasons it vanishes here are both about
-scale**. The at-risk cell is one week's last delay bucket, diluted into a pool of
-241 settled weeks. That bucket is also nearly empty, because `max_delay` is wide
-enough. Shrink the series, shrink the horizon, or give the indicator a heavier
-reporting tail, and the same mechanism becomes material. A period slice with the
-minimum three qualifying weeks gives that one cell a third of the weight.
+**None of this generalises, and the reason it is small here is about scale**. The
+at-risk cell is one week's last delay day, diluted into a pool of hundreds of
+settled weeks. Shrink the series, shrink the horizon, or give the indicator a
+heavier reporting tail, and the same mechanism becomes material. A period slice
+with the minimum three qualifying weeks gives that one cell a third of the
+weight.
 
 The general statement is the conditional one. A mid-week extract undercounts the
-newest settled week's total by whatever share of its last delay bucket has not
+newest settled week's total by whatever share of its last delay cell has not
 arrived. That total is what `nowcast_truth()` scores a backtest against. So run
-the backtest off an end-of-week extract. The alternative is to measure the gap on
-your own series, rather than assuming it is as small as it is here.
+the backtest off an end-of-day extract, and record which day it was.
 
 ### "As of today", for the weeks on screen
 
-With `as_of` = `r attr(tri, "as_of")` and `max_delay` = `r max_delay`, the
-reference weeks split three ways:
+With `as_of` = `r attr(tri, "as_of")` and `max_delay_days` = `r max_delay_days`,
+the reference weeks split three ways:
 
 ```{r}
 data.table(
   isoyearweek = ref_weeks,
-  weeks_observed = age + 1L,
-  status = fifelse(age >= max_delay - 1L, "settled",
-           fifelse(age > 0L, "still filling", "current week"))
+  days_observed = age + 1L,
+  status = fifelse(age >= max_delay_days - 1L, "settled",
+           fifelse(age >= 7L, "still filling", "current week"))
 )[, .N, keyby = status]
 ```
 
-Four weeks are not settled: three still filling, plus the current week, which has
-only its delay-0 reports. Those are the weeks the nowcast in stage 1 completed,
-and the weeks the completion table declines to learn from. The completed weeks
-are the ones whose nowcast rises above the count reported so far:
+The weeks that are not settled are the ones the nowcast in stage 1 completed, and
+the ones the completion table declines to learn from. The completed weeks are the
+ones whose nowcast rises above the count reported so far:
 
 ```{r}
 q[numerator_nowcasted_q95x0 > original, isoyearweek]
@@ -636,20 +651,21 @@ result, with no warning and no placeholder row. A year at the edge of the series
 means too few weeks, never zero delay.
 
 ```{r}
-reporting_completion_v1(tri, max_delay = max_delay, period = "year")[
-  , .(period, n_settled, mean_delay, pct_delay0, pct_delay1, pct_delay2, pct_delay3)]
+reporting_completion_v1(tri, max_delay_days = max_delay_days, period = "year")[
+  , .(period, n_settled, mean_delay, pct_delay6, pct_delay13, pct_delay20, pct_delay27)]
 ```
 
-That is the change built into `sim_reports()`, recovered from the triangle. Five
-consecutive ISO years sit within a couple of points of each other — `pct_delay0`
-around 43 to 45, `mean_delay` around 0.95. Then 2024 steps to about 69% and
-0.45. A flat run followed by a step is what a genuine regime change looks like.
-A single year out of line with its neighbours is usually noise.
+That is the change built into `sim_reports()`, recovered from the triangle. Read
+`pct_delay6`, the share in by the end of the reference week itself. It runs 47.3,
+44.7, 45.9, 44.3 and 44.6 across ISO 2019 to 2023, then steps to 70.7 in 2024.
+`mean_delay` steps the other way, from about 9.5 days to 6.06. A flat run
+followed by a step is what a genuine regime change looks like. A single year out
+of line with its neighbours is usually noise.
 
-The pooled row from the previous table reports `pct_delay0` of 47.3. That is
-close to the five slow years only because they outnumber the fast one five to
-one. It is not a compromise between the regimes. It is the old regime with a
-little contamination, and it will drift year by year as 2024 accumulates weeks.
+The pooled `pct_delay6` of 47.9 sits just above every one of those slow years.
+The slow weeks outnumber the fast ones 227 to 14. So the pooled curve is the old
+regime with a little contamination, not a compromise between the two. It will
+drift year by year as 2024 accumulates weeks.
 
 The stratification is by **ISO year**, not calendar year, and the ISO year of a
 week is the calendar year of its Thursday. That decides which year owns a
@@ -670,40 +686,39 @@ the same Thursday rule to decide which calendar month owns a week that straddles
 two:
 
 ```{r}
-tail(reporting_completion_v1(tri, max_delay = max_delay, period = "month")[
-  , .(period, n_settled, mean_delay, pct_delay0, pct_delay1)], 6)
+tail(reporting_completion_v1(tri, max_delay_days = max_delay_days, period = "month")[
+  , .(period, n_settled, mean_delay, pct_delay6, pct_delay13)], 6)
 ```
 
-The step lands between 2023-12 and 2024-01. Note the small `n_settled` per month
-— four or five weeks — so a single month's row is noisy; read the sequence, not
-one row.
+The step lands between 2023-12 and 2024-01. Note the small `n_settled` per month,
+four or five weeks, so a single month's row is noisy. Read the sequence, not one
+row.
 
-### Every number here is conditional on `max_delay`
+### Every number here is conditional on `max_delay_days`
 
 This is the trap, and it is structural rather than a tuning subtlety.
 `reporting_completion_v1()` works from a triangle that has already had every cell
-with delay `>= max_delay` discarded. So the denominator is the total that arrived
-*within the horizon*, not the eventual total. Two consequences follow, and they
-hold whatever the real reporting tail looks like:
+with delay `>= max_delay_days` discarded. So the denominator is the total that
+arrived *within the horizon*, not the eventual total. Two consequences follow,
+and they hold whatever the real reporting tail looks like:
 
 - `complete_by_md` is the last cumulative fraction of that same truncated total,
   so it is 1.
-- the last column, `pct_delay<max_delay - 1>`, is that fraction as a percentage,
-  so it is 100.
+- the last column, `pct_delay<max_delay_days - 1>`, is that fraction as a
+  percentage, so it is 100.
 
 Neither can detect reporting that dribbles in past the horizon. Rather than
-assert that, check it — here across `max_delay` 2 through 8 on this triangle,
-reading the last column by name each time:
+assert that, check it. The sweep below runs one to eight weeks of horizon, in
+days, and reads the last column by name each time:
 
 ```{r}
-sens <- rbindlist(lapply(2:8, function(md) {
-  r <- reporting_completion_v1(tri, max_delay = md)
-  data.table(max_delay = md, n_settled = r$n_settled, mean_delay = r$mean_delay,
-             complete_by_md = r$complete_by_md,
+sens <- rbindlist(lapply(7L * (1:8), function(md) {
+  r <- reporting_completion_v1(tri, max_delay_days = md)
+  data.table(max_delay_days = md, n_settled = r$n_settled,
+             mean_delay = r$mean_delay, complete_by_md = r$complete_by_md,
              last_col = paste0("pct_delay", md - 1L),
              last_pct = r[[paste0("pct_delay", md - 1L)]],
-             pct_delay0 = r$pct_delay0, pct_delay1 = r$pct_delay1,
-             pct_delay2 = r$pct_delay2)
+             pct_delay6 = r$pct_delay6, pct_delay13 = r$pct_delay13)
 }), fill = TRUE)
 sens
 c(complete_by_md_always_1 = all(sens$complete_by_md == 1),
@@ -715,19 +730,19 @@ mistake for a finding:
 
 ```{r}
 per <- rbindlist(lapply(c("all", "year", "month"), function(p) {
-  r <- reporting_completion_v1(tri, max_delay = max_delay, period = p)
+  r <- reporting_completion_v1(tri, max_delay_days = max_delay_days, period = p)
   data.table(period_arg = p, rows = nrow(r),
              complete_by_md_all_1 = all(r$complete_by_md == 1),
-             pct_delay4_all_100 = all(r$pct_delay4 == 100))
+             pct_delay34_all_100 = all(r$pct_delay34 == 100))
 }))
 per
 ```
 
-**The diagnostic that does work is the `max_delay` sweep itself**. Read the
-`sens` table above down its rows. `mean_delay` rises from 0.38 at `max_delay` 2
-to 0.88 at 5, then moves only to 0.89 at 8. `pct_delay0` falls from 61.8 to 47.3
-and then drifts to 46.8. That flattening is what *supports* `max_delay <- 5L`
-here — it is a sensitivity analysis, not a proof.
+**The diagnostic that does work is the `max_delay_days` sweep itself**. Read the
+`sens` table above down its rows. `mean_delay` climbs from 2.98 days at a 7-day
+horizon to 9.15 at 35 days, then moves only to 9.20 at 56. `pct_delay6` falls
+from 100 to 47.9 and then drifts to 47.6. That flattening is what *supports*
+`max_delay_days <- 35L` here. It is a sensitivity analysis, not a proof.
 
 A `mean_delay` that kept climbing would be clear evidence the tail was still
 being cut off. A plateau is weaker evidence in the other direction, because a
@@ -737,20 +752,20 @@ curve too.
 Two cautions on reading that sweep:
 
 - The short horizons are not merely imprecise, they are biased optimistic.
-  `pct_delay0` at `max_delay` 2 reads 61.8% because it conditions on the cases
-  that arrived within two weeks. That is a smaller denominator, so a larger share.
-- Not all of the residual movement past 5 is about the tail. `n_settled` falls
-  from 244 to 238 across those rows, because a longer horizon settles fewer
-  weeks. The weeks it drops are the newest, which on this series are the
-  fast-reporting ones. That pulls the pooled `pct_delay0` down slightly on
-  composition alone. Compare rows at equal `n_settled`, or read
-  `period = "year"` instead, before calling a small drift a tail.
+  `pct_delay6` at a 7-day horizon conditions on the cases that arrived within one
+  week. That is a smaller denominator, so a larger share.
+- Not all of the residual movement past 35 days is about the tail. `n_settled`
+  falls across those rows, because a longer horizon settles fewer weeks. The
+  weeks it drops are the newest, which on this series are the fast-reporting
+  ones. That pulls the pooled `pct_delay6` down slightly on composition alone.
+  Compare rows at equal `n_settled`, or read `period = "year"` instead, before
+  calling a small drift a tail.
 
-`sim_reports()` emits no delay beyond 4. So on *this* triangle a horizon of 5
-truncates nothing, and the flattening really is exact — but only because we can
-read the generator. On a real series that check is unavailable. Widen until
-`mean_delay` stops moving, then treat the remaining tail as bounded by what a
-still-wider horizon would have shown, not as zero.
+`sim_reports()` emits no delay beyond day 34. So on *this* triangle a horizon of
+35 days truncates nothing, and the flattening really is exact. That is only
+knowable because we can read the generator. On a real series that check is
+unavailable. Widen until `mean_delay` stops moving, then treat the remaining tail
+as bounded by what a still-wider horizon would have shown, not as zero.
 
 ## 4. Rate: a nowcasted numerator over a nowcasted denominator
 
@@ -851,10 +866,11 @@ trend <- qt[, .(isoyearweek,
 tail(trend, 10)
 ```
 
-The last four rows are the nowcast weeks. Their point estimates are negative and
-their 5-95% bands sit entirely below zero, with `p_increasing` at 0. The series
-is on the spring side of its winter peak, and the nowcast uncertainty is not
-wide enough to admit a rise.
+The last four rows are the nowcast weeks. Every one of their point estimates is
+negative. The bands widen toward the right-hand edge: three of the four sit
+entirely below zero, and the newest week's runs from -31.17 to 5.14 with
+`p_increasing` at 0.138. The series is on the spring side of its winter peak.
+Only on the newest week is the nowcast uncertainty wide enough to admit a rise.
 
 Note what that statement is and is not: it says the
 *completed* rate fell over each six-week window, given this nowcast. It does not

@@ -48,7 +48,7 @@ reference:
   - title: "Nowcasting engines"
     desc: "Complete a right-truncated reporting triangle into a csfmt_ensemble_v3."
     contents:
-      - nowcast_quasipoisson_v1
+      - nowcast_delay_ecdf_v1
       - nowcast_passthrough_to_ensemble_v1
 
   - title: "Nowcast diagnostics"

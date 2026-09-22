@@ -2,60 +2,84 @@
 # the nowcast diagnostics.
 #
 # The reporting triangle already records, per cell, WHEN a count was reported --
-# so we can reconstruct exactly what was known at any past week (`nowcast_censor`)
+# so we can reconstruct exactly what was known at any past DATE (`nowcast_censor`)
 # without re-reading truncated raw data. Replaying an engine across a series of
-# "as-of" weeks (`nowcast_backtest`) and comparing to the eventually-settled totals
+# "as-of" dates (`nowcast_backtest`) and comparing to the eventually-settled totals
 # (`nowcast_truth`) is how you tell whether a nowcast is any good. The scoring on
 # top of a replay lives in nowcast_evaluate.R (`nowcast_evaluate_v1`).
+#
+# THE REPORTING AXIS IS A DATE. `as_of` is a Date, the delay horizon
+# `max_delay_days` counts DAYS, and no function here looks a reporting value up
+# in the ISO-week calendar. The reference axis is still an ISO week, so a
+# `horizon` is still a whole number of weeks.
 #
 # The method contract is deliberately minimal: a nowcast method is a function
 #   f(triangle) -> csfmt_ensemble_v3
 # with all of ITS parameters baked in (e.g. via a closure). That keeps engines
 # with different signatures (n_sim, priors, ...) composable through one interface.
 
-#' Censor a reporting triangle to what was known "as of" a past week
+#' Censor a reporting triangle to what was known "as of" a past date
 #'
 #' Keeps only cells reported on or before `as_of` and rebuilds the triangle. Its
 #' as-of boundary and delay structure are then exactly what an engine would have
-#' seen at that week. The basis for replay-based backtesting.
+#' seen on that date. The basis for replay-based backtesting.
 #' @param triangle A `csfmt_reporting_triangle_v3`.
-#' @param as_of An ISO-week string; cells reported after it are dropped.
+#' @param as_of A `Date`. Cells reported after it are dropped. A character, a
+#'   number, a factor and an `IDate` each error. The check is strict because R
+#'   reads `reporting date <= as_of` from the type of `as_of`. A number is a day
+#'   count since 1970-01-01, so `as_of = 18262` censors to 2020-01-01 and
+#'   reports nothing wrong. A character goes through `as.Date()`, so `"2020-11"`
+#'   errors inside `charToDate()` with a message that never names `as_of`.
 #' @returns A `csfmt_reporting_triangle_v3` censored to `as_of`.
 #' @family nowcast diagnostics
 #' @seealso \code{vignette("pipeline", package = "csalert")} calls this
-#'   function directly in its validation stage, to rebuild what was known as of an
-#'   earlier week. \code{\link{nowcast_evaluate_v1}} censors for you when you do
+#'   function directly in its validation stage, to rebuild what was known on an
+#'   earlier date. \code{\link{nowcast_evaluate_v1}} censors for you when you do
 #'   not need the censored triangle itself.
 #' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek
-#' i <- match("2023-01", w)
+#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
+#' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' set.seed(1)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   isoyearweek_reference = format(monday, "%G-%V"),
+#'   reporting_date = monday + rep(c(3, 10, 17), 40),
 #'   numerator = rpois(120, c(30, 15, 5)),
 #'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 #' )
-#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 #' tri <- csfmt_reporting_triangle_v3(
 #'   d,
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
 #' # rewind to what was known nine weeks earlier
-#' past <- nowcast_censor(tri, as_of = w[i + 30])
+#' past <- nowcast_censor(tri, as_of = as.Date("2023-01-02") + 7 * 30 + 6)
 #' c(now = attr(tri, "as_of"), then = attr(past, "as_of"))
 #' c(rows_now = nrow(tri), rows_then = nrow(past))
 #' @export
 nowcast_censor <- function(triangle, as_of) {
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
+  # Strict on the class, not on inheritance, exactly as the constructor is. R
+  # reads `reporting date <= as_of` from the type of as_of, and each wrong type
+  # fails differently. Measured on the pre-assertion tree, 2026-09-22: 18262 is
+  # a day count since 1970-01-01, so it censored to 2020-01-01 and reported
+  # nothing wrong; "2020-11" went through as.Date() and errored inside
+  # charToDate(), with a message that never named as_of; a factor raised an
+  # "Incompatible methods" warning first. One strict check replaces all three.
+  if (!identical(class(as_of), "Date")) {
+    stop(
+      "`as_of` must be a Date, not ",
+      paste(class(as_of), collapse = "/"),
+      call. = FALSE
+    )
+  }
   rep_col <- attr(triangle, "reporting_col")
   ref_col <- attr(triangle, "reference_col")
   val_col <- attr(triangle, "value_col")
   d <- data.table::as.data.table(triangle)
   d <- d[get(rep_col) <= as_of]
   if (!nrow(d)) {
-    stop("nothing reported on or before ", as_of, call. = FALSE)
+    stop("nothing reported on or before ", format(as_of), call. = FALSE)
   }
   return(csfmt_reporting_triangle_v3(
     d,
@@ -68,15 +92,19 @@ nowcast_censor <- function(triangle, as_of) {
 
 #' The settled (eventually-observed) total per reference week
 #'
-#' Sums each reference week's counts across delays `0` to `max_delay - 1` -- the
-#' quantity a nowcast is trying to predict -- and keeps only weeks old enough that
-#' this total is settled, meaning at least `max_delay - 1` weeks before the
-#' triangle's as-of. Both bounds are one lower than they may read: `max_delay = 3`
-#' sums delays 0, 1 and 2, and the newest settled reference week is 2 weeks before
-#' as-of, not 3. Anything reported at a delay of `max_delay` or more falls outside
+#' Sums each reference week's counts across delay days `0` to
+#' `max_delay_days - 1`, the quantity a nowcast is trying to predict. Keeps only
+#' the weeks old enough for that total to be settled, meaning their Monday is at
+#' least `max_delay_days - 1` days before the triangle's as-of date. Both bounds
+#' are one lower than they may read: `max_delay_days = 21` sums delay days 0 to
+#' 20, and the newest settled week starts 20 days before the as-of date, not 21.
+#' Anything reported at a delay of `max_delay_days` days or more falls outside
 #' this total, so it is a horizon-capped truth, not the eventual one.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
-#' @param max_delay Delay horizon in weeks.
+#' @param max_delay_days Delay horizon in DAYS: delay day 0 to
+#'   `max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
+#'   reference week's Monday. It matches the 5 weekly delay columns of the
+#'   pre-Date format.
 #' @returns A data.table `reference`, `truth`.
 #' @family nowcast diagnostics
 #' @seealso \code{vignette("pipeline", package = "csalert")} calls this
@@ -84,31 +112,30 @@ nowcast_censor <- function(triangle, as_of) {
 #'   \code{\link{nowcast_evaluate_v1}} calls it for you when you only want the
 #'   scores.
 #' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek
-#' i <- match("2023-01", w)
+#' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' set.seed(1)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   isoyearweek_reference = format(monday, "%G-%V"),
+#'   reporting_date = monday + rep(c(3, 10, 17), 40),
 #'   numerator = rpois(120, c(30, 15, 5)),
 #'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 #' )
-#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 #' tri <- csfmt_reporting_triangle_v3(
 #'   d,
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
-#' truth <- nowcast_truth(tri, max_delay = 3)
+#' truth <- nowcast_truth(tri, max_delay_days = 21)
 #'
-#' # the two newest weeks are missing: they are not settled yet, so they have no
+#' # the newest weeks are missing: they are not settled yet, so they have no
 #' # truth to be scored against
 #' tail(truth, 3)
 #' c(reference_weeks = 40L, settled = nrow(truth))
 #' @export
-nowcast_truth <- function(triangle, max_delay) {
+nowcast_truth <- function(triangle, max_delay_days) {
   stopifnot(inherits(triangle, "csfmt_reporting_triangle_v3"))
-  rts <- reporting_triangle_matrix(triangle, max_delay)
+  rts <- reporting_triangle_matrix(triangle, max_delay_days)
   if (length(rts) != 1L) {
     stop(
       "nowcast_truth expects a single-series triangle; filter to one series first",
@@ -117,21 +144,22 @@ nowcast_truth <- function(triangle, max_delay) {
   }
   refs <- rts[[1]]$reference
   total <- rowSums(rts[[1]]$mat)
-  weeks <- cstime::dates_by_isoyearweek$isoyearweek
-  age_w <- match(attr(triangle, "as_of"), weeks) - match(refs, weeks)
-  settled <- age_w >= (max_delay - 1L)
+  # Age in DAYS, from the reference week's Monday to the as-of date. A week is
+  # settled once every delay day inside the horizon could have been reported,
+  # which is age >= max_delay_days - 1. Both sides are Dates, so this is a date
+  # subtraction and not a calendar lookup.
+  age_days <- as.integer(attr(triangle, "as_of") - isoyearweek_week_start(refs))
+  settled <- age_days >= (max_delay_days - 1L)
   return(data.table::data.table(reference = refs, truth = total)[settled])
 }
 
-# One as_of week of the backtest: run the method on the censored triangle,
+# One as_of date of the backtest: run the method on the censored triangle,
 # collapse it, and emit one row per horizon and quantile level. Returns an
 # empty list when the method fails or the horizons are not covered.
 .bt_one_as_of <- function(
   triangle,
   method,
   as_of,
-  weeks,
-  max_delay,
   horizons,
   probs,
   measure,
@@ -140,12 +168,15 @@ nowcast_truth <- function(triangle, max_delay) {
   .horizon <- NULL
   rows <- list()
   if (!is.null(seed)) {
-    set.seed(seed + match(as_of, weeks))
-  } # reproducible per cell
+    # The reproducibility key is the as-of DATE's day number (days since
+    # 1970-01-01). That is one integer per date and it never changes, so a given
+    # cell is reproducible whatever order the as-of dates arrive in.
+    set.seed(seed + as.integer(as_of))
+  }
   ens <- tryCatch(
     method(nowcast_censor(triangle, as_of)),
     error = function(e) {
-      warning("as_of ", as_of, ": ", conditionMessage(e), call. = FALSE)
+      warning("as_of ", format(as_of), ": ", conditionMessage(e), call. = FALSE)
       return(NULL)
     }
   )
@@ -153,7 +184,15 @@ nowcast_truth <- function(triangle, max_delay) {
     return(list())
   }
   q <- ens_collapse(ens, probs = probs)
-  q[, .horizon := match(as_of, weeks) - match(get("isoyearweek"), weeks)]
+  # Horizon is still a whole number of WEEKS: the days from the reference week's
+  # Monday to the as-of date, divided down. The as-of date may fall on any
+  # weekday, and %/% 7 puts it on the right week either way.
+  q[,
+    .horizon := as.integer(
+      as_of - isoyearweek_week_start(get("isoyearweek"))
+    ) %/%
+      7L
+  ]
   q <- q[.horizon %in% horizons]
   if (!nrow(q)) {
     return(list())
@@ -175,58 +214,62 @@ nowcast_truth <- function(triangle, max_delay) {
 }
 
 
-#' Replay a nowcast method across as-of weeks (backtest)
+#' Replay a nowcast method across as-of dates (backtest)
 #'
-#' For each `as_of` week, censor the triangle to what was known then, run the
+#' For each `as_of` date, censor the triangle to what was known then, run the
 #' method, collapse to quantiles, and collect the nowcast for the reference weeks
-#' at the requested horizons (horizon = weeks between reference and as-of). An
-#' as-of week whose method call errors (e.g. too little history) is skipped with a
-#' warning rather than aborting the sweep.
+#' at the requested horizons (horizon = whole weeks between the reference week
+#' and the as-of date). An as-of date whose method call errors (e.g. too little
+#' history) is skipped with a warning rather than aborting the sweep.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param method A function `f(triangle) -> csfmt_ensemble_v3` (params baked in).
-#' @param as_of_weeks ISO-week strings to replay. Default: every reference week
-#'   after a `max_delay`-week burn-in, replayed as-of itself.
-#' @param max_delay Delay horizon (used for the default as-of set and burn-in).
+#' @param as_of_weeks A `Date` vector of as-of dates to replay. Default: the last
+#'   day of every reference week, after a burn-in of `max_delay_days` rounded up
+#'   to whole weeks. The name says weeks because the replay cadence is weekly.
+#'   The values are dates.
+#' @param max_delay_days Delay horizon in DAYS. Sets the default as-of set and
+#'   the burn-in.
 #' @param horizons Integer weeks-back to keep (0 = the as-of week itself).
 #' @param probs Quantile probabilities to extract.
 #' @param measure Ensemble measure to score; default the numerator's nowcast.
 #' @param seed Optional integer base seed. Each as-of is seeded as
-#'   `seed + week-index`, so a given cell is reproducible regardless of the as-of
-#'   list order. The nowcast draws for week W depend only on `seed` and `W`.
+#'   `seed + as.integer(as_of)`, the as-of date's day number, so a given cell is
+#'   reproducible regardless of the as-of list order. The nowcast draws for date
+#'   D depend only on `seed` and `D`.
 #' @returns A long data.table: `reference`, `as_of`, `horizon`, `quantile_level`,
-#'   `predicted`.
+#'   `predicted`. `as_of` is a `Date`.
 #' @family nowcast diagnostics
 #' @seealso \code{vignette("pipeline", package = "csalert")} runs this
 #'   function in its validation stage. \code{\link{nowcast_evaluate_v1}} wraps it
 #'   and scores the result; use this one directly when you want the raw replayed
 #'   quantiles.
 #' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek
-#' i <- match("2023-01", w)
+#' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' set.seed(1)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   isoyearweek_reference = format(monday, "%G-%V"),
+#'   reporting_date = monday + rep(c(3, 10, 17), 40),
 #'   numerator = rpois(120, c(30, 15, 5)),
 #'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 #' )
-#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 #' tri <- csfmt_reporting_triangle_v3(
 #'   d,
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
 #' # a method is f(triangle) -> ensemble, with its own parameters baked in
-#' method <- function(x) nowcast_quasipoisson_v1(x, max_delay = 3, n_sim = 200)
+#' method <- function(x) nowcast_delay_ecdf_v1(x, max_delay_days = 21, n_sim = 200)
 #'
-#' # Replay 19 as-of weeks. This window is a runtime choice, not a fitting
-#' # boundary: the engine needs only three settled training rows, and with fewer
-#' # it returns the observed totals rather than failing. Leaving `as_of_weeks`
-#' # NULL replays every week after the burn-in, which is slower.
+#' # Replay 19 as-of dates, each the Sunday that ends a reference week. This
+#' # window is a runtime choice, not a fitting boundary: the engine needs only
+#' # three settled training rows, and with fewer it returns the observed totals
+#' # rather than failing. Leaving `as_of_weeks` NULL replays every week after the
+#' # burn-in, which is slower.
 #' bt <- nowcast_backtest(
 #'   tri, method,
-#'   max_delay = 3,
-#'   as_of_weeks = w[i + 20:38],
+#'   max_delay_days = 21,
+#'   as_of_weeks = as.Date("2023-01-02") + 7 * (20:38) + 6,
 #'   horizons = 0:1,
 #'   probs = c(0.05, 0.5, 0.95),
 #'   seed = 1
@@ -237,7 +280,7 @@ nowcast_backtest <- function(
   triangle,
   method,
   as_of_weeks = NULL,
-  max_delay,
+  max_delay_days,
   horizons = 1:2,
   probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
   measure = NULL,
@@ -258,23 +301,38 @@ nowcast_backtest <- function(
   if (is.null(measure)) {
     measure <- csfmt_var(attr(triangle, "value_col"), role = "nowcasted")
   }
-  weeks <- cstime::dates_by_isoyearweek$isoyearweek
 
   if (is.null(as_of_weeks)) {
-    refs <- reporting_triangle_matrix(triangle, max_delay)[[1]]$reference
-    as_of_weeks <- utils::tail(refs, max(0L, length(refs) - max_delay))
+    # The default as-of set is built from DATES. The reference axis is no longer
+    # the reporting axis, so a reference week cannot stand in for an as-of date.
+    # Replay as of the last day of each reference week, which is what "as of
+    # week W" used to mean.
+    refs <- reporting_triangle_matrix(triangle, max_delay_days)[[1]]$reference
+    week_end <- isoyearweek_week_start(refs) + 6L
+    burn_in <- as.integer(ceiling(max_delay_days / 7))
+    as_of_weeks <- utils::tail(week_end, max(0L, length(week_end) - burn_in))
+  }
+  # Without this the censor error is caught by .bt_one_as_of and demoted to a
+  # warning, so a character as_of_weeks would return an empty table.
+  if (!identical(class(as_of_weeks), "Date")) {
+    stop(
+      "`as_of_weeks` must be a Date vector, not ",
+      paste(class(as_of_weeks), collapse = "/"),
+      call. = FALSE
+    )
   }
 
   out <- list()
-  for (as_of in as_of_weeks) {
+  # Index the vector. `for (as_of in as_of_weeks)` strips the Date class and
+  # hands the body a bare numeric, which then compares as a number against a
+  # Date column.
+  for (i in seq_along(as_of_weeks)) {
     out <- c(
       out,
       .bt_one_as_of(
         triangle,
         method,
-        as_of,
-        weeks,
-        max_delay,
+        as_of_weeks[i],
         horizons,
         probs,
         measure,

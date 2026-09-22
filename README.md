@@ -9,8 +9,8 @@
 surveillance data.
 
 Weekly counts arrive late, so the newest weeks always look lower than they will end up.
-Work therefore starts from a **reporting triangle**: the counts, plus the week each count
-was reported in. A nowcast engine completes the weeks that are not fully reported yet and
+Work therefore starts from a **reporting triangle**: the counts, plus the date each count
+was reported on. A nowcast engine completes the weeks that are not fully reported yet and
 returns Monte-Carlo draws rather than a single number. Rate, trend, MEM intensity and
 baseline exceedance then each run on those draws and hand them back. The reporting
 uncertainty therefore reaches the trend and the alert instead of stopping at the nowcast.
@@ -58,24 +58,24 @@ Pin an exact version with `csalert@2026.8.27`, or declare
 library(csalert)
 library(data.table)
 
-# counts, and the week each count was reported in
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+# counts, and the date each count was reported on
+mondays <- as.Date("2023-01-02") + 7 * (0:51)
+monday <- rep(mondays, each = 3)
 d <- data.table(
-  isoyearweek_reference = w[i + rep(0:51, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:51, each = 3) + rep(0:2, 52)],
+  isoyearweek_reference = format(monday, "%G-%V"),
+  reporting_date = monday + rep(c(3, 10, 17), 52),
   numerator = rpois(156, c(40, 20, 8)),
   indicator_tag = "hospitalisation", location_code = "nation",
   age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 51]]
+d <- d[reporting_date <= mondays[52] + 6]
 
 tri <- csfmt_reporting_triangle_v3(
   d, id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
 # complete the weeks still arriving, then measure direction on the draws
-ens <- nowcast_quasipoisson_v1(tri, max_delay = 3, n_sim = 500)
+ens <- nowcast_delay_ecdf_v1(tri, max_delay_days = 21, n_sim = 500)
 ens <- short_term_trend(ens, measure = "numerator_nowcasted", trend_isoyearweeks = 5)
 
 # one tidy table at the end
@@ -88,8 +88,8 @@ res[, .(isoyearweek, numerator_nowcasted_q50x0,
 
 | Goal | Function |
 | --- | --- |
-| Build the reference-by-reporting input format | `csfmt_reporting_triangle_v3()` |
-| Fill in weeks that are not fully reported yet | `nowcast_quasipoisson_v1()` |
+| Build the reference-week by reporting-date input format | `csfmt_reporting_triangle_v3()` |
+| Fill in weeks that are not fully reported yet | `nowcast_delay_ecdf_v1()` |
 | Send an indicator through unchanged, without filling in | `nowcast_passthrough_to_ensemble_v1()` |
 | Measure a nowcast's interval coverage and revision on replayed weeks | `nowcast_evaluate_v1()` |
 | Measure how quickly cases arrive, within a chosen delay horizon | `reporting_completion_v1()` |

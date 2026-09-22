@@ -4,12 +4,13 @@
 \alias{reporting_completion_trend_v1}
 \title{Reporting-completion trend: the delay curve by year and recent months}
 \usage{
-reporting_completion_trend_v1(triangle, max_delay, n_months = 12L)
+reporting_completion_trend_v1(triangle, max_delay_days, n_months = 12L)
 }
 \arguments{
 \item{triangle}{A `csfmt_reporting_triangle_v3`.}
 
-\item{max_delay}{Delay horizon in weeks.}
+\item{max_delay_days}{Delay horizon in DAYS. Passed straight to
+[reporting_completion_v1].}
 
 \item{n_months}{Keep this many most-recent months per series. Default 12.}
 }
@@ -25,13 +26,14 @@ stacked with a `scope` column. One table that shows whether reporting is
 speeding up or slowing down over time.
 }
 \examples{
-w <- cstime::dates_by_isoyearweek$isoyearweek; i <- match("2023-01", w)
+monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = format(monday, "\%G-\%V"),
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
 tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
-reporting_completion_trend_v1(tri, max_delay = 3, n_months = 6)
+reporting_completion_trend_v1(tri, max_delay_days = 21, n_months = 6)[,
+  .(scope, period, n_settled, mean_delay)]
 }
 \seealso{
 Neither package vignette covers this function;

@@ -32,34 +32,35 @@ median. It therefore carries NO finite-sample coverage guarantee. Read
 property of the engine.
 }
 \examples{
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday
+monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 set.seed(1)
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = format(monday, "\%G-\%V"),
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 tri <- csfmt_reporting_triangle_v3(
   d,
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-method <- function(x) nowcast_quasipoisson_v1(x, max_delay = 3, n_sim = 200)
+method <- function(x) nowcast_delay_ecdf_v1(x, max_delay_days = 21, n_sim = 200)
 bt <- nowcast_backtest(
   tri, method,
-  max_delay = 3, as_of_weeks = w[i + 20:38], horizons = 0:1, seed = 1
+  max_delay_days = 21,
+  as_of_weeks = as.Date("2023-01-02") + 7 * (20:38) + 6,
+  horizons = 0:1, seed = 1
 )
 
-# `coverage_raw` is what happened on these 19 replayed weeks, and `factor` is
-# what would have made the 90\% interval cover 90\% of them. Here coverage is
-# above nominal and the factor is below 1, i.e. narrower intervals would have
-# sufficed ON THIS SAMPLE. With n of about 19 that is far too little evidence
-# to call the engine over-dispersed in general; treat it as a flag to look
-# into, not a verdict.
-nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay = 3))
+# `coverage_raw` is what happened on these replayed weeks, and `factor` is
+# what would have made the 90\% interval cover 90\% of them. The two horizons
+# here fall on opposite sides of nominal, on 17 and 18 scored weeks. That is
+# far too little evidence to call the engine over- or under-dispersed. Treat
+# a factor as a flag to look into, not a verdict.
+nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay_days = 21))
 }
 \seealso{
 Neither package vignette covers calibration. The example below is its

@@ -26,7 +26,7 @@ ens_add_rate(x, ...)
 \description{
 An ensemble operation (`ens_` family). It dispatches on the ensemble class, so
 the class -- not a name prefix on the caller -- carries the "operates on an
-ensemble" meaning. That matches [nowcast_quasipoisson_v1()] and
+ensemble" meaning. That matches [nowcast_delay_ecdf_v1()] and
 [short_term_trend()].
 }
 \examples{

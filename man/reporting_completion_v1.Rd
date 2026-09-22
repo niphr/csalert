@@ -6,7 +6,7 @@
 \usage{
 reporting_completion_v1(
   triangle,
-  max_delay,
+  max_delay_days,
   delay_window = NULL,
   period = c("all", "year", "month")
 )
@@ -14,11 +14,16 @@ reporting_completion_v1(
 \arguments{
 \item{triangle}{A `csfmt_reporting_triangle_v3`.}
 
-\item{max_delay}{Delay horizon in weeks.}
+\item{max_delay_days}{Delay horizon in DAYS: delay day 0 to
+`max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
+reference week's Monday, and matches the 5 weekly delay columns of the
+pre-Date format.}
 
 \item{delay_window}{Optional: use only settled weeks within roughly this many
-weeks (drift-aware). `NULL` uses all settled weeks. Ignored for the shape of
-`period` stratification, which slices time itself.}
+WEEKS (drift-aware). This one is weeks, not days, because it selects
+reference weeks and the reference axis is still an ISO week. `NULL` uses all
+settled weeks. Ignored for the shape of `period` stratification, which
+slices time itself.}
 
 \item{period}{Time stratification of the settled weeks, by the calendar year
 or month of each week's Thursday. Choose `"all"` (one pooled curve,
@@ -28,12 +33,13 @@ default), `"year"`, or `"month"` (one row per period). Use `"year"` or
 \value{
 One row per series, and per period when stratified. The columns are
   identity columns + `period` + `n_settled`, `mean_delay`, `complete_by_md`,
-  and `pct_delay0`..`pct_delay<max_delay-1>`. Each `pct_delayD` is the pooled
-  \% of cases reported by the end of week reference + D -- the delay ECDF, no
-  interpolation. `pct_delay0`
-  is the reference week itself, NOT the week after. Every one of these is
-  computed AFTER delays `>= max_delay` are discarded. They describe
-  the cases that arrive within the horizon, not all eventual cases.
+  and `pct_delay0`..`pct_delay<max_delay_days-1>`. There are exactly
+  `max_delay_days` of those `pct_delayD` columns. Each one is the pooled
+  \% of cases reported by the end of day reference Monday + D, the delay ECDF,
+  no interpolation. `pct_delay0` is the reference week's own Monday.
+  `mean_delay` is in DAYS. Every one of these is computed AFTER delays
+  `>= max_delay_days` are discarded. They describe the cases that arrive
+  within the horizon, not all eventual cases.
 }
 \description{
 Empirical reporting-completion summary from a reporting triangle
@@ -42,32 +48,42 @@ Empirical reporting-completion summary from a reporting triangle
 
 `complete_by_md` is the last cumulative fraction of a total that was itself
 summed over the truncated delay axis. So it equals 1 for every series and every
-period, and `pct_delay<max_delay-1>` equals 100. It does NOT measure whether
-reporting continues past `max_delay`. To look for a tail, re-run with a larger
-`max_delay` and compare `mean_delay` and the `pct_delayD` curve.
+period, and `pct_delay<max_delay_days-1>` equals 100. It does NOT measure
+whether reporting continues past `max_delay_days`. To look for a tail, re-run
+with a larger `max_delay_days` and compare `mean_delay` and the `pct_delayD`
+curve.
 }
 
 \examples{
-w <- cstime::dates_by_isoyearweek$isoyearweek
-i <- match("2023-01", w)
+monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 set.seed(1)
 d <- data.table::data.table(
-  isoyearweek_reference = w[i + rep(0:39, each = 3)],
-  isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+  isoyearweek_reference = format(monday, "\%G-\%V"),
+  reporting_date = monday + rep(c(3, 10, 17), 40),
   numerator = rpois(120, c(30, 15, 5)),
   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 )
-d <- d[isoyearweek_reporting <= w[i + 39]]
+d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 tri <- csfmt_reporting_triangle_v3(
   d,
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# one pooled curve: pct_delay0 is the share in during the reference week itself
-reporting_completion_v1(tri, max_delay = 3)
+# one pooled curve over 21 delay days. This series reports on days 3, 10 and
+# 17 after the reference Monday, so the curve steps at those three days.
+rc <- reporting_completion_v1(tri, max_delay_days = 21)
+rc[, .(n_settled, mean_delay, pct_delay3, pct_delay10, pct_delay17)]
+
+# there is one pct_delay column per delay day
+sum(grepl("^pct_delay", names(rc)))
 
 # sliced by month, to expose drift in how fast reporting arrives
-head(reporting_completion_v1(tri, max_delay = 3, period = "month"), 3)
+head(
+  reporting_completion_v1(tri, max_delay_days = 21, period = "month")[,
+    .(period, n_settled, mean_delay, pct_delay10)
+  ],
+  3
+)
 }
 \seealso{
 \code{vignette("pipeline", package = "csalert")}, which runs this

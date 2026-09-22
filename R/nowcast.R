@@ -3,7 +3,11 @@
 # The passthrough engine collapses the triangle to the observed (reported-so-far)
 # totals per reference week and wraps them as a degenerate single-draw ensemble --
 # for indicators that should NOT be nowcast-completed. The modelling nowcast
-# engines live in their own files (see nowcast_quasipoisson_v1).
+# engines live in their own files (see nowcast_delay_ecdf_v1).
+#
+# THE HORIZON IS IN DAYS, because the triangle's reporting axis is a calendar
+# date. qc_week_over_week_v1 keeps a horizon in WEEKS under a different name,
+# max_delay_weeks, so that one name never means days here and weeks there.
 
 #' Build an ensemble from a reporting triangle WITHOUT nowcasting (passthrough)
 #'
@@ -16,32 +20,36 @@
 #' equal to the observed value. All downstream code is therefore identical. The
 #' single draw makes every collapsed quantile equal the observed point.
 #' @param x A `csfmt_reporting_triangle_v3`.
-#' @param max_delay Delay horizon (defines the contiguous reference grid).
+#' @param max_delay_days Delay horizon in DAYS: delay day 0 to
+#'   `max_delay_days - 1`. It defines the contiguous reference grid.
+#'   [qc_week_over_week_v1] takes `max_delay_weeks` instead, counted in WEEKS.
+#'   The two names differ because the two units differ.
 #' @param denominator_col Optional denominator column, carried through the same
 #'   way (its observed total is also surfaced as `<denom>_observed`).
 #' @returns A `csfmt_ensemble_v3` with single-column draw matrices.
 #' @family nowcast engines
 #' @seealso \code{vignette("pipeline", package = "csalert")} races this engine
-#'   against \code{\link{nowcast_quasipoisson_v1}} on the same triangle. That is
+#'   against \code{\link{nowcast_delay_ecdf_v1}} on the same triangle. That is
 #'   the clearest way to see what completion buys you over the observed counts
 #'   passed through unchanged.
 #' @examples
-#' w <- cstime::dates_by_isoyearweek$isoyearweek
-#' i <- match("2023-01", w)
+#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
+#' # right-truncated so the newest weeks are still incomplete
+#' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' set.seed(1)
 #' d <- data.table::data.table(
-#'   isoyearweek_reference = w[i + rep(0:39, each = 3)],
-#'   isoyearweek_reporting = w[i + rep(0:39, each = 3) + rep(0:2, 40)],
+#'   isoyearweek_reference = format(monday, "%G-%V"),
+#'   reporting_date = monday + rep(c(3, 10, 17), 40),
 #'   numerator = rpois(120, c(30, 15, 5)),
 #'   indicator_tag = "x", location_code = "nation", age = "total", sex = "total"
 #' )
-#' d <- d[isoyearweek_reporting <= w[i + 39]]
+#' d <- d[reporting_date <= as.Date("2023-01-02") + 7 * 39 + 6]
 #' tri <- csfmt_reporting_triangle_v3(
 #'   d,
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
-#' ens <- nowcast_passthrough_to_ensemble_v1(tri, max_delay = 3)
+#' ens <- nowcast_passthrough_to_ensemble_v1(tri, max_delay_days = 21)
 #' ens
 #'
 #' # one draw only, so every collapsed quantile equals the observed total --
@@ -56,7 +64,7 @@
 #' @export
 nowcast_passthrough_to_ensemble_v1 <- function(
   x,
-  max_delay,
+  max_delay_days,
   denominator_col = NULL
 ) {
   # NSE column names, declared so R CMD check does not read them as undefined globals
@@ -67,7 +75,7 @@ nowcast_passthrough_to_ensemble_v1 <- function(
   value_cols <- c(val_col, denominator_col)
   d_tri <- data.table::as.data.table(x)
 
-  rts_num <- reporting_triangle_matrix(x, max_delay, value_col = val_col)
+  rts_num <- reporting_triangle_matrix(x, max_delay_days, value_col = val_col)
   series_ids <- names(rts_num)
 
   data_rows <- list()
@@ -85,7 +93,7 @@ nowcast_passthrough_to_ensemble_v1 <- function(
 
   draws <- list()
   for (vc in value_cols) {
-    rts <- reporting_triangle_matrix(x, max_delay, value_col = vc)
+    rts <- reporting_triangle_matrix(x, max_delay_days, value_col = vc)
     obs <- unlist(lapply(series_ids, function(tsid) rowSums(rts[[tsid]]$mat)))
     draws[[csfmt_var(vc, role = "nowcasted")]] <- matrix(obs, ncol = 1)
     if (!identical(vc, val_col)) {

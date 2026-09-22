@@ -30,7 +30,7 @@ A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
 }
 \description{
 An ensemble operation (`ens_` family): dispatches on the ensemble class,
-matching [nowcast_quasipoisson_v1()] / [short_term_trend()].
+matching [nowcast_delay_ecdf_v1()] / [short_term_trend()].
 }
 \examples{
 d <- data.table::data.table(
