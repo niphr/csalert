@@ -20,6 +20,11 @@
 - Documentation only: the pipeline vignette no longer says every older
   settled week finished reporting before the extract day. That holds
   only because `sim_reports()` emits no delay beyond day 34.
+- Documentation only: the
+  [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
+  help page says that a settled pool week can still receive late
+  reports, so a long backlog makes the nowcast run low, and that a pool
+  week with no early reports cannot enter the pool.
 
 ### Version
 

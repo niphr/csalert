@@ -60,6 +60,7 @@
 <code><a href="../reference/isoyearweek_week_start.html">isoyearweek_week_start()</a></code> is exported. It returns the Monday that starts an ISO week, the day every delay counts from.</li>
 <li>Documentation only: each <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> draw is the observed count times a quantile of the pool ratio <code>T_s / O_s</code>. The help page and the pipeline vignette said observed / <code>p(d)</code>, but <code>p(d)</code> cancels out.</li>
 <li>Documentation only: the pipeline vignette no longer says every older settled week finished reporting before the extract day. That holds only because <code>sim_reports()</code> emits no delay beyond day 34.</li>
+<li>Documentation only: the <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> help page says that a settled pool week can still receive late reports, so a long backlog makes the nowcast run low, and that a pool week with no early reports cannot enter the pool.</li>
 </ul><div class="section level3">
 <h3 id="version-2026-9-24">Version<a class="anchor" aria-label="anchor" href="#version-2026-9-24"></a></h3>
 <ul><li>r-universe publishes 2026.9.23 from commit <code>75c0751</code>, so this tree needs a higher number.</li>
