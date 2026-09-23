@@ -40,7 +40,8 @@ Named list (by time_series_id) of \`list(reference, mat)\`, where
 within the observed region). The rows stay ISO weeks; only the columns
 are days. The last column, \`max_delay_days - 1\`, also holds every
 report at a later delay. So a late report adds to \`rowSums(mat)\` and
-is not lost.
+is not lost. A cell sums its counts with \`na.rm = TRUE\`, so an \`NA\`
+count adds nothing, and a cell that holds only \`NA\` counts is 0.
 
 ## See also
 
@@ -49,7 +50,8 @@ step every nowcast engine runs first. Reach for it directly only when
 you want the raw reference x delay matrix rather than an ensemble.
 
 Other reporting triangle functions:
-[`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md)
+[`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md),
+[`isoyearweek_week_start()`](https://niphr.github.io/csalert/reference/isoyearweek_week_start.md)
 
 ## Examples
 

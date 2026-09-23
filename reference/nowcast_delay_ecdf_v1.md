@@ -1,8 +1,9 @@
 # Nowcast a reporting triangle into an ensemble (daily delay ECDF)
 
-Completes each incomplete reference week from a pooled daily delay ECDF.
-The estimate is the count observed so far, divided by the share of a
-week that normally arrives by that delay day.
+Completes each incomplete reference week from a pool of settled
+reference weeks. Each draw is the count observed so far, times a
+quantile of the completion ratios that the pool shows at the same delay
+day.
 
 ## Usage
 
@@ -47,8 +48,8 @@ nowcast_delay_ecdf_v1(
 
 - delay_window:
 
-  Train the ECDF on the settled weeks of roughly this many WEEKS, so it
-  tracks a drifting reporting regime. Default 26. \`NULL\` uses every
+  Build the pool from the settled weeks of roughly this many WEEKS, so
+  it tracks a drifting reporting regime. Default 26. \`NULL\` uses every
   settled week. This argument is the one quantity here that is weeks and
   not days.
 
@@ -62,26 +63,30 @@ measure is added when \`denominator_col\` is given.
 
 ## Details
 
-The engine pools the settled reference weeks inside \`delay_window\` and
-forms \`p(d)\`, the cumulative share of a week's counts that arrives by
-delay day \`d\`. \`p(d)\` is non-decreasing, and \`p(max_delay_days -
-1)\` is 1. A reference week observed for \`d\` days becomes
-\`observed_so_far / p(d)\`.
+Take a reference week of age \`d\` days, so delay days 0 to \`d\` are
+observed. The pool is the settled reference weeks inside
+\`delay_window\`. For pool week \`s\`, \`T_s\` is its settled total and
+\`O_s\` is its count by delay day \`d\`. The draws are \`observed_so_far
+\* quantile(T_s / O_s)\`, in random order. The quantiles sit at
+\`n_sim\` evenly spaced probabilities from 0 to 1, or at 0.5 when
+\`n_sim\` is 1. A pool week with \`O_s = 0\` is left out. With fewer
+than 3 pool weeks left, the reference week keeps its observed count.
 
-That pair is the closed-form maximum likelihood estimator of \`n\[ref,
-d\] ~ Poisson(lambda\[ref\] \* p\[d\])\`. The delay profile is estimated
-saturated, one number per delay day, rather than through a regression.
+The interval is empirical: the 5 Nothing parametric is added on top,
+because the spread of the pool ratios already carries the estimation
+error and the reporting noise. A nowcast never falls below the observed
+count.
 
-The interval is empirical. Each settled week in the pool is re-completed
-from its own first \`d + 1\` delay days, and compared with its settled
-total. The 5 to 95 band is the point estimate, times the 5 \`truth /
-estimate\` ratio. Nothing parametric is added on top, because the pool's
-own spread already carries the estimation error and the reporting noise.
-A nowcast never falls below the observed count.
+The engine also forms \`p(d)\`, the pooled share of a week's counts that
+arrives by delay day \`d\`. \`p(d)\` cancels out of every draw. It only
+decides whether delay day \`d\` is completed: when \`p(d)\` is 0, the
+reference week keeps its observed count. So the draws are not built from
+\`observed_so_far / p(d)\`, the closed-form maximum likelihood estimate
+under \`n\[ref, d\] ~ Poisson(lambda\[ref\] \* p\[d\])\`.
 
 There is no weekday term. Every reference week starts on a Monday, so
-delay day \`d\` is always the same weekday, and the ECDF absorbs the
-weekly pattern.
+delay day \`d\` is always the same weekday. The pool ratios at delay day
+\`d\` therefore absorb the weekly pattern.
 
 Whether the intervals are calibrated for YOUR series is an empirical
 question. Measure it with \[nowcast_evaluate_v1\]. Shares the contract

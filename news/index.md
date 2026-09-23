@@ -1,5 +1,31 @@
 # Changelog
 
+## Version 2026.9.24
+
+- [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
+  sums the counts in a cell with `na.rm = TRUE`. Before, one `NA` count
+  set its whole cell to 0, so the real counts in that cell were lost
+  with no warning.
+- [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
+  returns an empty data.table when no report is inside the horizon and
+  `as_of_weeks` is `NULL`. Before, it errored with “NA/NaN argument”.
+- [`isoyearweek_week_start()`](https://niphr.github.io/csalert/reference/isoyearweek_week_start.md)
+  is exported. It returns the Monday that starts an ISO week, the day
+  every delay counts from.
+- Documentation only: each
+  [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
+  draw is the observed count times a quantile of the pool ratio
+  `T_s / O_s`. The help page and the pipeline vignette said observed /
+  `p(d)`, but `p(d)` cancels out.
+- Documentation only: the pipeline vignette no longer says every older
+  settled week finished reporting before the extract day. That holds
+  only because `sim_reports()` emits no delay beyond day 34.
+
+### Version
+
+- r-universe publishes 2026.9.23 from commit `75c0751`, so this tree
+  needs a higher number.
+
 ## Version 2026.9.23
 
 A late report is a report at delay `max_delay_days` or later, counted in

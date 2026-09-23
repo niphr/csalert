@@ -16,6 +16,8 @@ format, and the self-describing column-naming grammar they share.
 - [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
   : Densify a reporting triangle into per-series reference x delay count
   matrices
+- [`isoyearweek_week_start()`](https://niphr.github.io/csalert/reference/isoyearweek_week_start.md)
+  : The Monday that starts an ISO week
 - [`set_time_series_id()`](https://niphr.github.io/csalert/reference/set_time_series_id.md)
   : Assign content-hash time_series_id (+ readable label) by reference
 - [`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md)

@@ -55,6 +55,7 @@ which builds a triangle with this constructor and takes it through the
 whole pipeline.
 
 Other reporting triangle functions:
+[`isoyearweek_week_start()`](https://niphr.github.io/csalert/reference/isoyearweek_week_start.md),
 [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
 
 ## Examples

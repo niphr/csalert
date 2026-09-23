@@ -87,7 +87,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.9.23
+#> csalert 2026.9.24
 #> https://niphr.github.io/csalert/
 ```
 
@@ -215,28 +215,31 @@ over it. Stage 3 shows how much arrives in that last column, which is
 how you check that the horizon is wide enough.
 
 [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
-completes each incomplete week from a pooled **daily delay ECDF**. It
-asks one question per reference week: what share of a week’s eventual
-total has arrived by delay day `d`? It answers with an empirical
-cumulative distribution pooled over the settled reference weeks, then
-divides:
+completes each incomplete week from a pool of settled reference weeks.
+Take a reference week of age `d` days, so delay days 0 to `d` are
+observed. For each pool week `s`, `T_s` is its settled total and `O_s`
+is its count by delay day `d`. The draws scale the week’s own count by
+the quantiles of the pool’s completion ratio:
 
-    p(d)           = cumsum(colSums(pool)) / sum(pool)
-    total_hat[ref] = observed_so_far[ref] / p(d_observed[ref])
+    draw[ref] = observed_so_far[ref] * quantile(T_s / O_s)
 
-That pair is the closed-form maximum likelihood estimator of
-`n[ref, d] ~ Poisson(lambda[ref] * p[d])`. The delay profile is
-estimated saturated, one number per delay day, rather than through a
-regression. A regression on 35 daily delay columns would have more
-predictors than it has settled training rows.
+The quantiles sit at `n_sim` evenly spaced probabilities from 0 to 1, in
+random order. The 5 to 95 band is therefore the count observed so far,
+times the 5% and 95% pool ratios. That holds to within the spacing of
+those probabilities. Nothing parametric is added on top, and no
+regression is fitted. A regression on 35 daily delay columns would have
+more predictors than it has settled training rows.
 
-The interval is empirical. Each settled week in the pool is re-completed
-from its own first `d + 1` delay days, then compared with its settled
-total. The 5 to 95 band is the point estimate, times the 5% and 95%
-quantiles of that `truth / estimate` ratio. Nothing parametric is added
-on top. `delay_window` (default 26 WEEKS, the one quantity here that is
-not days) restricts training to the settled weeks within roughly that
-span. The delay curve can then follow a reporting regime that changes,
+The engine also pools a **daily delay ECDF**, `p(d)`, the share of a
+week’s counts that has arrived by delay day `d`. `p(d)` cancels out of
+every draw. It only decides whether delay day `d` is completed at all.
+So the draws are not built from `observed_so_far / p(d)`, the
+closed-form maximum likelihood estimate under
+`n[ref, d] ~ Poisson(lambda[ref] * p[d])`.
+
+`delay_window` (default 26 WEEKS, the one quantity here that is not
+days) restricts the pool to the settled weeks within roughly that span.
+The completion ratios can then follow a reporting regime that changes,
 as this series’ does.
 
 `denominator_col` nowcasts a second measure alongside the numerator, on
@@ -695,11 +698,15 @@ age test working rather than failing. A week is eligible once
 `as_of - reference Monday >= max_delay_days - 1`. Pulling `as_of` back
 six days pulls the settled boundary back with it.
 
-One reference week is at risk of an understated total, and it is the
-newest settled one. Its age is exactly `max_delay_days - 1`, so its last
-delay cell falls on the extract day itself and is still filling. Every
-older week finished reporting earlier; every newer week is not settled.
-Count the weeks that actually moved, rather than assuming it is one:
+On this triangle, one reference week is at risk of an understated total,
+and it is the newest settled one. Its age is exactly
+`max_delay_days - 1`, so its last delay cell falls on the extract day
+itself and is still filling. Every newer week is not settled. Every
+older week finished reporting earlier, but only because `sim_reports()`
+emits no delay beyond day 34. A report at delay `max_delay_days` or
+later counts in the last delay column. So on real data, an older settled
+week can also still be filling on the extract day. Count the weeks that
+actually moved, rather than assuming it is one:
 
 ``` r
 truth_sun <- nowcast_truth(tri, max_delay_days)
@@ -712,9 +719,9 @@ c(settled_sunday = nrow(truth_sun), settled_monday = nrow(truth_mon),
 #>               241               240               240                 0
 ```
 
-The reason is worth seeing, because it bounds the whole effect. The only
-cell at risk is the delay-34 numerator of the newest settled week, which
-is what arrived on the extract day itself:
+The reason is worth seeing, because it bounds the whole effect on this
+triangle. The only cell at risk is the delay-34 numerator of the newest
+settled week, which is what arrived on the extract day itself:
 
 ``` r
 newest_settled <- ref_weeks[max(which(age >= max_delay_days - 1L))]
@@ -739,7 +746,8 @@ qualifying weeks gives that one cell a third of the weight.
 
 The general statement is the conditional one. A mid-week extract
 undercounts the newest settled week’s total by whatever share of its
-last delay cell has not arrived. That total is what
+last delay cell has not arrived. It also undercounts an older settled
+week by every late report that has not arrived yet. That total is what
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
 scores a backtest against. So run the backtest off an end-of-day
 extract, and record which day it was.

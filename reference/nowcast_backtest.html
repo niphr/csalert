@@ -15,7 +15,7 @@ history) is skipped with a warning rather than aborting the sweep."><meta proper
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.24</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -98,8 +98,9 @@ history) is skipped with a warning rather than aborting the sweep.</p>
 day of each reference week, after a burn-in of `max_delay_days` rounded up
 to whole weeks. The weeks run from the first to the last week with a report
 at delay day 0 to `max_delay_days - 1`. A week whose only reports are later
-does not extend that range. The name says weeks because the replay cadence
-is weekly. The values are dates.</p></dd>
+does not extend that range. With no report inside the horizon the default
+set is empty, and the function returns an empty data.table. The name says
+weeks because the replay cadence is weekly. The values are dates.</p></dd>
 
 
 <dt id="arg-max-delay-days">max_delay_days<a class="anchor" aria-label="anchor" href="#arg-max-delay-days"></a></dt>

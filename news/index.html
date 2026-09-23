@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.24</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,21 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.9.24" id="version-2026924">Version 2026.9.24<a class="anchor" aria-label="anchor" href="#version-2026924"></a></h2>
+<ul><li>
+<code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> sums the counts in a cell with <code>na.rm = TRUE</code>. Before, one <code>NA</code> count set its whole cell to 0, so the real counts in that cell were lost with no warning.</li>
+<li>
+<code><a href="../reference/nowcast_backtest.html">nowcast_backtest()</a></code> returns an empty data.table when no report is inside the horizon and <code>as_of_weeks</code> is <code>NULL</code>. Before, it errored with “NA/NaN argument”.</li>
+<li>
+<code><a href="../reference/isoyearweek_week_start.html">isoyearweek_week_start()</a></code> is exported. It returns the Monday that starts an ISO week, the day every delay counts from.</li>
+<li>Documentation only: each <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> draw is the observed count times a quantile of the pool ratio <code>T_s / O_s</code>. The help page and the pipeline vignette said observed / <code>p(d)</code>, but <code>p(d)</code> cancels out.</li>
+<li>Documentation only: the pipeline vignette no longer says every older settled week finished reporting before the extract day. That holds only because <code>sim_reports()</code> emits no delay beyond day 34.</li>
+</ul><div class="section level3">
+<h3 id="version-2026-9-24">Version<a class="anchor" aria-label="anchor" href="#version-2026-9-24"></a></h3>
+<ul><li>r-universe publishes 2026.9.23 from commit <code>75c0751</code>, so this tree needs a higher number.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.9.23" id="version-2026923">Version 2026.9.23<a class="anchor" aria-label="anchor" href="#version-2026923"></a></h2>
 <p>A late report is a report at delay <code>max_delay_days</code> or later, counted in days from the reference week’s Monday.</p>

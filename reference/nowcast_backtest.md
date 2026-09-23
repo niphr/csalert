@@ -38,8 +38,10 @@ nowcast_backtest(
   each reference week, after a burn-in of \`max_delay_days\` rounded up
   to whole weeks. The weeks run from the first to the last week with a
   report at delay day 0 to \`max_delay_days - 1\`. A week whose only
-  reports are later does not extend that range. The name says weeks
-  because the replay cadence is weekly. The values are dates.
+  reports are later does not extend that range. With no report inside
+  the horizon the default set is empty, and the function returns an
+  empty data.table. The name says weeks because the replay cadence is
+  weekly. The values are dates.
 
 - max_delay_days:
 
