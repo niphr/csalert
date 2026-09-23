@@ -167,6 +167,12 @@ nowcast_truth <- function(triangle, max_delay_days) {
   refs <- triangle[[ref_col]]
   delay <- as.integer(triangle[[rep_col]] - isoyearweek_week_start(refs))
   in_horizon <- refs[!is.na(delay) & delay >= 0L & delay < max_delay_days]
+  # No report inside the horizon gives an empty set. Without this return, min()
+  # and max() of the empty vector warned and returned NA, and NA:NA errored with
+  # "NA/NaN argument". nowcast_backtest() then replays no as-of date.
+  if (!length(in_horizon)) {
+    return(character(0))
+  }
   all_weeks <- cstime::dates_by_isoyearweek$isoyearweek
   i1 <- match(min(in_horizon), all_weeks)
   i2 <- match(max(in_horizon), all_weeks)
@@ -247,8 +253,9 @@ nowcast_truth <- function(triangle, max_delay_days) {
 #'   day of each reference week, after a burn-in of `max_delay_days` rounded up
 #'   to whole weeks. The weeks run from the first to the last week with a report
 #'   at delay day 0 to `max_delay_days - 1`. A week whose only reports are later
-#'   does not extend that range. The name says weeks because the replay cadence
-#'   is weekly. The values are dates.
+#'   does not extend that range. With no report inside the horizon the default
+#'   set is empty, and the function returns an empty data.table. The name says
+#'   weeks because the replay cadence is weekly. The values are dates.
 #' @param max_delay_days Delay horizon in DAYS. Sets the default as-of set and
 #'   the burn-in.
 #' @param horizons Integer weeks-back to keep (0 = the as-of week itself).

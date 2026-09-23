@@ -3,6 +3,9 @@
 - `reporting_triangle_matrix()` sums the counts in a cell with `na.rm = TRUE`.
   Before, one `NA` count set its whole cell to 0, so the real counts in that
   cell were lost with no warning.
+- `nowcast_backtest()` returns an empty data.table when no report is inside
+  the horizon and `as_of_weeks` is `NULL`. Before, it errored with
+  "NA/NaN argument".
 
 ## Version
 

@@ -152,6 +152,33 @@ test_that("nowcast_backtest builds its default as-of set from dates", {
   )
 })
 
+test_that("nowcast_backtest replays nothing when no report is inside the horizon", {
+  # 10 reference weeks, each reported once, 40 days after its Monday. With
+  # max_delay_days = 35 no report is inside the horizon, so the default as-of
+  # set is empty. Before, the default set errored with "NA/NaN argument".
+  mondays <- as.Date("2025-01-06") + 7L * 0:9
+  d <- data.table::data.table(
+    indicator = "test",
+    location = "nation",
+    age = "total",
+    sex = "total",
+    isoyearweek_reference = format(mondays, "%G-%V"),
+    reporting_date = mondays + 40L,
+    numerator = 10L
+  )
+  tri <- csfmt_reporting_triangle_v3(
+    d,
+    id_cols = c("indicator", "location", "age", "sex")
+  )
+  passthrough <- function(x) {
+    nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 35)
+  }
+  expect_identical(csalert:::.bt_default_refs(tri, 35), character(0))
+  bt <- nowcast_backtest(tri, passthrough, max_delay_days = 35)
+  expect_s3_class(bt, "data.table")
+  expect_equal(nrow(bt), 0L)
+})
+
 # A method that CONSUMES the RNG. The seed test below needs one, and the package
 # engine is not it. nowcast_delay_ecdf_v1 permutes its draws, but a quantile
 # does not see that order, so its replayed quantiles do not move with the RNG.
