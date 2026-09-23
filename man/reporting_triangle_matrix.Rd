@@ -14,8 +14,11 @@ reporting_triangle_matrix(
 \item{triangle}{A `csfmt_reporting_triangle_v3`.}
 
 \item{max_delay_days}{Number of delay columns, in DAYS: delay 0 to
-`max_delay_days - 1`. `max_delay_days = 35` keeps delay days 0 to 34, the
-35 days that start on the reference week's Monday.}
+`max_delay_days - 1`. `max_delay_days = 35` gives delay days 0 to 34, the
+35 days that start on the reference week's Monday. The last column holds
+delay `max_delay_days - 1` AND every later delay, so a report at delay 35
+or 400 counts in column `"34"`. A report before the reference Monday has a
+negative delay and is dropped.}
 
 \item{value_col}{Which value column to reshape (default the triangle's
 `value_col`; pass a denominator column to reshape that instead).}
@@ -23,7 +26,9 @@ reporting_triangle_matrix(
 \value{
 Named list (by time_series_id) of `list(reference, mat)`, where `mat`
   is a reference-week x delay-day count matrix (zeros filled within the
-  observed region). The rows stay ISO weeks; only the columns are days.
+  observed region). The rows stay ISO weeks; only the columns are days. The
+  last column, `max_delay_days - 1`, also holds every report at a later
+  delay. So a late report adds to `rowSums(mat)` and is not lost.
 }
 \description{
 Densify a reporting triangle into per-series reference x delay count matrices

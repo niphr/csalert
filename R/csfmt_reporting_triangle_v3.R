@@ -130,13 +130,18 @@ csfmt_reporting_triangle_v3 <- function(
 #' Densify a reporting triangle into per-series reference x delay count matrices
 #' @param triangle A `csfmt_reporting_triangle_v3`.
 #' @param max_delay_days Number of delay columns, in DAYS: delay 0 to
-#'   `max_delay_days - 1`. `max_delay_days = 35` keeps delay days 0 to 34, the
-#'   35 days that start on the reference week's Monday.
+#'   `max_delay_days - 1`. `max_delay_days = 35` gives delay days 0 to 34, the
+#'   35 days that start on the reference week's Monday. The last column holds
+#'   delay `max_delay_days - 1` AND every later delay, so a report at delay 35
+#'   or 400 counts in column `"34"`. A report before the reference Monday has a
+#'   negative delay and is dropped.
 #' @param value_col Which value column to reshape (default the triangle's
 #'   `value_col`; pass a denominator column to reshape that instead).
 #' @returns Named list (by time_series_id) of `list(reference, mat)`, where `mat`
 #'   is a reference-week x delay-day count matrix (zeros filled within the
-#'   observed region). The rows stay ISO weeks; only the columns are days.
+#'   observed region). The rows stay ISO weeks; only the columns are days. The
+#'   last column, `max_delay_days - 1`, also holds every report at a later
+#'   delay. So a late report adds to `rowSums(mat)` and is not lost.
 #' @family reporting triangle functions
 #' @seealso Neither package vignette covers this function. It is the densification
 #'   step every nowcast engine runs first. Reach for it directly only when you
@@ -192,7 +197,14 @@ reporting_triangle_matrix <- function(
       get(rep_col) - isoyearweek_week_start(get(ref_col))
     )
   ]
-  d <- d[.delay >= 0 & .delay < max_delay_days]
+  # A report at delay max_delay_days or later counts in the LAST delay column,
+  # max_delay_days - 1. It is not dropped. The observed count is rowSums() of
+  # this matrix, so a drop removed every late report from it. Measured
+  # 2026-09-23 in luftveisovervaking_trend, the drop removed the whole SARI
+  # history 2020-01 to 2025-26, which was bulk-loaded on 2025-07-30. The cap
+  # runs before the filter, so a negative delay stays dropped.
+  d[.delay >= max_delay_days, .delay := max_delay_days - 1L]
+  d <- d[.delay >= 0]
 
   all_weeks <- cstime::dates_by_isoyearweek$isoyearweek
   delay_cols <- as.character(0:(max_delay_days - 1))

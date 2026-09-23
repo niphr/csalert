@@ -135,7 +135,7 @@ test_that("a report on the reference Monday has delay day 0", {
   expect_equal(as.numeric(m[1, ]), c(10, 20, 30, 0, 0, 0, 0))
 })
 
-test_that("delay day max_delay_days - 1 is inside the horizon, day 35 is not", {
+test_that("delay day max_delay_days - 1 is the last column, and day 35 counts in it", {
   # 36 consecutive daily reports, one count each, from the reference Monday
   d <- data.table::data.table(
     indicator = "flu",
@@ -149,8 +149,73 @@ test_that("delay day max_delay_days - 1 is inside the horizon, day 35 is not", {
   tri <- csfmt_reporting_triangle_v3(d, id_cols = ID)
   m <- reporting_triangle_matrix(tri, max_delay_days = 35)[[1]]$mat
   expect_equal(ncol(m), 35L) # delay days 0 to 34
-  expect_equal(sum(m), 35) # day 34 is in, day 35 is out
-  expect_equal(as.numeric(m[1, "34"]), 1)
+  expect_equal(sum(m), 36) # every report is kept
+  expect_equal(as.numeric(m[1, "33"]), 1)
+  expect_equal(as.numeric(m[1, "34"]), 2) # day 34 and day 35
+})
+
+test_that("a report at delay max_delay_days or later counts in the last column", {
+  # Reference week 2026-01 is reported at delays 0, 10, 34, 35, 40 and 400 days.
+  # The counts are powers of two, so each cell sum names the reports it holds.
+  # Week 2025-52 has one report only, 500 days late. That is the shape of a
+  # bulk load. A drop of late reports removes the whole week from the matrix.
+  d <- data.table::data.table(
+    indicator = "flu",
+    location = "nation",
+    age = "total",
+    sex = "total",
+    isoyearweek_reference = c(rep("2026-01", 6), "2025-52"),
+    # 2026-01 starts Monday 2025-12-29, and 2025-52 starts Monday 2025-12-22
+    reporting_date = c(
+      as.Date("2025-12-29") + c(0, 10, 34, 35, 40, 400),
+      as.Date("2025-12-22") + 500
+    ),
+    numerator = c(1, 2, 4, 8, 16, 32, 64)
+  )
+  tri <- csfmt_reporting_triangle_v3(d, id_cols = ID)
+  rt <- reporting_triangle_matrix(tri, max_delay_days = 35)[[1]]
+  m <- rt$mat
+
+  expect_equal(colnames(m), as.character(0:34)) # the delay axis is unchanged
+  expect_equal(rt$reference, c("2025-52", "2026-01"))
+  expect_equal(sum(m), 127) # no report is lost
+  expect_equal(unname(rowSums(m)), c(64, 63))
+  # Select rows by reference week, not by position. Under a drop the 2025-52
+  # row is absent, and a position index would then error before the
+  # assertion could fail.
+  w01 <- rt$reference == "2026-01"
+  w52 <- rt$reference == "2025-52"
+  expect_equal(as.numeric(m[w01, "34"]), 4 + 8 + 16 + 32)
+  expect_equal(as.numeric(m[w01, c("0", "10")]), c(1, 2))
+  expect_equal(as.numeric(m[w52, "34"]), 64)
+})
+
+test_that("a report before the reference Monday stays out of the matrix", {
+  # The constructor rejects a negative delay, so move one date after
+  # construction: the count of 1000 goes to Sunday 2025-12-28, one day before
+  # the reference Monday of 2026-01.
+  d <- data.table::data.table(
+    indicator = "flu",
+    location = "nation",
+    age = "total",
+    sex = "total",
+    isoyearweek_reference = "2026-01",
+    reporting_date = as.Date("2025-12-29") + c(0, 3, 0),
+    numerator = c(5, 2, 1000)
+  )
+  tri <- csfmt_reporting_triangle_v3(d, id_cols = ID)
+  data.table::set(
+    tri,
+    i = 3L,
+    j = "reporting_date",
+    value = as.Date("2025-12-28")
+  )
+  expect_equal(
+    as.integer(tri$reporting_date[3] - as.Date("2025-12-29")),
+    -1L
+  )
+  m <- reporting_triangle_matrix(tri, max_delay_days = 7)[[1]]$mat
+  expect_equal(as.numeric(m[1, ]), c(5, 0, 0, 2, 0, 0, 0))
 })
 
 test_that("reshape completes the reference axis (interior zero-case week)", {

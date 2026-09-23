@@ -37,21 +37,24 @@ One row per series, and per period when stratified. The columns are
   `max_delay_days` of those `pct_delayD` columns. Each one is the pooled
   \% of cases reported by the end of day reference Monday + D, the delay ECDF,
   no interpolation. `pct_delay0` is the reference week's own Monday.
-  `mean_delay` is in DAYS. Every one of these is computed AFTER delays
-  `>= max_delay_days` are discarded. They describe the cases that arrive
-  within the horizon, not all eventual cases.
+  `mean_delay` is in DAYS. A report at delay `max_delay_days` or later
+  counts at delay day `max_delay_days - 1`. So `pct_delay<max_delay_days-1>`
+  holds that day and the whole later tail, and `mean_delay` is a lower bound
+  on the uncapped mean delay.
 }
 \description{
 Empirical reporting-completion summary from a reporting triangle
 }
 \section{complete_by_md is always 1}{
 
-`complete_by_md` is the last cumulative fraction of a total that was itself
-summed over the truncated delay axis. So it equals 1 for every series and every
-period, and `pct_delay<max_delay_days-1>` equals 100. It does NOT measure
-whether reporting continues past `max_delay_days`. To look for a tail, re-run
-with a larger `max_delay_days` and compare `mean_delay` and the `pct_delayD`
-curve.
+`complete_by_md` is the last cumulative fraction of a total summed over every
+delay column. So it equals 1 for every series and every period, and
+`pct_delay<max_delay_days-1>` equals 100. It does NOT measure whether
+reporting continues past `max_delay_days`. The last column holds delay
+`max_delay_days - 1` and every later delay. So
+`100 - pct_delay<max_delay_days-2>` is the share reported on that day or
+later. To see the shape of the tail, re-run with a larger `max_delay_days`
+and compare `mean_delay` and the `pct_delayD` curve.
 }
 
 \examples{

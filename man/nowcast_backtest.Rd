@@ -21,9 +21,11 @@ nowcast_backtest(
 \item{method}{A function `f(triangle) -> csfmt_ensemble_v3` (params baked in).}
 
 \item{as_of_weeks}{A `Date` vector of as-of dates to replay. Default: the last
-day of every reference week, after a burn-in of `max_delay_days` rounded up
-to whole weeks. The name says weeks because the replay cadence is weekly.
-The values are dates.}
+day of each reference week, after a burn-in of `max_delay_days` rounded up
+to whole weeks. The weeks run from the first to the last week with a report
+at delay day 0 to `max_delay_days - 1`. A week whose only reports are later
+does not extend that range. The name says weeks because the replay cadence
+is weekly. The values are dates.}
 
 \item{max_delay_days}{Delay horizon in DAYS. Sets the default as-of set and
 the burn-in.}

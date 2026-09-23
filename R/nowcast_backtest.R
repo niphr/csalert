@@ -92,14 +92,15 @@ nowcast_censor <- function(triangle, as_of) {
 
 #' The settled (eventually-observed) total per reference week
 #'
-#' Sums each reference week's counts across delay days `0` to
-#' `max_delay_days - 1`, the quantity a nowcast is trying to predict. Keeps only
-#' the weeks old enough for that total to be settled, meaning their Monday is at
-#' least `max_delay_days - 1` days before the triangle's as-of date. Both bounds
-#' are one lower than they may read: `max_delay_days = 21` sums delay days 0 to
-#' 20, and the newest settled week starts 20 days before the as-of date, not 21.
-#' Anything reported at a delay of `max_delay_days` days or more falls outside
-#' this total, so it is a horizon-capped truth, not the eventual one.
+#' Sums each reference week's counts over every non-negative delay, the quantity
+#' a nowcast is trying to predict. A report at delay `max_delay_days` or later
+#' counts in the last delay day, `max_delay_days - 1`, so it is inside this
+#' total. Keeps only the weeks old enough to be settled. A settled week's Monday
+#' is at least `max_delay_days - 1` days before the triangle's as-of date. That
+#' bound is one lower than it may read. With `max_delay_days = 21`, the newest
+#' settled week starts 20 days before the as-of date, not 21. A settled week is
+#' not final. A report that arrives after the as-of date has a delay of
+#' `max_delay_days` or more, and it still adds to the week's total.
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param max_delay_days Delay horizon in DAYS: delay day 0 to
 #'   `max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
@@ -151,6 +152,25 @@ nowcast_truth <- function(triangle, max_delay_days) {
   age_days <- as.integer(attr(triangle, "as_of") - isoyearweek_week_start(refs))
   settled <- age_days >= (max_delay_days - 1L)
   return(data.table::data.table(reference = refs, truth = total)[settled])
+}
+
+# The reference weeks behind the default as-of set. They run from the first to
+# the last week with a report at delay day 0 to max_delay_days - 1. This is the
+# reference axis reporting_triangle_matrix() built before a late report counted
+# in its last column. The matrix axis now also reaches a week whose only reports
+# are late. On a bulk load of old weeks that added one as-of date per old week,
+# on which nothing had been reported yet. Measured on a synthetic bulk load: 52
+# "nothing reported" warnings, where this set gives 0.
+.bt_default_refs <- function(triangle, max_delay_days) {
+  ref_col <- attr(triangle, "reference_col")
+  rep_col <- attr(triangle, "reporting_col")
+  refs <- triangle[[ref_col]]
+  delay <- as.integer(triangle[[rep_col]] - isoyearweek_week_start(refs))
+  in_horizon <- refs[!is.na(delay) & delay >= 0L & delay < max_delay_days]
+  all_weeks <- cstime::dates_by_isoyearweek$isoyearweek
+  i1 <- match(min(in_horizon), all_weeks)
+  i2 <- match(max(in_horizon), all_weeks)
+  return(all_weeks[i1:i2])
 }
 
 # One as_of date of the backtest: run the method on the censored triangle,
@@ -224,9 +244,11 @@ nowcast_truth <- function(triangle, max_delay_days) {
 #' @param triangle A `csfmt_reporting_triangle_v3` (single series).
 #' @param method A function `f(triangle) -> csfmt_ensemble_v3` (params baked in).
 #' @param as_of_weeks A `Date` vector of as-of dates to replay. Default: the last
-#'   day of every reference week, after a burn-in of `max_delay_days` rounded up
-#'   to whole weeks. The name says weeks because the replay cadence is weekly.
-#'   The values are dates.
+#'   day of each reference week, after a burn-in of `max_delay_days` rounded up
+#'   to whole weeks. The weeks run from the first to the last week with a report
+#'   at delay day 0 to `max_delay_days - 1`. A week whose only reports are later
+#'   does not extend that range. The name says weeks because the replay cadence
+#'   is weekly. The values are dates.
 #' @param max_delay_days Delay horizon in DAYS. Sets the default as-of set and
 #'   the burn-in.
 #' @param horizons Integer weeks-back to keep (0 = the as-of week itself).
@@ -307,7 +329,7 @@ nowcast_backtest <- function(
     # the reporting axis, so a reference week cannot stand in for an as-of date.
     # Replay as of the last day of each reference week, which is what "as of
     # week W" used to mean.
-    refs <- reporting_triangle_matrix(triangle, max_delay_days)[[1]]$reference
+    refs <- .bt_default_refs(triangle, max_delay_days)
     week_end <- isoyearweek_week_start(refs) + 6L
     burn_in <- as.integer(ceiling(max_delay_days / 7))
     as_of_weeks <- utils::tail(week_end, max(0L, length(week_end) - burn_in))

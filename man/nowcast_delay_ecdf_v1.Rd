@@ -22,8 +22,9 @@ nowcast_delay_ecdf_v1(x, ...)
 \item{...}{Passed to methods.}
 
 \item{max_delay_days}{Delay horizon in DAYS: delay day 0 to
-`max_delay_days - 1`. `max_delay_days = 35` keeps the 35 days that start on
-the reference week's Monday.}
+`max_delay_days - 1`. `max_delay_days = 35` gives the 35 days that start on
+the reference week's Monday. Day `max_delay_days - 1` also holds every
+later delay.}
 
 \item{n_sim}{Number of nowcast draws.}
 

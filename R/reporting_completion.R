@@ -14,13 +14,17 @@
 # The column count equals max_delay_days exactly.
 #
 # EVERY NUMBER HERE IS CONDITIONAL ON max_delay_days, INCLUDING complete_by_md.
-# reporting_triangle_matrix() has already dropped every cell with delay >=
-# max_delay_days, so `tot` is the row sum of the TRUNCATED matrix, and
-# complete_by_md is the last cumulative fraction of that same total. It is
-# therefore identically 1 (and pct_delay<max_delay_days-1> identically 100)
-# whatever the real tail beyond the horizon is: it CANNOT detect reporting that
-# dribbles in past max_delay_days. To look for a tail, re-run with a larger
-# max_delay_days and compare mean_delay and the pct_delayD curve.
+# reporting_triangle_matrix() counts every report at delay >= max_delay_days in
+# the last delay column, max_delay_days - 1. So `tot` is the row sum over every
+# non-negative delay, and complete_by_md is the last cumulative fraction of that
+# same total. It is identically 1, and pct_delay<max_delay_days-1> is
+# identically 100, whatever the real tail is. The tail is in the last step:
+# 100 - pct_delay<max_delay_days-2> is the share reported on delay day
+# max_delay_days - 1 or later. mean_delay counts each of those reports at
+# max_delay_days - 1, so it is a lower bound on the uncapped mean delay. A week
+# settles at age max_delay_days - 1 days, and a later report can still arrive
+# for it. To see the shape of the tail, re-run with a larger max_delay_days and
+# compare mean_delay and the pct_delayD curve.
 #
 # `period` stratifies the settled weeks in time (by the week's Thursday) so a
 # DRIFT in reporting speed is visible: one pooled curve hides a reporting system
@@ -83,16 +87,19 @@
 #'   `max_delay_days` of those `pct_delayD` columns. Each one is the pooled
 #'   \% of cases reported by the end of day reference Monday + D, the delay ECDF,
 #'   no interpolation. `pct_delay0` is the reference week's own Monday.
-#'   `mean_delay` is in DAYS. Every one of these is computed AFTER delays
-#'   `>= max_delay_days` are discarded. They describe the cases that arrive
-#'   within the horizon, not all eventual cases.
+#'   `mean_delay` is in DAYS. A report at delay `max_delay_days` or later
+#'   counts at delay day `max_delay_days - 1`. So `pct_delay<max_delay_days-1>`
+#'   holds that day and the whole later tail, and `mean_delay` is a lower bound
+#'   on the uncapped mean delay.
 #' @section complete_by_md is always 1:
-#' `complete_by_md` is the last cumulative fraction of a total that was itself
-#' summed over the truncated delay axis. So it equals 1 for every series and every
-#' period, and `pct_delay<max_delay_days-1>` equals 100. It does NOT measure
-#' whether reporting continues past `max_delay_days`. To look for a tail, re-run
-#' with a larger `max_delay_days` and compare `mean_delay` and the `pct_delayD`
-#' curve.
+#' `complete_by_md` is the last cumulative fraction of a total summed over every
+#' delay column. So it equals 1 for every series and every period, and
+#' `pct_delay<max_delay_days-1>` equals 100. It does NOT measure whether
+#' reporting continues past `max_delay_days`. The last column holds delay
+#' `max_delay_days - 1` and every later delay. So
+#' `100 - pct_delay<max_delay_days-2>` is the share reported on that day or
+#' later. To see the shape of the tail, re-run with a larger `max_delay_days`
+#' and compare `mean_delay` and the `pct_delayD` curve.
 #' @family reporting completion functions
 #' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
 #'   function on its synthetic triangle.

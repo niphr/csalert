@@ -262,8 +262,9 @@ nowcast_delay_ecdf_v1 <- function(x, ...) UseMethod("nowcast_delay_ecdf_v1")
 #' @method nowcast_delay_ecdf_v1 csfmt_reporting_triangle_v3
 #' @rdname nowcast_delay_ecdf_v1
 #' @param max_delay_days Delay horizon in DAYS: delay day 0 to
-#'   `max_delay_days - 1`. `max_delay_days = 35` keeps the 35 days that start on
-#'   the reference week's Monday.
+#'   `max_delay_days - 1`. `max_delay_days = 35` gives the 35 days that start on
+#'   the reference week's Monday. Day `max_delay_days - 1` also holds every
+#'   later delay.
 #' @param n_sim Number of nowcast draws.
 #' @param denominator_col Optional denominator column to nowcast alongside.
 #' @param delay_window Train the ECDF on the settled weeks of roughly this many
