@@ -71,6 +71,7 @@ Neither package vignette covers this function. It is the densification
   want the raw reference x delay matrix rather than an ensemble.
 
 Other reporting triangle functions:
-\code{\link[=csfmt_reporting_triangle_v3]{csfmt_reporting_triangle_v3()}}
+\code{\link[=csfmt_reporting_triangle_v3]{csfmt_reporting_triangle_v3()}},
+\code{\link[=isoyearweek_week_start]{isoyearweek_week_start()}}
 }
 \concept{reporting triangle functions}

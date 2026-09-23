@@ -6,6 +6,8 @@
 - `nowcast_backtest()` returns an empty data.table when no report is inside
   the horizon and `as_of_weeks` is `NULL`. Before, it errored with
   "NA/NaN argument".
+- `isoyearweek_week_start()` is exported. It returns the Monday that starts an
+  ISO week, the day every delay counts from.
 
 ## Version
 

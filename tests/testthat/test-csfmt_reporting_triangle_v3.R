@@ -256,3 +256,11 @@ test_that("a cell sums its counts with na.rm = TRUE", {
   expect_equal(as.numeric(m[1, ]), c(0, 0, 0, 5, 0, 0, 0))
   expect_equal(unname(rowSums(m)), 5)
 })
+
+test_that("isoyearweek_week_start is exported and returns the Monday", {
+  # getNamespaceExports() reads NAMESPACE, so a lost @export fails here.
+  expect_true("isoyearweek_week_start" %in% getNamespaceExports("csalert"))
+  got <- isoyearweek_week_start(c("2026-01", "2020-03", "2026-99"))
+  expect_identical(class(got), "Date")
+  expect_equal(got, as.Date(c("2025-12-29", "2020-01-13", NA)))
+})

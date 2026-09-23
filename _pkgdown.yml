@@ -28,6 +28,7 @@ reference:
       - print.csfmt_ensemble_v3
       - csfmt_reporting_triangle_v3
       - reporting_triangle_matrix
+      - isoyearweek_week_start
       - set_time_series_id
       - csfmt_var
       - csfmt_parse

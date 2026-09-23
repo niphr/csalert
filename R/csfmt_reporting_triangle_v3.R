@@ -13,6 +13,30 @@
 # isoyearweek_to_first_date(), so read the mon column of its calendar table.
 # as.Date() pins the class: every delay is days between two Date vectors, and a
 # mixed Date/IDate comparison is silent rather than an error.
+
+#' The Monday that starts an ISO week
+#'
+#' Returns the Monday that starts each ISO week, as a `Date`. Every delay in a
+#' reporting triangle is the number of days from this Monday to the reporting
+#' date.
+#' @param isoyearweek Character vector of ISO weeks, written `"YYYY-WW"`, for
+#'   example `"2026-01"`.
+#' @returns A `Date` vector with one element per element of `isoyearweek`. A
+#'   value that is not an ISO week in `cstime::dates_by_isoyearweek` gives
+#'   `NA`.
+#' @family reporting triangle functions
+#' @seealso \code{vignette("pipeline", package = "csalert")}, which measures
+#'   every delay and every age in days from this Monday.
+#' @examples
+#' # ISO week 2026-01 starts on Monday 2025-12-29
+#' isoyearweek_week_start(c("2026-01", "2026-02"))
+#'
+#' # a report on 2026-01-08 has delay day 10 in reference week 2026-01
+#' as.Date("2026-01-08") - isoyearweek_week_start("2026-01")
+#'
+#' # a string that is not an ISO week gives NA
+#' isoyearweek_week_start("2026-99")
+#' @export
 isoyearweek_week_start <- function(isoyearweek) {
   cal <- cstime::dates_by_isoyearweek
   return(as.Date(cal$mon[match(isoyearweek, cal$isoyearweek)]))

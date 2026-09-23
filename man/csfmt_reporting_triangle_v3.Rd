@@ -66,6 +66,7 @@ head(tri, 3)
   triangle with this constructor and takes it through the whole pipeline.
 
 Other reporting triangle functions:
+\code{\link[=isoyearweek_week_start]{isoyearweek_week_start()}},
 \code{\link[=reporting_triangle_matrix]{reporting_triangle_matrix()}}
 }
 \concept{reporting triangle functions}
