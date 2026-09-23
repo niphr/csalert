@@ -8,6 +8,9 @@
   "NA/NaN argument".
 - `isoyearweek_week_start()` is exported. It returns the Monday that starts an
   ISO week, the day every delay counts from.
+- Documentation only: each `nowcast_delay_ecdf_v1()` draw is the observed
+  count times a quantile of the pool ratio `T_s / O_s`. The help page and the
+  pipeline vignette said observed / `p(d)`, but `p(d)` cancels out.
 
 ## Version
 

@@ -191,29 +191,32 @@ observed, except for reports that can still arrive after delay day
 nowcast is a predictive distribution over it. Stage 3 shows how much arrives in
 that last column, which is how you check that the horizon is wide enough.
 
-`nowcast_delay_ecdf_v1()` completes each incomplete week from a pooled **daily
-delay ECDF**. It asks one question per reference week: what share of a week's
-eventual total has arrived by delay day `d`? It answers with an empirical
-cumulative distribution pooled over the settled reference weeks, then divides:
+`nowcast_delay_ecdf_v1()` completes each incomplete week from a pool of settled
+reference weeks. Take a reference week of age `d` days, so delay days 0 to `d`
+are observed. For each pool week `s`, `T_s` is its settled total and `O_s` is
+its count by delay day `d`. The draws scale the week's own count by the
+quantiles of the pool's completion ratio:
 
 ```
-p(d)           = cumsum(colSums(pool)) / sum(pool)
-total_hat[ref] = observed_so_far[ref] / p(d_observed[ref])
+draw[ref] = observed_so_far[ref] * quantile(T_s / O_s)
 ```
 
-That pair is the closed-form maximum likelihood estimator of
-`n[ref, d] ~ Poisson(lambda[ref] * p[d])`. The delay profile is estimated
-saturated, one number per delay day, rather than through a regression. A
-regression on 35 daily delay columns would have more predictors than it has
-settled training rows.
+The quantiles sit at `n_sim` evenly spaced probabilities from 0 to 1, in random
+order. The 5 to 95 band is therefore the count observed so far, times the 5% and
+95% pool ratios. That holds to within the spacing of those probabilities. Nothing
+parametric is added on top, and no regression is fitted. A regression on 35
+daily delay columns would have more predictors than it has settled training
+rows.
 
-The interval is empirical. Each settled week in the pool is re-completed from its
-own first `d + 1` delay days, then compared with its settled total. The 5 to 95
-band is the point estimate, times the 5% and 95% quantiles of that
-`truth / estimate` ratio. Nothing parametric is added on top. `delay_window`
-(default 26 WEEKS, the one quantity here that is not days) restricts training to
-the settled weeks within roughly that span. The delay curve can then follow a
-reporting regime that changes, as this series' does.
+The engine also pools a **daily delay ECDF**, `p(d)`, the share of a week's
+counts that has arrived by delay day `d`. `p(d)` cancels out of every draw. It
+only decides whether delay day `d` is completed at all. So no draw is
+`observed_so_far / p(d)`, the closed-form maximum likelihood estimate under
+`n[ref, d] ~ Poisson(lambda[ref] * p[d])`.
+
+`delay_window` (default 26 WEEKS, the one quantity here that is not days)
+restricts the pool to the settled weeks within roughly that span. The completion
+ratios can then follow a reporting regime that changes, as this series' does.
 
 `denominator_col` nowcasts a second measure alongside the numerator, on the same
 draw axis. Stage 4 needs it: a rate is only coherent if both its parts are
