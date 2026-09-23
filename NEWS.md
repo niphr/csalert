@@ -11,6 +11,9 @@
 - Documentation only: each `nowcast_delay_ecdf_v1()` draw is the observed
   count times a quantile of the pool ratio `T_s / O_s`. The help page and the
   pipeline vignette said observed / `p(d)`, but `p(d)` cancels out.
+- Documentation only: the pipeline vignette no longer says every older settled
+  week finished reporting before the extract day. That holds only because
+  `sim_reports()` emits no delay beyond day 34.
 
 ## Version
 

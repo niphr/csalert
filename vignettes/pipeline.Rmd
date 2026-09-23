@@ -575,10 +575,13 @@ working rather than failing. A week is eligible once
 `as_of - reference Monday >= max_delay_days - 1`. Pulling `as_of` back six days
 pulls the settled boundary back with it.
 
-One reference week is at risk of an understated total, and it is the newest
-settled one. Its age is exactly `max_delay_days - 1`, so its last delay cell falls
-on the extract day itself and is still filling. Every older week finished
-reporting earlier; every newer week is not settled. Count the weeks that actually
+On this triangle, one reference week is at risk of an understated total, and it
+is the newest settled one. Its age is exactly `max_delay_days - 1`, so its last
+delay cell falls on the extract day itself and is still filling. Every newer week
+is not settled. Every older week finished reporting earlier, but only because
+`sim_reports()` emits no delay beyond day 34. A report at delay `max_delay_days`
+or later counts in the last delay column. So on real data, an older settled week
+can also still be filling on the extract day. Count the weeks that actually
 moved, rather than assuming it is one:
 
 ```{r}
@@ -590,9 +593,9 @@ c(settled_sunday = nrow(truth_sun), settled_monday = nrow(truth_mon),
   in_both = nrow(cmp), totals_that_moved = nrow(cmp[truth_sunday != truth_monday]))
 ```
 
-The reason is worth seeing, because it bounds the whole effect. The only cell at
-risk is the delay-34 numerator of the newest settled week, which is what arrived
-on the extract day itself:
+The reason is worth seeing, because it bounds the whole effect on this triangle.
+The only cell at risk is the delay-34 numerator of the newest settled week, which
+is what arrived on the extract day itself:
 
 ```{r}
 newest_settled <- ref_weeks[max(which(age >= max_delay_days - 1L))]
@@ -616,7 +619,9 @@ weight.
 
 The general statement is the conditional one. A mid-week extract undercounts the
 newest settled week's total by whatever share of its last delay cell has not
-arrived. That total is what `nowcast_truth()` scores a backtest against. So run
+arrived. It also undercounts an older settled week by every late report that
+has not arrived yet. That total is what `nowcast_truth()` scores a backtest
+against. So run
 the backtest off an end-of-day extract, and record which day it was.
 
 ### "As of today", for the weeks on screen
