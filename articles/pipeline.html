@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -180,7 +180,7 @@ else then uses.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.9.22</span></span>
+<span><span class="co">#&gt; csalert 2026.9.23</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -290,17 +290,16 @@ Monday.</p>
 <div class="section level2">
 <h2 id="nowcast">1. Nowcast<a class="anchor" aria-label="anchor" href="#nowcast"></a>
 </h2>
-<p><strong>Estimand.</strong> For each reference week, the total that
-will have been reported at delay days
-<code>0 .. max_delay_days - 1</code>: that is, by the end of the day
-<code>reference Monday + max_delay_days - 1</code>. This is a
-horizon-capped total, <strong>not</strong> the eventual total. Anything
-reported after delay day <code>max_delay_days - 1</code> is outside the
-estimand, and no amount of nowcasting recovers it. Stage 3 is how you
-check that the horizon is wide enough for the difference to be small.
-For a settled week the quantity is already observed. For the most recent
-weeks it is not, and the nowcast is a predictive distribution over
-it.</p>
+<p><strong>Estimand.</strong> For each reference week, the total
+reported at any delay day from 0 on. A report at delay day
+<code>max_delay_days - 1</code> or later counts in the last delay
+column, so it stays in the total. The horizon sets how many delay
+columns the nowcast models, not which reports count. For a settled week
+the quantity is observed, except for reports that can still arrive after
+delay day <code>max_delay_days - 1</code>. For the most recent weeks it
+is not observed, and the nowcast is a predictive distribution over it.
+Stage 3 shows how much arrives in that last column, which is how you
+check that the horizon is wide enough.</p>
 <p><code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> completes each incomplete week
 from a pooled <strong>daily delay ECDF</strong>. It asks one question
 per reference week: what share of a week’s eventual total has arrived by
@@ -647,10 +646,9 @@ quantity. Re-read every <code>pct_delayD</code> you use.</p>
 filter. A reference week is eligible once
 <code>as_of - reference Monday &gt;= max_delay_days - 1</code> days,
 which excludes the two most recent of those 30. A second filter then
-drops any eligible week whose total within the horizon is zero, and
-<code>n_settled</code> counts what survives both. Here no week is empty,
-so the age rule alone accounts for the number, and the same holds on the
-working triangle:</p>
+drops any eligible week whose total is zero, and <code>n_settled</code>
+counts what survives both. Here no week is empty, so the age rule alone
+accounts for the number, and the same holds on the working triangle:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">completion</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>age_eligible <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">age</span> <span class="op">&gt;=</span> <span class="va">max_delay_days</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span>, reported <span class="op">=</span> <span class="va">completion</span><span class="op">$</span><span class="va">n_settled</span><span class="op">)</span></span>
@@ -843,11 +841,10 @@ ISO year</strong>, and it is how you see a reporting system speeding up
 or slowing down. One pooled curve cannot: it averages the regimes
 together and describes neither.</p>
 <p>“Qualifying” is load-bearing. A period slice needs at least three
-settled weeks with a non-zero within-horizon total. A slice below that
-is dropped from the result, with no warning and no placeholder row. A
-year at the edge of the series — the one your data starts or ends in —
-is the usual casualty. A missing year means too few weeks, never zero
-delay.</p>
+settled weeks with a non-zero total. A slice below that is dropped from
+the result, with no warning and no placeholder row. A year at the edge
+of the series — the one your data starts or ends in — is the usual
+casualty. A missing year means too few weeks, never zero delay.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>, period <span class="op">=</span> <span class="st">"year"</span><span class="op">)</span><span class="op">[</span></span>
 <span>  , <span class="fu">.</span><span class="op">(</span><span class="va">period</span>, <span class="va">n_settled</span>, <span class="va">mean_delay</span>, <span class="va">pct_delay6</span>, <span class="va">pct_delay13</span>, <span class="va">pct_delay20</span>, <span class="va">pct_delay27</span><span class="op">)</span><span class="op">]</span></span>
@@ -907,23 +904,25 @@ month’s row is noisy. Read the sequence, not one row.</p>
 <div class="section level3">
 <h3 id="every-number-here-is-conditional-on-max_delay_days">Every number here is conditional on <code>max_delay_days</code><a class="anchor" aria-label="anchor" href="#every-number-here-is-conditional-on-max_delay_days"></a>
 </h3>
-<p>This is the trap, and it is structural rather than a tuning subtlety.
-<code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> works from a triangle that has
-already had every cell with delay <code>&gt;= max_delay_days</code>
-discarded. So the denominator is the total that arrived <em>within the
-horizon</em>, not the eventual total. Two consequences follow, and they
-hold whatever the real reporting tail looks like:</p>
+<p><code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> works from a triangle whose
+last delay column, <code>max_delay_days - 1</code>, also holds every
+report at a later delay. So the denominator is the total reported by
+<code>as_of</code>, late reports included. Two consequences follow, and
+they hold whatever the real reporting tail looks like:</p>
 <ul>
 <li>
 <code>complete_by_md</code> is the last cumulative fraction of that
-same truncated total, so it is 1.</li>
+total, so it is 1.</li>
 <li>the last column, <code>pct_delay&lt;max_delay_days - 1&gt;</code>,
 is that fraction as a percentage, so it is 100.</li>
 </ul>
-<p>Neither can detect reporting that dribbles in past the horizon.
-Rather than assert that, check it. The sweep below runs one to eight
-weeks of horizon, in days, and reads the last column by name each
-time:</p>
+<p>Neither of these shows the tail. The column before the last one does:
+<code>100 - pct_delay&lt;max_delay_days - 2&gt;</code> is the share
+reported at delay day <code>max_delay_days - 1</code> or later.
+<code>mean_delay</code> counts each of those reports at delay day
+<code>max_delay_days - 1</code>, so it is a lower bound. The sweep below
+runs one to eight weeks of horizon, in days, and reads the last column
+by name each time:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sens</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">7L</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">md</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/reporting_completion_v1.html">reporting_completion_v1</a></span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="va">md</span><span class="op">)</span></span>
@@ -936,10 +935,10 @@ time:</p>
 <span><span class="va">sens</span></span>
 <span><span class="co">#&gt;    max_delay_days n_settled mean_delay complete_by_md    last_col last_pct</span></span>
 <span><span class="co">#&gt;             &lt;int&gt;     &lt;int&gt;      &lt;num&gt;          &lt;num&gt;      &lt;char&gt;    &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:              7       244       2.98              1  pct_delay6      100</span></span>
-<span><span class="co">#&gt; 2:             14       244       5.60              1 pct_delay13      100</span></span>
-<span><span class="co">#&gt; 3:             21       243       7.34              1 pct_delay20      100</span></span>
-<span><span class="co">#&gt; 4:             28       242       8.45              1 pct_delay27      100</span></span>
+<span><span class="co">#&gt; 1:              7       245       4.54              1  pct_delay6      100</span></span>
+<span><span class="co">#&gt; 2:             14       244       7.31              1 pct_delay13      100</span></span>
+<span><span class="co">#&gt; 3:             21       243       8.52              1 pct_delay20      100</span></span>
+<span><span class="co">#&gt; 4:             28       242       9.01              1 pct_delay27      100</span></span>
 <span><span class="co">#&gt; 5:             35       241       9.15              1 pct_delay34      100</span></span>
 <span><span class="co">#&gt; 6:             42       240       9.16              1 pct_delay41      100</span></span>
 <span><span class="co">#&gt; 7:             49       239       9.18              1 pct_delay48      100</span></span>
@@ -947,9 +946,9 @@ time:</p>
 <span><span class="co">#&gt;    pct_delay6 pct_delay13</span></span>
 <span><span class="co">#&gt;         &lt;num&gt;       &lt;num&gt;</span></span>
 <span><span class="co">#&gt; 1:      100.0          NA</span></span>
-<span><span class="co">#&gt; 2:       62.6       100.0</span></span>
-<span><span class="co">#&gt; 3:       53.1        84.8</span></span>
-<span><span class="co">#&gt; 4:       49.5        79.2</span></span>
+<span><span class="co">#&gt; 2:       48.2       100.0</span></span>
+<span><span class="co">#&gt; 3:       48.2        76.9</span></span>
+<span><span class="co">#&gt; 4:       48.0        76.8</span></span>
 <span><span class="co">#&gt; 5:       47.9        76.8</span></span>
 <span><span class="co">#&gt; 6:       47.8        76.7</span></span>
 <span><span class="co">#&gt; 7:       47.7        76.6</span></span>
@@ -976,21 +975,21 @@ easiest to mistake for a finding:</p>
 <p><strong>The diagnostic that does work is the
 <code>max_delay_days</code> sweep itself</strong>. Read the
 <code>sens</code> table above down its rows. <code>mean_delay</code>
-climbs from 2.98 days at a 7-day horizon to 9.15 at 35 days, then moves
-only to 9.20 at 56. <code>pct_delay6</code> falls from 100 to 47.9 and
-then drifts to 47.6. That flattening is what <em>supports</em>
+climbs from 4.54 days at a 7-day horizon to 9.15 at 35 days, then moves
+only to 9.20 at 56. That flattening is what <em>supports</em>
 <code>max_delay_days &lt;- 35L</code> here. It is a sensitivity
-analysis, not a proof.</p>
+analysis, not a proof. <code>pct_delay6</code> is 100 at a 7-day
+horizon, where it is the last column. From 14 days on it moves only from
+48.2 to 47.6, because every horizon’s total holds every report.</p>
 <p>A <code>mean_delay</code> that kept climbing would be clear evidence
-the tail was still being cut off. A plateau is weaker evidence in the
-other direction, because a genuinely sparse tail and a shifting
-settled-week composition both flatten the curve too.</p>
+that the last column still caps a real tail. A plateau is weaker
+evidence in the other direction, because a genuinely sparse tail and a
+shifting settled-week composition both flatten the curve too.</p>
 <p>Two cautions on reading that sweep:</p>
 <ul>
-<li>The short horizons are not merely imprecise, they are biased
-optimistic. <code>pct_delay6</code> at a 7-day horizon conditions on the
-cases that arrived within one week. That is a smaller denominator, so a
-larger share.</li>
+<li>The short horizons are biased. At a 7-day horizon every report from
+day 6 on counts at day 6. So <code>pct_delay6</code> is 100 by
+construction, and <code>mean_delay</code> is too low.</li>
 <li>Not all of the residual movement past 35 days is about the tail.
 <code>n_settled</code> falls across those rows, because a longer horizon
 settles fewer weeks. The weeks it drops are the newest, which on this
@@ -1000,11 +999,13 @@ at equal <code>n_settled</code>, or read <code>period = "year"</code>
 instead, before calling a small drift a tail.</li>
 </ul>
 <p><code>sim_reports()</code> emits no delay beyond day 34. So on
-<em>this</em> triangle a horizon of 35 days truncates nothing, and the
-flattening really is exact. That is only knowable because we can read
-the generator. On a real series that check is unavailable. Widen until
-<code>mean_delay</code> stops moving, then treat the remaining tail as
-bounded by what a still-wider horizon would have shown, not as zero.</p>
+<em>this</em> triangle a horizon of 35 days puts no later report in the
+last column, and the flattening really is exact. That is only knowable
+because we can read the generator. On a real series that check is
+unavailable. Widen until <code>mean_delay</code> stops moving. The share
+reported on the last delay day or later is then
+<code>100 - pct_delay&lt;max_delay_days - 2&gt;</code>. Only a
+still-wider horizon shows how that share spreads over later days.</p>
 </div>
 </div>
 <div class="section level2">

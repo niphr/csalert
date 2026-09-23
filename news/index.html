@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,26 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.9.23" id="version-2026923">Version 2026.9.23<a class="anchor" aria-label="anchor" href="#version-2026923"></a></h2>
+<p>A late report is a report at delay <code>max_delay_days</code> or later, counted in days from the reference week’s Monday.</p>
+<div class="section level3">
+<h3 id="breaking-reporting_triangle_matrix-keeps-late-reports-2026-9-23">Breaking: <code>reporting_triangle_matrix()</code> keeps late reports<a class="anchor" aria-label="anchor" href="#breaking-reporting_triangle_matrix-keeps-late-reports-2026-9-23"></a></h3>
+<ul><li>
+<strong>A late report counts in the last delay column, <code>max_delay_days - 1</code>.</strong> Earlier versions dropped it. The delay columns are unchanged, <code>0</code> to <code>max_delay_days - 1</code>.</li>
+<li>
+<strong>The drop lowered published counts, and nothing warned.</strong> Both engines publish <code><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums()</a></code> of this matrix as <code>original</code>. Measured on 2026-09-23 in luftveisovervaking_trend with one input file, <code>s19_hosp_sari</code> lost every week from 2020-01 to 2025-26. That is 287 weeks and 346,306 admissions, nearly all bulk-loaded on 2025-07-30. The settled weeks lost a net 2,453 in <code>msis_covid19</code>, 1,367 in <code>lab_hospitalised_sars_cov_2</code> and 448 in <code>daar_sari_scd2</code>.</li>
+<li>
+<strong>Published numbers move wherever a series has a late report.</strong> That covers <code>original</code>, every nowcast, <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code>, and <code>mean_delay</code> and the <code>pct_delayD</code> curve of <code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code>. A week whose every report was late now carries its count, where before it was absent or zero.</li>
+<li>A report before the reference Monday has a negative delay, and it is still dropped.</li>
+<li>
+<strong>A settled week is not final:</strong> a report at a delay beyond <code>max_delay_days - 1</code> can still arrive and raise its count.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="version-2026-9-23">Version<a class="anchor" aria-label="anchor" href="#version-2026-9-23"></a></h3>
+<ul><li>r-universe publishes 2026.9.22 from commit <code>2dfed42</code>, which is this tree’s parent. This tree needs a number above it. 2026.9.23 is the release date of this tree.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.9.22" id="version-2026922">Version 2026.9.22<a class="anchor" aria-label="anchor" href="#version-2026922"></a></h2>
 <p>The nowcast stack moves from a weekly delay axis to a daily one, and the default engine changes. Two of the six breaking changes below return wrong numbers rather than an error.</p>

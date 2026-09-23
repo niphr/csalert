@@ -87,7 +87,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.9.22
+#> csalert 2026.9.23
 #> https://niphr.github.io/csalert/
 ```
 
@@ -204,15 +204,15 @@ max_delay_days <- 35L
 
 ## 1. Nowcast
 
-**Estimand.** For each reference week, the total that will have been
-reported at delay days `0 .. max_delay_days - 1`: that is, by the end of
-the day `reference Monday + max_delay_days - 1`. This is a
-horizon-capped total, **not** the eventual total. Anything reported
-after delay day `max_delay_days - 1` is outside the estimand, and no
-amount of nowcasting recovers it. Stage 3 is how you check that the
-horizon is wide enough for the difference to be small. For a settled
-week the quantity is already observed. For the most recent weeks it is
-not, and the nowcast is a predictive distribution over it.
+**Estimand.** For each reference week, the total reported at any delay
+day from 0 on. A report at delay day `max_delay_days - 1` or later
+counts in the last delay column, so it stays in the total. The horizon
+sets how many delay columns the nowcast models, not which reports count.
+For a settled week the quantity is observed, except for reports that can
+still arrive after delay day `max_delay_days - 1`. For the most recent
+weeks it is not observed, and the nowcast is a predictive distribution
+over it. Stage 3 shows how much arrives in that last column, which is
+how you check that the horizon is wide enough.
 
 [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
 completes each incomplete week from a pooled **daily delay ECDF**. It
@@ -586,9 +586,9 @@ you use.
 reference week is eligible once
 `as_of - reference Monday >= max_delay_days - 1` days, which excludes
 the two most recent of those 30. A second filter then drops any eligible
-week whose total within the horizon is zero, and `n_settled` counts what
-survives both. Here no week is empty, so the age rule alone accounts for
-the number, and the same holds on the working triangle:
+week whose total is zero, and `n_settled` counts what survives both.
+Here no week is empty, so the age rule alone accounts for the number,
+and the same holds on the working triangle:
 
 ``` r
 completion <- reporting_completion_v1(tri, max_delay_days = max_delay_days)
@@ -781,11 +781,10 @@ how you see a reporting system speeding up or slowing down. One pooled
 curve cannot: it averages the regimes together and describes neither.
 
 “Qualifying” is load-bearing. A period slice needs at least three
-settled weeks with a non-zero within-horizon total. A slice below that
-is dropped from the result, with no warning and no placeholder row. A
-year at the edge of the series — the one your data starts or ends in —
-is the usual casualty. A missing year means too few weeks, never zero
-delay.
+settled weeks with a non-zero total. A slice below that is dropped from
+the result, with no warning and no placeholder row. A year at the edge
+of the series — the one your data starts or ends in — is the usual
+casualty. A missing year means too few weeks, never zero delay.
 
 ``` r
 reporting_completion_v1(tri, max_delay_days = max_delay_days, period = "year")[
@@ -854,21 +853,23 @@ the sequence, not one row.
 
 ### Every number here is conditional on `max_delay_days`
 
-This is the trap, and it is structural rather than a tuning subtlety.
 [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
-works from a triangle that has already had every cell with delay
-`>= max_delay_days` discarded. So the denominator is the total that
-arrived *within the horizon*, not the eventual total. Two consequences
+works from a triangle whose last delay column, `max_delay_days - 1`,
+also holds every report at a later delay. So the denominator is the
+total reported by `as_of`, late reports included. Two consequences
 follow, and they hold whatever the real reporting tail looks like:
 
-- `complete_by_md` is the last cumulative fraction of that same
-  truncated total, so it is 1.
+- `complete_by_md` is the last cumulative fraction of that total, so it
+  is 1.
 - the last column, `pct_delay<max_delay_days - 1>`, is that fraction as
   a percentage, so it is 100.
 
-Neither can detect reporting that dribbles in past the horizon. Rather
-than assert that, check it. The sweep below runs one to eight weeks of
-horizon, in days, and reads the last column by name each time:
+Neither of these shows the tail. The column before the last one does:
+`100 - pct_delay<max_delay_days - 2>` is the share reported at delay day
+`max_delay_days - 1` or later. `mean_delay` counts each of those reports
+at delay day `max_delay_days - 1`, so it is a lower bound. The sweep
+below runs one to eight weeks of horizon, in days, and reads the last
+column by name each time:
 
 ``` r
 sens <- rbindlist(lapply(7L * (1:8), function(md) {
@@ -882,10 +883,10 @@ sens <- rbindlist(lapply(7L * (1:8), function(md) {
 sens
 #>    max_delay_days n_settled mean_delay complete_by_md    last_col last_pct
 #>             <int>     <int>      <num>          <num>      <char>    <num>
-#> 1:              7       244       2.98              1  pct_delay6      100
-#> 2:             14       244       5.60              1 pct_delay13      100
-#> 3:             21       243       7.34              1 pct_delay20      100
-#> 4:             28       242       8.45              1 pct_delay27      100
+#> 1:              7       245       4.54              1  pct_delay6      100
+#> 2:             14       244       7.31              1 pct_delay13      100
+#> 3:             21       243       8.52              1 pct_delay20      100
+#> 4:             28       242       9.01              1 pct_delay27      100
 #> 5:             35       241       9.15              1 pct_delay34      100
 #> 6:             42       240       9.16              1 pct_delay41      100
 #> 7:             49       239       9.18              1 pct_delay48      100
@@ -893,9 +894,9 @@ sens
 #>    pct_delay6 pct_delay13
 #>         <num>       <num>
 #> 1:      100.0          NA
-#> 2:       62.6       100.0
-#> 3:       53.1        84.8
-#> 4:       49.5        79.2
+#> 2:       48.2       100.0
+#> 3:       48.2        76.9
+#> 4:       48.0        76.8
 #> 5:       47.9        76.8
 #> 6:       47.8        76.7
 #> 7:       47.7        76.6
@@ -925,23 +926,23 @@ per
 ```
 
 **The diagnostic that does work is the `max_delay_days` sweep itself**.
-Read the `sens` table above down its rows. `mean_delay` climbs from 2.98
+Read the `sens` table above down its rows. `mean_delay` climbs from 4.54
 days at a 7-day horizon to 9.15 at 35 days, then moves only to 9.20 at
-56. `pct_delay6` falls from 100 to 47.9 and then drifts to 47.6. That
-flattening is what *supports* `max_delay_days <- 35L` here. It is a
-sensitivity analysis, not a proof.
+56. That flattening is what *supports* `max_delay_days <- 35L` here. It
+is a sensitivity analysis, not a proof. `pct_delay6` is 100 at a 7-day
+horizon, where it is the last column. From 14 days on it moves only from
+48.2 to 47.6, because every horizon’s total holds every report.
 
-A `mean_delay` that kept climbing would be clear evidence the tail was
-still being cut off. A plateau is weaker evidence in the other
+A `mean_delay` that kept climbing would be clear evidence that the last
+column still caps a real tail. A plateau is weaker evidence in the other
 direction, because a genuinely sparse tail and a shifting settled-week
 composition both flatten the curve too.
 
 Two cautions on reading that sweep:
 
-- The short horizons are not merely imprecise, they are biased
-  optimistic. `pct_delay6` at a 7-day horizon conditions on the cases
-  that arrived within one week. That is a smaller denominator, so a
-  larger share.
+- The short horizons are biased. At a 7-day horizon every report from
+  day 6 on counts at day 6. So `pct_delay6` is 100 by construction, and
+  `mean_delay` is too low.
 - Not all of the residual movement past 35 days is about the tail.
   `n_settled` falls across those rows, because a longer horizon settles
   fewer weeks. The weeks it drops are the newest, which on this series
@@ -950,11 +951,12 @@ Two cautions on reading that sweep:
   read `period = "year"` instead, before calling a small drift a tail.
 
 `sim_reports()` emits no delay beyond day 34. So on *this* triangle a
-horizon of 35 days truncates nothing, and the flattening really is
-exact. That is only knowable because we can read the generator. On a
-real series that check is unavailable. Widen until `mean_delay` stops
-moving, then treat the remaining tail as bounded by what a still-wider
-horizon would have shown, not as zero.
+horizon of 35 days puts no later report in the last column, and the
+flattening really is exact. That is only knowable because we can read
+the generator. On a real series that check is unavailable. Widen until
+`mean_delay` stops moving. The share reported on the last delay day or
+later is then `100 - pct_delay<max_delay_days - 2>`. Only a still-wider
+horizon shows how that share spreads over later days.
 
 ## 4. Rate: a nowcasted numerator over a nowcasted denominator
 

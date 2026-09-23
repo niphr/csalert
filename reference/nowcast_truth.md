@@ -1,14 +1,16 @@
 # The settled (eventually-observed) total per reference week
 
-Sums each reference week's counts across delay days \`0\` to
-\`max_delay_days - 1\`, the quantity a nowcast is trying to predict.
-Keeps only the weeks old enough for that total to be settled, meaning
-their Monday is at least \`max_delay_days - 1\` days before the
-triangle's as-of date. Both bounds are one lower than they may read:
-\`max_delay_days = 21\` sums delay days 0 to 20, and the newest settled
-week starts 20 days before the as-of date, not 21. Anything reported at
-a delay of \`max_delay_days\` days or more falls outside this total, so
-it is a horizon-capped truth, not the eventual one.
+Sums each reference week's counts over every non-negative delay, the
+quantity a nowcast is trying to predict. A report at delay
+\`max_delay_days\` or later counts in the last delay day,
+\`max_delay_days - 1\`, so it is inside this total. Keeps only the weeks
+old enough to be settled. A settled week's Monday is at least
+\`max_delay_days - 1\` days before the triangle's as-of date. That bound
+is one lower than it may read. With \`max_delay_days = 21\`, the newest
+settled week starts 20 days before the as-of date, not 21. A settled
+week is not final. A report that arrives after the as-of date has a
+delay of \`max_delay_days\` or more, and it still adds to the week's
+total.
 
 ## Usage
 

@@ -1,5 +1,41 @@
 # Changelog
 
+## Version 2026.9.23
+
+A late report is a report at delay `max_delay_days` or later, counted in
+days from the reference week’s Monday.
+
+### Breaking: `reporting_triangle_matrix()` keeps late reports
+
+- **A late report counts in the last delay column,
+  `max_delay_days - 1`.** Earlier versions dropped it. The delay columns
+  are unchanged, `0` to `max_delay_days - 1`.
+- **The drop lowered published counts, and nothing warned.** Both
+  engines publish [`rowSums()`](https://rdrr.io/r/base/colSums.html) of
+  this matrix as `original`. Measured on 2026-09-23 in
+  luftveisovervaking_trend with one input file, `s19_hosp_sari` lost
+  every week from 2020-01 to 2025-26. That is 287 weeks and 346,306
+  admissions, nearly all bulk-loaded on 2025-07-30. The settled weeks
+  lost a net 2,453 in `msis_covid19`, 1,367 in
+  `lab_hospitalised_sars_cov_2` and 448 in `daar_sari_scd2`.
+- **Published numbers move wherever a series has a late report.** That
+  covers `original`, every nowcast,
+  [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md),
+  and `mean_delay` and the `pct_delayD` curve of
+  [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md).
+  A week whose every report was late now carries its count, where before
+  it was absent or zero.
+- A report before the reference Monday has a negative delay, and it is
+  still dropped.
+- **A settled week is not final:** a report at a delay beyond
+  `max_delay_days - 1` can still arrive and raise its count.
+
+### Version
+
+- r-universe publishes 2026.9.22 from commit `2dfed42`, which is this
+  tree’s parent. This tree needs a number above it. 2026.9.23 is the
+  release date of this tree.
+
 ## Version 2026.9.22
 
 The nowcast stack moves from a weekly delay axis to a daily one, and the
