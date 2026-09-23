@@ -212,6 +212,16 @@
 #' already carries the estimation error and the reporting noise. A nowcast never
 #' falls below the observed count.
 #'
+#' A pool week counts as settled once it is `max_delay_days - 1` days old. That
+#' means its correction stops, not that its reporting is finished: a later report
+#' still adds to its last delay column. During a long reporting backlog that
+#' reaches most of the pool, the pool ratios are then too small and the nowcast
+#' runs low.
+#'
+#' A pool week with `O_s = 0` has no finite ratio, so it cannot enter the pool.
+#' The interval therefore does not describe a week whose reporting has not
+#' started, and a reference week with no observed count stays at 0.
+#'
 #' The engine also forms `p(d)`, the pooled share of a week's counts that
 #' arrives by delay day `d`. `p(d)` cancels out of every draw. It only decides
 #' whether delay day `d` is completed: when `p(d)` is 0, the reference week
