@@ -141,7 +141,9 @@ csfmt_reporting_triangle_v3 <- function(
 #'   is a reference-week x delay-day count matrix (zeros filled within the
 #'   observed region). The rows stay ISO weeks; only the columns are days. The
 #'   last column, `max_delay_days - 1`, also holds every report at a later
-#'   delay. So a late report adds to `rowSums(mat)` and is not lost.
+#'   delay. So a late report adds to `rowSums(mat)` and is not lost. A cell
+#'   sums its counts with `na.rm = TRUE`, so an `NA` count adds nothing, and a
+#'   cell that holds only `NA` counts is 0.
 #' @family reporting triangle functions
 #' @seealso Neither package vignette covers this function. It is the densification
 #'   step every nowcast engine runs first. Reach for it directly only when you
@@ -212,11 +214,15 @@ reporting_triangle_matrix <- function(
   out <- list()
   for (tsid in unique(d$time_series_id)) {
     ds <- d[time_series_id == tsid]
+    # na.rm = TRUE reaches sum() through dcast's `...`. Without it, one NA
+    # count made sum() return NA for its cell. The NA fill below then set that
+    # cell to 0, so every real count in the cell was lost, with no warning.
     m <- data.table::dcast.data.table(
       ds,
       .ref ~ .delay,
       value.var = val_col,
       fun.aggregate = sum,
+      na.rm = TRUE,
       fill = 0
     )
     for (k in delay_cols) {

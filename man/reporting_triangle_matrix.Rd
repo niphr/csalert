@@ -28,7 +28,9 @@ Named list (by time_series_id) of `list(reference, mat)`, where `mat`
   is a reference-week x delay-day count matrix (zeros filled within the
   observed region). The rows stay ISO weeks; only the columns are days. The
   last column, `max_delay_days - 1`, also holds every report at a later
-  delay. So a late report adds to `rowSums(mat)` and is not lost.
+  delay. So a late report adds to `rowSums(mat)` and is not lost. A cell
+  sums its counts with `na.rm = TRUE`, so an `NA` count adds nothing, and a
+  cell that holds only `NA` counts is 0.
 }
 \description{
 Densify a reporting triangle into per-series reference x delay count matrices

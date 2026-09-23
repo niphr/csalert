@@ -237,3 +237,22 @@ test_that("reshape completes the reference axis (interior zero-case week)", {
   expect_equal(m$reference, c("2020-01", "2020-02", "2020-03")) # gap filled
   expect_equal(as.numeric(m$mat[2, ]), rep(0, 15)) # zero-case week
 })
+
+test_that("a cell sums its counts with na.rm = TRUE", {
+  # Two rows share the cell (2026-01, delay 3): a count of 5 and an NA. A third
+  # row holds only an NA, at delay 5. Before na.rm = TRUE, sum() gave NA for
+  # the first cell, and the NA fill set it to 0. The count of 5 was lost.
+  d <- data.table::data.table(
+    indicator = "flu",
+    location = "nation",
+    age = "total",
+    sex = "total",
+    isoyearweek_reference = "2026-01",
+    reporting_date = as.Date("2025-12-29") + c(3, 3, 5),
+    numerator = c(5L, NA, NA)
+  )
+  tri <- csfmt_reporting_triangle_v3(d, id_cols = ID)
+  m <- reporting_triangle_matrix(tri, max_delay_days = 7)[[1]]$mat
+  expect_equal(as.numeric(m[1, ]), c(0, 0, 0, 5, 0, 0, 0))
+  expect_equal(unname(rowSums(m)), 5)
+})

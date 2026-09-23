@@ -1,3 +1,14 @@
+# Version 2026.9.24
+
+- `reporting_triangle_matrix()` sums the counts in a cell with `na.rm = TRUE`.
+  Before, one `NA` count set its whole cell to 0, so the real counts in that
+  cell were lost with no warning.
+
+## Version
+
+- r-universe publishes 2026.9.23 from commit `75c0751`, so this tree needs a
+  higher number.
+
 # Version 2026.9.23
 
 A late report is a report at delay `max_delay_days` or later, counted in days
