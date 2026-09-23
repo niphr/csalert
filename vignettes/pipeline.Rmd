@@ -210,7 +210,7 @@ rows.
 
 The engine also pools a **daily delay ECDF**, `p(d)`, the share of a week's
 counts that has arrived by delay day `d`. `p(d)` cancels out of every draw. It
-only decides whether delay day `d` is completed at all. So no draw is
+only decides whether delay day `d` is completed at all. So the draws are not built from
 `observed_so_far / p(d)`, the closed-form maximum likelihood estimate under
 `n[ref, d] ~ Poisson(lambda[ref] * p[d])`.
 

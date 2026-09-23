@@ -64,7 +64,7 @@ falls below the observed count.
 The engine also forms `p(d)`, the pooled share of a week's counts that
 arrives by delay day `d`. `p(d)` cancels out of every draw. It only decides
 whether delay day `d` is completed: when `p(d)` is 0, the reference week
-keeps its observed count. So no draw is `observed_so_far / p(d)`, the
+keeps its observed count. So the draws are not built from `observed_so_far / p(d)`, the
 closed-form maximum likelihood estimate under
 `n[ref, d] ~ Poisson(lambda[ref] * p[d])`.
 

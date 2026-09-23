@@ -19,7 +19,7 @@
 # delay day d. p(d) cancels out, see .completion_draws(), and only gates
 # whether delay day d is completed. observed_so_far / p(d) is the closed-form
 # maximum likelihood estimator of n[ref, d] ~ Poisson(lambda[ref] * p[d]), and
-# no draw holds it. The name no longer says quasipoisson because no regression
+# the draws are not built from it. The name no longer says quasipoisson because no regression
 # is fitted.
 #
 # WHY THE REGRESSION WENT. The engine used to fit one quasipoisson parameter per
@@ -215,7 +215,7 @@
 #' The engine also forms `p(d)`, the pooled share of a week's counts that
 #' arrives by delay day `d`. `p(d)` cancels out of every draw. It only decides
 #' whether delay day `d` is completed: when `p(d)` is 0, the reference week
-#' keeps its observed count. So no draw is `observed_so_far / p(d)`, the
+#' keeps its observed count. So the draws are not built from `observed_so_far / p(d)`, the
 #' closed-form maximum likelihood estimate under
 #' `n[ref, d] ~ Poisson(lambda[ref] * p[d])`.
 #'
