@@ -877,8 +877,8 @@ before it forms the growth rate.
 
 The slope error cannot be turned off. `p_increasing` is the share of draws with
 a positive slope. Without the slope error, a settled week has the same slope in
-every draw, so the share is exactly 0 or 1 for *every* settled week. A
-threshold on it would then do nothing.
+every draw. The share is then exactly 0 or 1 for *every* settled week, and a
+threshold on it does nothing.
 
 ```{r}
 settled_weeks <- truth$reference
