@@ -7,8 +7,8 @@ template:
       overline: "R package · Surveillance alerts"
       title: "Alerts from surveillance data."
       lede: >
-        Create alerts and detect trends in public-health surveillance data, built on
-        a published analytics strategy (Benedetti, 2019).
+        Complete the weeks still being reported, then measure trend, intensity
+        and alerts on the nowcast draws.
       cta:
         primary:
           text: "Get started"
@@ -20,8 +20,8 @@ template:
 reference:
   - title: "Ensemble format and naming grammar"
     desc: >
-      The draw-parallel ensemble container, the reporting-triangle input format,
-      and the self-describing column-naming grammar they share.
+      The ensemble of draws, the reporting-triangle input, and the grammar that
+      names their columns.
     contents:
       - csfmt_ensemble_v3
       - validate_ensemble
@@ -36,26 +36,27 @@ reference:
       - q_label
       - q_value
 
-  - title: "Ensemble analysis pipeline"
-    desc: >
-      Stages that add draw columns to an ensemble, then collapse it to a quantile
-      summary (optionally healed into a cstidy csfmt_rts_data_v3).
-    contents:
-      - ens_add_rate
-      - ens_collapse
-      - mem_thresholds_v1
-      - rolling_slope_matrix
-
-  - title: "Nowcasting engines"
-    desc: "Complete a right-truncated reporting triangle into a csfmt_ensemble_v3."
+  - title: "Nowcast engines"
+    desc: "Complete the weeks of a reporting triangle that are still being reported."
     contents:
       - nowcast_delay_ecdf_v1
       - nowcast_passthrough_to_ensemble_v1
 
+  - title: "Ensemble stages"
+    desc: >
+      Stages that take an ensemble and return it with new columns, and the
+      collapse to quantiles that ends the pipeline.
+    contents:
+      - ens_add_rate
+      - short_term_trend
+      - mem_thresholds_v1
+      - signal_detection_hlm
+      - ens_collapse
+
   - title: "Nowcast diagnostics"
     desc: >
-      Replay a method against what was known in the past and score it: interval
-      coverage, point-estimate revision, and reporting completion.
+      Replay a method on past dates and score it, and measure how fast counts
+      arrive.
     contents:
       - nowcast_censor
       - nowcast_truth
@@ -63,39 +64,31 @@ reference:
       - nowcast_evaluate_v1
       - reporting_completion_v1
       - reporting_completion_trend_v1
-      - compare_results
 
   - title: "Nowcast calibration"
     desc: >
-      Measure how far an engine's intervals are from nominal coverage, as a
-      per-horizon scaling factor. A diagnostic to check an engine with; not
-      applied to published numbers unless you choose to.
+      Measure how far the intervals of an engine are from nominal coverage, as
+      a factor per horizon. The package does not apply it unless you choose to.
     contents:
       - nowcast_estimate_calibration_v1
       - nowcast_apply_calibration_v1
       - print.nowcast_calibration
 
-  - title: "Input quality control"
-    desc: "Verdict-only checks on surveillance input and week-over-week revisions."
+  - title: "Quality control"
+    desc: "Check one input feed, and compare two runs of the pipeline."
     contents:
       - qc_surveillance_data_v1
       - qc_week_over_week_v1
+      - compare_results
 
-  - title: "Signal detection"
-    desc: "Detect anomalies and compute prediction thresholds from historical surveillance data."
+  - title: "Trend helpers"
+    desc: "The rolling-slope kernel, and the trend alarm for a surveillance sts object."
     contents:
-      - signal_detection_hlm
-      - prediction_interval
-      - prediction_interval.glm
-
-  - title: "Short-term trend estimation"
-    desc: "Estimate the direction and magnitude of recent trends in a time series."
-    contents:
-      - short_term_trend
+      - rolling_slope_matrix
       - short_term_trend_sts_v1
 
   - title: "Data simulation"
-    desc: "Generate synthetic baseline and outbreak data for testing and evaluation."
+    desc: "Simulate daily counts with known outbreaks and holiday effects."
     contents:
       - simulate_baseline_data
       - simulate_seasonal_outbreak_data

@@ -30,6 +30,8 @@
   gives Poisson counts. It said `phi = 0`, which gives `NA`.
 - Documentation only: the help pages state that `remove_last_isoyearweeks` of
   the deprecated `signal_detection_hlm()` method has no effect.
+- Documentation only: `prediction_interval()` and its glm method are internal,
+  and left the reference index. The generic was never exported.
 
 ## Version
 

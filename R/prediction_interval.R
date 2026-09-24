@@ -1,29 +1,35 @@
-#' Prediction thresholds
-#' @param object Object.
-#' @param newdata New data.
-#' @param alpha Two-sided alpha (e.g 0.05).
-#' @param z Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05).
-#' @param ... dots.
-#' @return A `data.table` with one row per row of `newdata` and the columns
-#'   `lower`, `point` and `upper`. They give the two-sided prediction interval
-#'   and the point estimate on the response scale.
+#' Prediction interval for new data from a fitted model
+#'
+#' Internal: the deprecated `csfmt_rts_data_v1` method of [short_term_trend()] uses
+#' it for its forecast.
+#' @param object A fitted model.
+#' @param newdata A data.frame of covariates.
+#' @param alpha The two-sided significance level.
+#' @param z The normal quantile. When given, it replaces `alpha`: `z = 1.96`
+#'   equals `alpha = 0.05`.
+#' @param ... Passed to the method.
+#' @return A `data.table` with one row per row of `newdata`: `lower`, `point` and
+#'   `upper`, on the response scale.
+#' @keywords internal
 prediction_interval <- function(object, newdata, alpha = 0.05, z = NULL, ...) {
   UseMethod("prediction_interval", object)
 }
 
 
-#' Prediction thresholds
-#' @param object Object.
-#' @param newdata New data.
-#' @param alpha Two-sided alpha (e.g 0.05).
-#' @param z Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05).
-#' @param skewness_transform "none", "1/2", "2/3".
-#' @param ... dots.
-#' @return A `data.table` with one row per row of `newdata` and the columns
-#'   `lower`, `point` and `upper`. They give the two-sided prediction interval
-#'   and the point estimate on the response scale. All three columns are
-#'   `NA_real_` if the underlying `stats::predict` call raises a warning or an
-#'   error.
+#' Prediction interval for new data from a Poisson or quasi-Poisson glm
+#'
+#' Internal. It combines the dispersion of the fit with the standard error of the
+#' fitted mean, on the power scale that `skewness_transform` names.
+#' @param object A `glm` of family `poisson` or `quasipoisson`.
+#' @param newdata A data.frame of covariates.
+#' @param alpha The two-sided significance level.
+#' @param z The normal quantile. When given, it replaces `alpha`.
+#' @param skewness_transform The power scale: `"none"`, `"1/2"` or `"2/3"`.
+#' @param ... Not used, but the generic has it.
+#' @return A `data.table` with one row per row of `newdata`: `lower`, `point` and
+#'   `upper`, on the response scale. All three are `NA_real_` when any step gives
+#'   a warning or an error.
+#' @keywords internal
 #' @method prediction_interval glm
 #' @export
 prediction_interval.glm <- function(

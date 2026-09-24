@@ -2,26 +2,28 @@
 % Please edit documentation in R/prediction_interval.R
 \name{prediction_interval}
 \alias{prediction_interval}
-\title{Prediction thresholds}
+\title{Prediction interval for new data from a fitted model}
 \usage{
 prediction_interval(object, newdata, alpha = 0.05, z = NULL, ...)
 }
 \arguments{
-\item{object}{Object.}
+\item{object}{A fitted model.}
 
-\item{newdata}{New data.}
+\item{newdata}{A data.frame of covariates.}
 
-\item{alpha}{Two-sided alpha (e.g 0.05).}
+\item{alpha}{The two-sided significance level.}
 
-\item{z}{Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05).}
+\item{z}{The normal quantile. When given, it replaces \code{alpha}: \code{z = 1.96}
+equals \code{alpha = 0.05}.}
 
-\item{...}{dots.}
+\item{...}{Passed to the method.}
 }
 \value{
-A `data.table` with one row per row of `newdata` and the columns
-  `lower`, `point` and `upper`. They give the two-sided prediction interval
-  and the point estimate on the response scale.
+A \code{data.table} with one row per row of \code{newdata}: \code{lower}, \code{point} and
+\code{upper}, on the response scale.
 }
 \description{
-Prediction thresholds
+Internal: the deprecated \code{csfmt_rts_data_v1} method of \code{\link[=short_term_trend]{short_term_trend()}} uses
+it for its forecast.
 }
+\keyword{internal}

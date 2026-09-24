@@ -2,7 +2,7 @@
 % Please edit documentation in R/prediction_interval.R
 \name{prediction_interval.glm}
 \alias{prediction_interval.glm}
-\title{Prediction thresholds}
+\title{Prediction interval for new data from a Poisson or quasi-Poisson glm}
 \usage{
 \method{prediction_interval}{glm}(
   object,
@@ -14,25 +14,25 @@
 )
 }
 \arguments{
-\item{object}{Object.}
+\item{object}{A \code{glm} of family \code{poisson} or \code{quasipoisson}.}
 
-\item{newdata}{New data.}
+\item{newdata}{A data.frame of covariates.}
 
-\item{alpha}{Two-sided alpha (e.g 0.05).}
+\item{alpha}{The two-sided significance level.}
 
-\item{z}{Similar to \code{alpha} (e.g. z=1.96 is the same as alpha=0.05).}
+\item{z}{The normal quantile. When given, it replaces \code{alpha}.}
 
-\item{skewness_transform}{"none", "1/2", "2/3".}
+\item{skewness_transform}{The power scale: \code{"none"}, \code{"1/2"} or \code{"2/3"}.}
 
-\item{...}{dots.}
+\item{...}{Not used, but the generic has it.}
 }
 \value{
-A `data.table` with one row per row of `newdata` and the columns
-  `lower`, `point` and `upper`. They give the two-sided prediction interval
-  and the point estimate on the response scale. All three columns are
-  `NA_real_` if the underlying `stats::predict` call raises a warning or an
-  error.
+A \code{data.table} with one row per row of \code{newdata}: \code{lower}, \code{point} and
+\code{upper}, on the response scale. All three are \code{NA_real_} when any step gives
+a warning or an error.
 }
 \description{
-Prediction thresholds
+Internal. It combines the dispersion of the fit with the standard error of the
+fitted mean, on the power scale that \code{skewness_transform} names.
 }
+\keyword{internal}
