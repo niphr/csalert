@@ -36,6 +36,8 @@
   the Get started vignette has a simulation section.
 - Documentation only: the vignettes say that csdb cannot validate a v3 table.
   They said that a v3 table cannot be stored.
+- Documentation only: the README no longer says that `denominator` belongs
+  only to the deprecated trend method.
 
 ## Version
 
