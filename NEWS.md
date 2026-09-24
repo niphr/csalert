@@ -32,6 +32,10 @@
   the deprecated `signal_detection_hlm()` method has no effect.
 - Documentation only: `prediction_interval()` and its glm method are internal,
   and left the reference index. The generic was never exported.
+- Documentation only: the pipeline vignette has a quality-control section, and
+  the Get started vignette has a simulation section.
+- Documentation only: the vignettes say that csdb cannot validate a v3 table.
+  They said that a v3 table cannot be stored.
 
 ## Version
 
