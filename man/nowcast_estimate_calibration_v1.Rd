@@ -2,33 +2,39 @@
 % Please edit documentation in R/nowcast_calibration.R
 \name{nowcast_estimate_calibration_v1}
 \alias{nowcast_estimate_calibration_v1}
-\title{Estimate a nowcast calibration from a backtest}
+\title{Estimate an interval scaling factor from a backtest}
 \usage{
 nowcast_estimate_calibration_v1(backtest, truth, level = 0.9, by = "horizon")
 }
 \arguments{
-\item{backtest}{Long quantile nowcasts (from [nowcast_backtest]): `reference`,
-the `by` column(s), `quantile_level`, `predicted`.}
+\item{backtest}{The output of \code{\link[=nowcast_backtest]{nowcast_backtest()}}. The function uses the
+\code{quantile_level} nearest to each end of the interval and to the median.}
 
-\item{truth}{Settled totals (from [nowcast_truth]): `reference`, `truth`.}
+\item{truth}{The output of \code{\link[=nowcast_truth]{nowcast_truth()}}.}
 
-\item{level}{Central interval level to calibrate on (default 0.9).}
+\item{level}{The central interval level.}
 
-\item{by}{Grouping column(s) the factor varies over (default "horizon").}
+\item{by}{The columns that the factor varies over.}
 }
 \value{
-A `nowcast_calibration`: per-group raw coverage + scale `factor`.
+A \code{nowcast_calibration}: a list with \code{level}, \code{by} and \code{table}, which
+has the \code{by} columns, \code{n}, \code{coverage_raw}, the share of truths inside the
+interval, and \code{factor}.
 }
 \description{
-Learns a per-group interval-scaling correction from past nowcasts scored
-against settled truth. See [nowcast_apply_calibration_v1] to use it.
+Measures, for each group, the factor that would have made the central \code{level}
+interval of past nowcasts cover \code{level} of their settled truths. Use it to
+check an engine. \code{\link[=nowcast_apply_calibration_v1]{nowcast_apply_calibration_v1()}} applies it if you choose to.
 }
 \details{
-This is an empirical rescaling, not split conformal. It takes the ordinary
-type-7 quantile of the scaled residuals, rather than the conformal order
-statistic. It summarises both tails with one symmetric distance from the
-median. It therefore carries NO finite-sample coverage guarantee. Read
-`coverage_raw` as "what this engine did on these replayed weeks", not as a
+The factor is the type-7 \code{level} quantile of \verb{|truth - median| / halfwidth},
+where \code{halfwidth} is half the width of the interval. Above 1, the intervals
+were too narrow, and below 1 too wide.
+
+This is an empirical rescaling, not split conformal. It uses the type-7
+quantile, not the order statistic that a conformal argument needs, and one
+symmetric distance for both tails. So it carries NO finite-sample coverage
+guarantee. \code{coverage_raw} is what the engine did on these replayed weeks, not a
 property of the engine.
 }
 \examples{
@@ -55,16 +61,14 @@ bt <- nowcast_backtest(
   horizons = 0:1, seed = 1
 )
 
-# `coverage_raw` is what happened on these replayed weeks, and `factor` is
-# what would have made the 90\% interval cover 90\% of them. The two horizons
-# here fall on opposite sides of nominal, on 17 and 18 scored weeks. That is
-# far too little evidence to call the engine over- or under-dispersed. Treat
-# a factor as a flag to look into, not a verdict.
+# The two horizons fall on opposite sides of 0.9, on 17 and 18 scored weeks.
+# That is too little evidence to call the engine over- or under-dispersed, so
+# read a factor as a reason to look closer, not as a verdict.
 nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay_days = 21))
 }
 \seealso{
-Neither package vignette covers calibration. The example below is its
-  only worked demonstration.
+\code{vignette("pipeline", package = "csalert")}, stage 2, which measures
+the coverage that the factor corrects.
 
 Other nowcast calibration functions:
 \code{\link[=nowcast_apply_calibration_v1]{nowcast_apply_calibration_v1()}},

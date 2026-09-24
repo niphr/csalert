@@ -19,24 +19,24 @@ gen_data_signal_detection_hlm <- function(seed = 4) {
   return(d)
 }
 
-#' Detect signals using the historical limits method
+#' Flag weeks above a historical limit
 #'
 #' @description
-#' Flags weeks where the observed value is unusually high compared with a baseline
-#' built from the same weeks in previous years. For each week, a baseline mean and
-#' standard deviation are computed from the surrounding weeks in each of the
-#' previous \code{baseline_isoyears} years. The surrounding weeks are
-#' \code{week - 1}, \code{week} and \code{week + 1}.
-#' A week is flagged as \code{"high"} when its
-#' value exceeds the upper (99.5\%) baseline prediction interval.
+#' Flags a week as `high` above the historical limit, the 99.5% quantile of a
+#' normal fitted to the same weeks in earlier years. The ensemble
+#' method compares every draw with the limit.
 #'
-#' @param x Data object.
-#' @param ... Not in use.
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs the
-#'   ensemble method as stage 7 of its pipeline. The example below is the only
-#'   worked demonstration of the `csfmt_rts_data_v1` method, which is deprecated.
-#'   \code{vignette("csalert", package = "csalert")} explains which of the two
-#'   generations to use.
+#' @details
+#' The baseline of a week is the values 52, 104, and so on up to
+#' `52 * baseline_isoyears` rows back, each with its two neighbours. The limit is
+#' `qnorm(0.995, mean, sd)` of those values. A week that lacks any of them gets
+#' none. A year back is 52 rows, so across a 53-week ISO year the baseline is
+#' one week off. The limit is treated as known.
+#' @param x A `csfmt_ensemble_v3`, or a deprecated `csfmt_rts_data_v1`.
+#' @param ... Passed to the method.
+#' @family ensemble operations
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 7, and
+#'   `vignette("csalert", package = "csalert")` on which method to use.
 #' @rdname signal_detection_hlm
 #' @export
 signal_detection_hlm <- function(
@@ -57,16 +57,10 @@ signal_detection_hlm <- function(
 
 #' @method signal_detection_hlm csfmt_rts_data_v1
 #' @rdname signal_detection_hlm
-#' @section Deprecated (the csfmt_rts_data_v1 method):
-#' `signal_detection_hlm.csfmt_rts_data_v1` is **deprecated**. It belongs to the
-#' pre-ensemble architecture, in which each analysis stage read and wrote a
-#' `cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
-#' analysis substrate: every stage takes the ensemble and returns the ensemble,
-#' and [ens_collapse] is terminal.
-#'
-#' It still works and emits no warning, so existing pipelines are undisturbed.
-#' New work SHOULD call `signal_detection_hlm()` on the **ensemble**, before
-#' `ens_collapse()`:
+#' @section The deprecated csfmt_rts_data_v1 method:
+#' `signal_detection_hlm.csfmt_rts_data_v1()` is **deprecated**. It still works
+#' and gives no warning. New work SHOULD run the ensemble method before
+#' [ens_collapse()]:
 #'
 #' \preformatted{
 #' ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
@@ -74,36 +68,31 @@ signal_detection_hlm <- function(
 #' out <- ens_collapse(ens, heal = TRUE)
 #' }
 #'
-#' **The replacement is not a drop-in.** The two methods differ in interface and
-#' in output, not only in the class they accept:
-#' \itemize{
-#'   \item the v1 method takes `value`, `remove_last_isoyearweeks`,
-#'     `forecast_isoyearweeks` and `value_naming_prefix`. The ensemble method
-#'     takes one `measure` naming a `$draws` matrix and `baseline_isoyears`.
-#'   \item the v1 method returns a factor status column with `training` /
-#'     `forecast` / `null` / `high` levels plus baseline prediction-interval
-#'     columns. The ensemble method classifies every DRAW against the baseline
-#'     limit, so the result is an exceedance PROBABILITY after the collapse, not
-#'     a label.
-#' }
-#' Migrating is therefore a rewrite of the call site, and the output is a
-#' different kind of quantity. See
-#' \code{vignette("pipeline", package = "csalert")}, which runs the ensemble
-#' method as stage 7 of its pipeline.
-#' @param value Character of name of value.
-#' @param baseline_isoyears Number of years in the past you want to include as baseline.
-#' @param remove_last_isoyearweeks Number of isoyearweeks you want to remove at the end (due to unreliable data).
-#' @param forecast_isoyearweeks Number of isoyearweeks you want to forecast into the future.
-#' @param value_naming_prefix "from_numerator", "generic", or a custom prefix.
-#' @param remove_training_data Boolean. If TRUE, removes the training data (i.e. the early weeks that have no baseline) from the returned dataset.
-#' @param ... Not in use.
-#' @returns The original csfmt_rts_data_v1 dataset with extra columns.
-#'   \code{*_status} is a factor with levels c("training", "forecast", "null",
-#'   "high"), flagging weeks above the baseline. \code{*_forecasted*} holds the
-#'   observed value, or the baseline median for forecast weeks.
-#'   \code{*_baseline_predinterval_*} holds the lower (0.5\%), median (50\%) and
-#'   upper (99.5\%) baseline prediction interval.
+#' **The replacement is not a drop-in.** The v1 method takes `value`,
+#' `remove_last_isoyearweeks`, `forecast_isoyearweeks` and `value_naming_prefix`,
+#' where the ensemble method takes a draw matrix, `measure`. The v1 method returns
+#' a label per week. The ensemble method classifies every draw, so after the
+#' collapse it gives the share of draws above the limit.
+#'
+#' The v1 method labels a week `high` when its value is above the limit, and
+#' `training` when it has no baseline.
+#' @param value The value column.
+#' @param baseline_isoyears The number of earlier years in the baseline.
+#' @param remove_last_isoyearweeks It has no effect: the method never uses it.
+#' @param forecast_isoyearweeks The number of weeks to add after the data, with
+#'   the baseline median as forecast and the status `"forecast"`.
+#' @param value_naming_prefix The start of the new column names:
+#'   `"from_numerator"` is `value` without its last `_<word>`, `"generic"` is
+#'   `"value"`, and any other string is used as written.
+#' @param remove_training_data If `TRUE`, drop the `"training"` weeks.
+#' @returns The v1 method returns `x` with the forecast weeks added, and:
+#' * `<value>_status`, a factor with the levels `"training"`, `"forecast"`,
+#'   `"null"` and `"high"`,
+#' * `*_forecasted_*`, the value or the forecast, and a logical forecast marker,
+#' * `*_baseline_predinterval_*`, the 0.5%, 50% and 99.5% quantiles of the
+#'   baseline normal.
 #' @examples
+#' # the deprecated csfmt_rts_data_v1 method
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]
 #' res <- csalert::signal_detection_hlm(
@@ -300,12 +289,11 @@ signal_detection_hlm.csfmt_rts_data_v1 <- function(
 
 #' @method signal_detection_hlm csfmt_rts_data_v3
 #' @rdname signal_detection_hlm
-#' @returns The `csfmt_rts_data_v3` method always errors: see the section below.
-#' @section Why there is no csfmt_rts_data_v3 method:
-#' `csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
-#' is terminal. It carries quantiles, not draws, so the per-draw exceedance this
-#' function computes cannot be produced from it. Calling `signal_detection_hlm()`
-#' on one is always a mistake, so the method exists only to say so:
+#' @returns The `csfmt_rts_data_v3` method always stops with an error.
+#' @section Why the csfmt_rts_data_v3 method is an error:
+#' A `csfmt_rts_data_v3` is the collapsed output of the pipeline. It holds
+#' quantiles, not draws, so no per-draw comparison can come from it. Run the
+#' detection before the collapse:
 #'
 #' \preformatted{
 #' ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")  # before

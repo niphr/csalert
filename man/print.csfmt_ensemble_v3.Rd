@@ -2,25 +2,24 @@
 % Please edit documentation in R/csfmt_ensemble.R
 \name{print.csfmt_ensemble_v3}
 \alias{print.csfmt_ensemble_v3}
-\title{Print a `csfmt_ensemble_v3`}
+\title{Print a \code{csfmt_ensemble_v3}}
 \usage{
 \method{print}{csfmt_ensemble_v3}(x, ...)
 }
 \arguments{
-\item{x}{A `csfmt_ensemble_v3`.}
+\item{x}{The \code{csfmt_ensemble_v3} to print.}
 
-\item{...}{Ignored (for S3 consistency).}
+\item{...}{Not used, but the \code{print()} generic has it.}
 }
 \value{
-`x`, invisibly.
+\code{x}, invisibly.
 }
 \description{
-Compact one-line summary: number of rows, number of time series, and the names
-of the per-measure draw matrices.
+Prints one line: the number of rows and of series, and the names of the draw
+matrices.
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which prints an
-  ensemble with this method right after the nowcast step.
+\code{vignette("pipeline", package = "csalert")}, stage 1.
 
 Other ensemble format functions:
 \code{\link[=csfmt_ensemble_v3]{csfmt_ensemble_v3()}},

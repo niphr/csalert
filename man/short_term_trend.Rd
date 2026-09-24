@@ -6,7 +6,7 @@
 \alias{short_term_trend.csfmt_rts_data_v1}
 \alias{short_term_trend.csfmt_rts_data_v3}
 \alias{short_term_trend.csfmt_ensemble_v3}
-\title{Determine the short term trend of a timeseries}
+\title{Estimate the short-term trend of a series}
 \usage{
 short_term_trend(x, ...)
 
@@ -41,95 +41,91 @@ short_term_trend(x, ...)
 )
 }
 \arguments{
-\item{x}{Data object.}
+\item{x}{A \code{csfmt_ensemble_v3}, or a deprecated \code{csfmt_rts_data_v1}.}
 
-\item{...}{Not in use.}
+\item{...}{Passed to the method.}
 
-\item{numerator}{Character of name of numerator.}
+\item{numerator}{The count column.}
 
-\item{denominator}{Character. The two methods read it differently, and this
-one entry serves both, because they share a help page. For
-`csfmt_rts_data_v1` it names the denominator column, and it is optional.
-For `csfmt_ensemble_v3` it names the `$draws` measure holding the binomial
-denominator, which enters the fit as the prior weight. `measure` MUST then
-be the proportion on the response scale, between 0 and 1.
-`family = "binomial"` needs it, and the other two families reject it.}
+\item{denominator}{For \code{csfmt_rts_data_v1}, an optional denominator column.
+For \code{csfmt_ensemble_v3}, the draw matrix of the binomial denominator, which
+\code{family = "binomial"} needs and the other families reject. \code{measure} MUST
+then be a proportion.}
 
-\item{prX}{If using denominator, what scaling factor should be used for numerator/denominator?}
+\item{prX}{The scale of the rate \code{numerator / denominator}, such as \code{100}. It
+MAY hold more than one scale.}
 
-\item{trend_isoyearweeks}{Rolling window width in isoyearweeks (>= 2).}
+\item{trend_isoyearweeks}{The width of the rolling window, in weeks. The
+ensemble method needs at least 3, or 2 with \code{family = "binomial"}. The v1
+method needs at least 2.}
 
-\item{remove_last_isoyearweeks}{Same as remove_last_dates, but used if granularity_geo=='isoyearweek'.}
+\item{remove_last_isoyearweeks}{The number of latest weeks to leave out of the
+fit. They get the status \code{"forecast"}.}
 
-\item{forecast_isoyearweeks}{Same as forecast_dates, but used if granularity_geo=='isoyearweek'.}
+\item{forecast_isoyearweeks}{The number of weeks to forecast after the data.}
 
-\item{numerator_naming_prefix}{"from_numerator", "generic", or a custom prefix.}
+\item{numerator_naming_prefix}{The start of the new column names.
+\code{"from_numerator"} is the numerator name without its last \verb{_<word>}, and
+\code{"generic"} is \code{"numerator"}. Any other string is used as written.}
 
-\item{denominator_naming_prefix}{"from_denominator", "generic", or a custom prefix.}
+\item{denominator_naming_prefix}{The same for the denominator.}
 
-\item{statistics_naming_prefix}{"universal" (one variable for trend status, one variable for doubling dates), "from_numerator_and_prX" (If denominator is NULL, then one variable corresponding to numerator. If denominator exists, then one variable for each of the prXs).}
+\item{statistics_naming_prefix}{\code{"universal"} names the columns
+\verb{<prefix>_trend0_<days>_status} and \verb{<prefix>_doublingdays0_<days>}, with
+\verb{<days> = 7 * trend_isoyearweeks - 1}. \code{"from_numerator_and_prX"} adds the
+numerator suffix, or \verb{_pr<prX>} with a denominator.}
 
-\item{remove_training_data}{Boolean. If TRUE, removes the training data (i.e. 1:(trend_dates-1) or 1:(trend_isoyearweeks-1)) from the returned dataset.}
+\item{remove_training_data}{If \code{TRUE}, drop the first \code{trend_isoyearweeks - 1}
+rows, which have no window.}
 
-\item{include_decreasing}{If true, then *_trend*_status contains the levels c("training", "forecast", "decreasing", "null", "increasing"), otherwise the levels c("training", "forecast", "notincreasing", "increasing").}
+\item{include_decreasing}{If \code{FALSE}, the levels are \code{"training"},
+\code{"forecast"}, \code{"notincreasing"} and \code{"increasing"}. If \code{TRUE}, they are
+\code{"training"}, \code{"forecast"}, \code{"decreasing"}, \code{"null"} and \code{"increasing"}.}
 
-\item{alpha}{Significance level for change in trend.}
+\item{alpha}{The significance level of the test on the slope.}
 
-\item{measure}{Character: the `$draws` measure to compute the trend on.}
+\item{measure}{The draw matrix to fit the trend to.}
 
-\item{n_sim}{Integer. Draw-axis width used for the slope-error perturbation
-when the incoming ensemble is degenerate. A degenerate ensemble holds a
-single passthrough draw, so it has no draw axis to carry the uncertainty.
-Ignored when the ensemble already has draws.}
+\item{n_sim}{The number of draws to use when the ensemble has one draw, as the
+output of \code{\link[=nowcast_passthrough_to_ensemble_v1]{nowcast_passthrough_to_ensemble_v1()}} has.}
 
-\item{family}{Error family and link for the rolling fit. `"identity"` is the
-default. It is ordinary least squares on `measure`, and the growth rate is
-`100 * beta1 / Y`. `"quasipoisson"` is a log link on `measure`.
-`"binomial"` is a logit link, and needs `denominator`. Both of those report
-`beta1` on the link scale. The growth rate is then
-`100 * (exp(beta1) - 1)`, a percent change per week. Under `"binomial"`
-that percent change is in the odds, not in the proportion. A zero in
-`measure` needs no offset: the log link models `E[Y] = exp(b0 + b1 t)` and
-never takes `log(Y)`.}
+\item{family}{\code{"identity"} is ordinary least squares, with the growth rate
+\code{100 * beta1 / Y}. \code{"quasipoisson"} is a log link, and \code{"binomial"} a logit
+link that needs \code{denominator}. For those two, \code{beta1} is on the link scale.
+The growth rate is then \code{100 * (exp(beta1) - 1)}, a percent change per
+week, in the odds under \code{"binomial"}. A zero count needs no offset.}
 
-\item{error_reference}{Character: the reference distribution the slope's own
-sampling error is drawn from. `"auto"` is the default.
-It gives `"identity"` and `"quasipoisson"` a t on
-`trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
-from that many residual degrees of freedom, which is the case
-`summary.glm()` refers to a t. It gives `"binomial"` a standard normal,
-because that family fixes the dispersion at 1. `"normal"` and `"t"` force
-one reference on every family. Use `"normal"` to match a pipeline whose
-interval comes from `stats::confint()`, which profiles the deviance
-against an asymptotic chi-squared.}
+\item{error_reference}{The distribution of the slope error. \code{"auto"} gives
+\code{"identity"} and \code{"quasipoisson"} a t on \code{trend_isoyearweeks - 2} degrees of
+freedom, the residual degrees of freedom of their dispersion. It gives
+\code{"binomial"} a normal. At width 3 that t is a Cauchy, with heavy tails. Use
+\code{"normal"} to match \code{stats::confint()}, which profiles the deviance against
+an asymptotic chi-squared.}
 }
 \value{
-The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
+The v1 method returns \code{x} with the forecast weeks added. The new
+columns are the status, the doubling time in days, the forecast with its
+2.5\% and 97.5\% limits, and a logical forecast marker. With a denominator,
+it also adds the forecast denominator and rates.
 
-The `csfmt_rts_data_v3` method always errors: see the section below.
+The \code{csfmt_rts_data_v3} method always stops with an error.
 
-The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
-  to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
-  ready for the quantile collapse.
+The ensemble method returns \code{x} with the draw matrices
+\verb{<measure>_trend_beta1}, the slope per week, and \verb{<measure>_trend_gr}, the
+growth rate. It adds \verb{<measure>_trend_increasing_pr}, the share of draws with
+a positive slope, to \verb{$data} by reference, so the input ensemble gets it too.
 }
 \description{
-Fits a quasi-Poisson regression over a moving window of recent weeks. It
-classifies the short-term trend of the numerator (optionally per a
-denominator) as increasing or not, and estimates a doubling time.
-The method is based upon a published analytics strategy by Benedetti (2019)
-<doi:10.5588/pha.19.0002>.
+The \code{csfmt_ensemble_v3} method fits a line through a rolling window of weeks in
+every draw. The deprecated \code{csfmt_rts_data_v1} method fits a rolling
+quasi-Poisson regression to a table, after Benedetti (2019)
+\url{doi:10.5588/pha.19.0002}.
 }
-\section{Deprecated (the csfmt_rts_data_v1 method)}{
+\section{The deprecated csfmt_rts_data_v1 method}{
 
-`short_term_trend.csfmt_rts_data_v1` is **deprecated**. It belongs to the
-pre-ensemble architecture, in which each analysis stage read and wrote a
-`cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
-analysis substrate: every stage takes the ensemble and returns the ensemble,
-and [ens_collapse] is terminal.
-
-It still works and emits no warning, so existing pipelines are undisturbed.
-New work SHOULD call `short_term_trend()` on the **ensemble**, before
-`ens_collapse()`:
+\code{short_term_trend.csfmt_rts_data_v1()} is \strong{deprecated}. It still works and
+gives no warning. New work SHOULD run the ensemble method before
+\code{\link[=ens_collapse]{ens_collapse()}}:
 
 \preformatted{
 ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
@@ -137,28 +133,22 @@ ens <- short_term_trend(ens, measure = "numerator_nowcasted")
 out <- ens_collapse(ens, heal = TRUE)
 }
 
-**The replacement is not a drop-in.** The two methods differ in interface and
-in output, not only in the class they accept:
-\itemize{
-  \item the v1 method takes `numerator`, `denominator`, `prX` and the
-    `*_naming_prefix` arguments. The ensemble method takes one `measure`
-    naming a `$draws` matrix; a rate is built beforehand with [ens_add_rate].
-  \item the v1 method fits a quasi-Poisson log-link model and returns a factor
-    status column plus a doubling time. The ensemble method computes a
-    per-draw OLS slope, a growth rate and a P(increasing), and returns no
-    classification at all.
-}
-Migrating is therefore a rewrite of the call site, and the numbers will not
-match. See \code{vignette("pipeline", package = "csalert")}, which runs the
-ensemble method as stage 5 of its pipeline.
+\strong{The replacement is not a drop-in.} The v1 method takes \code{numerator},
+\code{denominator}, \code{prX} and the \verb{*_naming_prefix} arguments. The ensemble method
+takes one draw matrix, \code{measure}. The v1 method returns a status and a
+doubling time from a quasi-Poisson log-link fit. The ensemble method returns a
+slope, a growth rate and the share of draws with a positive slope. So the call
+changes, and the numbers do not match.
+
+The v1 method needs \code{granularity_time == "isoyearweek"}. A window is
+\code{increasing} when its slope is positive with a p-value at most \code{alpha}.
 }
 
-\section{Why there is no csfmt_rts_data_v3 method}{
+\section{Why the csfmt_rts_data_v3 method is an error}{
 
-`csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
-is terminal. It carries quantiles, not draws, so a per-draw trend and a
-P(increasing) cannot be recovered from it. Calling `short_term_trend()` on one
-is always a mistake, so the method exists only to say so:
+A \code{csfmt_rts_data_v3} is the collapsed output of the pipeline. It holds
+quantiles, not draws, so no per-draw trend can come from it. Run the trend
+before the collapse:
 
 \preformatted{
 ens <- short_term_trend(ens, measure = "numerator_nowcasted")  # before
@@ -166,7 +156,38 @@ out <- ens_collapse(ens, heal = TRUE)                          # then collapse
 }
 }
 
+\section{The csfmt_ensemble_v3 method}{
+
+In every draw, the method fits a line to the window of \code{trend_isoyearweeks}
+weeks that ends on each week, with \code{\link[=rolling_slope_matrix]{rolling_slope_matrix()}}. The first
+\code{trend_isoyearweeks - 1} weeks of each series get \code{NA}.
+
+It then adds the sampling error of the slope to each draw, \code{beta1 + se * e},
+with \code{e} from the distribution that \code{error_reference} names. So a settled week,
+with the same count in every draw, still gets an interval. The method returns
+no increasing label: choose your own cut-off on the share of draws with a
+positive slope.
+}
+
 \examples{
+# the ensemble method: 10 weeks x 200 draws of a rising count
+set.seed(1)
+ens <- csfmt_ensemble_v3(
+  data.table::data.table(
+    isoyearweek = sprintf("2023-\%02d", 1:10),
+    location_code = "nation",
+    age = "total"
+  ),
+  id_cols = c("location_code", "age"),
+  draws = list(numerator_nowcasted = matrix(rpois(2000, 20 + 3 * 1:10), 10))
+)
+ens <- short_term_trend(ens, measure = "numerator_nowcasted", trend_isoyearweeks = 5)
+names(ens$draws)
+
+# the share of draws with a positive slope; the first 4 weeks have no window
+ens$data[, .(isoyearweek, numerator_nowcasted_trend_increasing_pr)]
+
+# the deprecated csfmt_rts_data_v1 method
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
 res <- csalert::short_term_trend(
@@ -181,10 +202,18 @@ print(res[, .(
 )])
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")} runs the ensemble
-  method as stage 5 of its pipeline, on the output of a nowcast. No vignette
-  runs the deprecated `csfmt_rts_data_v1` method; the example below is its
-  only worked demonstration.
-  \code{vignette("csalert", package = "csalert")} explains which of the two
-  generations to use.
+\code{vignette("pipeline", package = "csalert")}, stage 5, and
+\code{vignette("csalert", package = "csalert")} on which method to use.
+
+Other ensemble operations:
+\code{\link[=ens_add_rate]{ens_add_rate()}},
+\code{\link[=ens_collapse]{ens_collapse()}},
+\code{\link[=mem_thresholds_v1]{mem_thresholds_v1()}},
+\code{\link[=signal_detection_hlm]{signal_detection_hlm()}}
+
+Other short-term trend functions:
+\code{\link[=rolling_slope_matrix]{rolling_slope_matrix()}},
+\code{\link[=short_term_trend_sts_v1]{short_term_trend_sts_v1()}}
 }
+\concept{ensemble operations}
+\concept{short-term trend functions}

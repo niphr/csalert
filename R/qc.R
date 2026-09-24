@@ -6,17 +6,24 @@
 # shared across surveillance systems while the Norwegian/operational decisions
 # (data arrives by today-7, don't publish stale numbers) stay in the caller.
 
-#' Quality-control checks on surveillance input data
-#' @param d A data.table of one indicator's data.
-#' @param reference_col The reference time column (default "isoyearweek_reference").
-#' @param expect_latest Optional: the latest reference period that *should* be
-#'   present. If `max(reference) < expect_latest`, the feed is flagged stale.
-#' @param min_rows Minimum rows required (default 1).
-#' @returns A list: `ok` (logical) and `reasons` (character vector; empty if ok).
-#' @seealso Neither package vignette covers input quality control. This function
-#'   returns a verdict and nothing else -- the caller decides what to do with it.
-#'   \code{\link{qc_week_over_week_v1}} answers a different question, about two
-#'   finished runs rather than one input feed.
+#' Check that a surveillance feed has data and is up to date
+#'
+#' Checks the input of one indicator for too few rows, a missing reference column,
+#' and a newest period older than `expect_latest`. It returns a verdict, and the
+#' caller decides what to do.
+#'
+#' The checks run in that order and stop at the first failure, so `reasons` has at
+#' most one entry.
+#' @param d A data.table with the data of one indicator.
+#' @param reference_col The reference-period column.
+#' @param expect_latest The newest period that the caller expects, or `NULL` to
+#'   skip the check. The check uses `<`, which orders zero-padded `"YYYY-WW"`
+#'   strings correctly.
+#' @param min_rows The fewest rows that pass.
+#' @returns A list with `ok`, `TRUE` when every check passes, and `reasons`, a
+#'   character vector that is empty when `ok` is `TRUE`.
+#' @family quality control functions
+#' @seealso `vignette("pipeline", package = "csalert")`, section 9.
 #' @examples
 #' d <- data.table::data.table(
 #'   isoyearweek_reference = c("2023-01", "2023-02"),

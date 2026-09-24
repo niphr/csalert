@@ -18,29 +18,26 @@
 # The draw axis is never named here -- draws are the columns of the wide ensemble
 # matrices, anonymous and exchangeable.
 
-#' Probability -> controlled-vocabulary quantile label
+#' Write a probability as a quantile label
 #'
-#' `0.025 -> "q02x5"`, `0.5 -> "q50x0"`, `0.975 -> "q97x5"`, `0.005 -> "q00x5"`.
-#' Two integer-percent digits, then `x`, then one decimal-percent digit.
+#' Writes `q`, two integer-percent digits, `x` and one decimal-percent digit, so
+#' `0.025` becomes `"q02x5"`.
 #'
-#' The format is lossy in two ways. It holds one decimal-percent digit, so a
-#' finer probability is rounded (`0.0125 -> "q01x2"`). And it holds exactly two
-#' integer-percent digits, so `p = 1` produces the three-digit `"q100x0"`, which
-#' [q_value] cannot read back. Keep `p` on the 0.001 grid and strictly below 1.
-#' @param p Numeric vector of probabilities in [0, 1].
-#' @returns Character vector of quantile labels.
+#' The label loses information in two ways. A finer probability is rounded:
+#' `0.0125` becomes `"q01x2"`. And `p = 1` gives `"q100x0"`, which [q_value()]
+#' cannot read. Keep `p` on the 0.001 grid and below 1.
+#' @param p A numeric vector of probabilities.
+#' @returns A character vector of labels, with `NA` for `NA`.
 #' @family naming grammar functions
-#' @seealso [q_value] reads these labels back, for `p < 1`.
-#'   \code{vignette("pipeline", package = "csalert")} calls this function in its
-#'   naming-grammar section, and every `_qNNxN` column it prints was labelled by
-#'   it.
+#' @seealso `vignette("pipeline", package = "csalert")`, whose naming-grammar
+#'   section shows both limits.
 #' @examples
 #' q_label(c(0.025, 0.5, 0.975))
 #'
 #' # limit 1: a probability finer than one decimal percent is rounded
 #' q_value(q_label(0.0125))
 #'
-#' # limit 2: p = 1 produces a three-digit label q_value() returns NA for
+#' # limit 2: p = 1 gives a three-digit label, and q_value() returns NA for it
 #' q_label(1)
 #' q_value(q_label(1))
 #' @export
@@ -57,28 +54,22 @@ q_label <- function(p) {
   return(out)
 }
 
-#' Quantile label -> probability
+#' Read the probability in a quantile label
 #'
-#' Reads back a label written by [q_label]. The pattern accepted is exactly two
-#' integer-percent digits, `x`, then one decimal digit. Any string that does not
-#' match returns `NA` rather than erroring.
+#' Reads a label that [q_label()] wrote: `q`, two digits, `x` and one digit. Any
+#' other string gives `NA`.
 #'
-#' The round trip `q_value(q_label(p))` returns `p` only when `p` is expressible
-#' in that format, i.e. a probability on the 0.001 grid below 1. `q_label()`
-#' rounds anything finer (`0.0125` becomes `"q01x2"`, which reads back as
-#' `0.012`), and `q_label(1)` gives the three-digit `"q100x0"`, which returns
-#' `NA`. Every probability the package itself uses is on the grid.
-#' @param label Character vector of quantile labels, e.g. "q02x5".
-#' @returns Numeric vector of probabilities; `NA` for an unparseable label.
+#' `q_value(q_label(p))` returns `p` only for a `p` on the 0.001 grid and below 1.
+#' Every probability that the package uses is on that grid.
+#' @param label A character vector of labels, for example `"q02x5"`.
+#' @returns A numeric vector of probabilities.
 #' @family naming grammar functions
-#' @seealso [q_label] writes these labels.
-#'   \code{vignette("pipeline", package = "csalert")} calls this function in its
-#'   naming-grammar section. It is how generic tooling recovers the probability
-#'   behind a `_qNNxN` column.
+#' @seealso `vignette("pipeline", package = "csalert")`, whose naming-grammar
+#'   section shows the round trip.
 #' @examples
 #' q_value(c("q02x5", "q50x0", "q97x5"))
 #'
-#' # unparseable labels come back NA, including the three-digit q100x0
+#' # a string that is not a label gives NA, and so does the three-digit q100x0
 #' q_value(c("q100x0", "not_a_label"))
 #' @export
 q_value <- function(label) {
@@ -96,19 +87,25 @@ q_value <- function(label) {
   ))
 }
 
-#' Construct a csfmt measure column name from components
-#' @param measure Character scalar, the measure identity (e.g. "consults_r80").
-#' @param denom Optional denominator name; inserts `_vs_<denom>`.
-#' @param role Optional statistic role: observed/nowcasted/forecasted/trend/baseline/status.
-#' @param q Optional probability for a quantile coordinate (mutually exclusive with `level`).
-#' @param level Optional status level for a `prob_<level>` coordinate.
-#' @param per Optional rate scaling (e.g. 100 -> `_pr100`).
-#' @param suffix Optional unit suffix (e.g. "_n").
-#' @returns Character scalar column name.
+#' Build a measure column name from its parts
+#'
+#' Joins the parts in the order
+#' `<measure>[_vs_<denom>][_<role>][_<q-label> | _prob_<level>][_pr<per>][<suffix>]`.
+#' The pipeline names its draw matrices and quantile columns with it, so build a
+#' name with it before you look a column up.
+#' @param measure The name of the measure, for example `"consults_r80"`.
+#' @param denom A denominator. It adds `_vs_<denom>`.
+#' @param role A role, for example `"nowcasted"`, `"trend"` or `"status"`. It adds
+#'   `_<role>`.
+#' @param q A probability. It adds the label from [q_label()]. Give `q` or
+#'   `level`, not both.
+#' @param level A status level. It adds `_prob_<level>`.
+#' @param per A rate scale. `100` adds `_pr100`.
+#' @param suffix A unit suffix, added as written, for example `"_n"`.
+#' @returns The column name.
 #' @family naming grammar functions
-#' @seealso \code{vignette("pipeline", package = "csalert")}, whose closing
-#'   section builds a column name with this function and takes it apart again with
-#'   \code{\link{csfmt_parse}}.
+#' @seealso `vignette("pipeline", package = "csalert")`, whose naming-grammar
+#'   section builds and parses a name.
 #' @examples
 #' csfmt_var("numerator", role = "nowcasted", q = 0.5)   # "numerator_nowcasted_q50x0"
 #' csfmt_var("consults", denom = "population", per = 100) # a rate column name
@@ -196,39 +193,40 @@ csfmt_strip_coordinates <- function(x) {
 }
 
 
-#' Parse a csfmt measure column name into components
+#' Split a measure column name into its parts
 #'
-#' Reads a column name written by [csfmt_var] back into its parts. It strips the
-#' trailing coordinates, then a role, then a `_vs_<denom>` segment, and whatever
-#' is left is the measure.
+#' Reads a name that [csfmt_var()] wrote back into its parts. From the right, it
+#' removes a `_n` suffix, a `_pr<per>` scale, a quantile label and a
+#' `_prob_<level>` level. It then removes a role and `_vs_<denom>`, and the rest
+#' is the measure.
 #'
+#' The roles it knows are `observed`, `nowcasted`, `forecasted`, `trend`,
+#' `baseline`, `status` and `hlmstatus`.
 #' @section Where it does not invert csfmt_var:
-#' The parse is a right-to-left strip against a fixed role vocabulary, so it
-#' cannot tell which of several role-looking segments was the role. On the
-#' package's own rate name it gets the denominator wrong:
+#' The parse cannot tell which of two role words was the role. On the rate name of
+#' the package, it gets the denominator wrong:
 #'
 #' \preformatted{
 #' csfmt_var("numerator_nowcasted", denom = "denominator_nowcasted", per = 100)
 #' #> "numerator_nowcasted_vs_denominator_nowcasted_pr100"
 #' csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")$denom
-#' #> "denominator"          # the denominator's own "_nowcasted" was eaten as the role
+#' #> "denominator"   # "_nowcasted" of the denominator was read as the role
 #' }
 #'
-#' Treat it as reliable for a single-role name such as
-#' `numerator_nowcasted_q50x0`. Check the result whenever the measure or the
-#' denominator itself ends in a role word.
-#' @param varname Character scalar column name.
-#' @returns Named list with the components that were present (e.g. `measure`,
-#'   `role`, `q`, `denom`, `per`).
+#' The parse is reliable for a name with one role word, such as
+#' `numerator_nowcasted_q50x0`. Check the result when the measure or the
+#' denominator ends in a role word.
+#' @param varname The column name.
+#' @returns A named list of the parts that are present: `measure`, `denom`,
+#'   `role`, `q`, `level`, `per` and `suffix`, in that order.
 #' @family naming grammar functions
-#' @seealso [csfmt_var] writes these names.
-#'   \code{vignette("pipeline", package = "csalert")}, whose closing section
-#'   parses a collapsed median column with this function.
+#' @seealso `vignette("pipeline", package = "csalert")`, whose naming-grammar
+#'   section shows this limit.
 #' @examples
 #' csfmt_parse("numerator_nowcasted_q50x0")
 #'
-#' # the documented limit: a denominator that itself ends in a role word is
-#' # truncated, because the role is stripped before the _vs_ segment is read
+#' # the limit: the role is removed before the _vs_ part is read, so a
+#' # denominator that ends in a role word loses that word
 #' csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")
 #' @export
 csfmt_parse <- function(varname) {
@@ -289,20 +287,22 @@ csfmt_parse <- function(varname) {
   "original"
 )
 
-#' Interpret a dataset's columns via the naming grammar
+#' Split every value column name of a table into its parts
 #'
-#' Applies [csfmt_parse] to every value column (everything not in the structural
-#' schema) and returns a catalog: one row per column with its parsed components.
-#' This makes a dataset self-describing -- generic tooling (QC, collapse,
-#' presentation) routes on the catalog instead of hardcoding column names.
-#' @param d A data.table / data.frame.
-#' @param value_cols Optional columns to interpret; defaults to all non-structural.
-#' @returns A data.table: `column, measure, denom, role, q, level, per, suffix,
-#'   interpretable` (the last TRUE when a role/quantile/level coordinate was found).
+#' Runs [csfmt_parse()] on every value column, and returns one row per column.
+#' Code can then find a column by its parts.
+#'
+#' A value column is any column outside a fixed list of 23 structural names.
+#' The list includes `location_code`, `age`, `sex`, `isoyearweek`,
+#' `indicator_tag`, `original` and the `time_series_*` columns.
+#' @param d A data.table or data.frame.
+#' @param value_cols The columns to read. `NULL` reads every value column.
+#' @returns A data.table with the columns `column`, `measure`, `denom`, `role`,
+#'   `q`, `level`, `per`, `suffix` and `interpretable`. `interpretable` is
+#'   `TRUE` when the name has a role, a quantile label or a level.
 #' @family naming grammar functions
-#' @seealso Neither package vignette covers this function. It is the dataset-wide
-#'   form of \code{\link{csfmt_parse}}, and is what
-#'   \code{\link{compare_results}} uses to find the value columns it should diff.
+#' @seealso `vignette("pipeline", package = "csalert")`, whose naming-grammar
+#'   section shows the grammar. [compare_results()] uses this function.
 #' @examples
 #' d <- data.table::data.table(
 #'   isoyearweek = "2023-01",
@@ -312,8 +312,8 @@ csfmt_parse <- function(varname) {
 #'   a_column_outside_the_grammar = 1
 #' )
 #'
-#' # isoyearweek is structural, so it is not a value column at all; the last
-#' # column is a value column the grammar cannot read (interpretable = FALSE)
+#' # isoyearweek is structural, so it has no row. The last column is a value
+#' # column that the grammar cannot read, so its interpretable is FALSE.
 #' csfmt_interpret(d)
 #' @export
 csfmt_interpret <- function(d, value_cols = NULL) {

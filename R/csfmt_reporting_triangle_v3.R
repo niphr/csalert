@@ -17,16 +17,13 @@
 #' The Monday that starts an ISO week
 #'
 #' Returns the Monday that starts each ISO week, as a `Date`. Every delay in a
-#' reporting triangle is the number of days from this Monday to the reporting
-#' date.
-#' @param isoyearweek Character vector of ISO weeks, written `"YYYY-WW"`, for
-#'   example `"2026-01"`.
-#' @returns A `Date` vector with one element per element of `isoyearweek`. A
-#'   value that is not an ISO week in `cstime::dates_by_isoyearweek` gives
-#'   `NA`.
+#' reporting triangle counts days from this Monday.
+#' @param isoyearweek A character vector of ISO weeks, written `"YYYY-WW"`.
+#' @returns A `Date` vector as long as `isoyearweek`, with `NA` for a value that
+#'   is not an ISO week in `cstime::dates_by_isoyearweek`.
 #' @family reporting triangle functions
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which measures
-#'   every delay and every age in days from this Monday.
+#' @seealso `vignette("pipeline", package = "csalert")`, which counts every delay
+#'   and age in days from this Monday.
 #' @examples
 #' # ISO week 2026-01 starts on Monday 2025-12-29
 #' isoyearweek_week_start(c("2026-01", "2026-02"))
@@ -42,27 +39,34 @@ isoyearweek_week_start <- function(isoyearweek) {
   return(as.Date(cal$mon[match(isoyearweek, cal$isoyearweek)]))
 }
 
-#' Construct a csfmt_reporting_triangle_v3
-#' @param data data.table with identity columns, a reference ISO-week column, a
-#'   reporting date column, and a value column.
-#' @param id_cols Identity columns defining a series.
-#' @param reference_col ISO-week column name.
-#' @param reporting_col Column name holding the calendar date the count was
-#'   reported. The column MUST be a `Date`. A character, a number, a factor and
-#'   an `IDate` each error. It MUST NOT hold `NA`, and a missing value errors
-#'   with its count. One `NA` makes `max()` return `NA`, so the as-of boundary
-#'   would be `NA`, no reference week would settle, and every nowcast engine
-#'   would quietly return the observed totals.
-#' @param value_col Count column name.
-#' @returns A validated `csfmt_reporting_triangle_v3` (a data.table with the
-#'   as-of boundary and column roles stored as attributes). The as-of boundary
-#'   is a `Date`.
+#' Build a csfmt_reporting_triangle_v3
+#'
+#' Builds the input of the nowcast engines: counts by reference ISO week and by
+#' the date each count was reported. The newest reporting date is the as-of
+#' boundary.
+#'
+#' The triangle is sparse. An absent cell on or before the as-of date is a zero,
+#' and a cell after it is not reported yet. The constructor copies `data` and adds
+#' the ids of [set_time_series_id()]. It stops with an error when a reporting date
+#' comes before its reference Monday, or a count is negative.
+#' @param data A data.table with the identity, reference, reporting and count
+#'   columns.
+#' @param id_cols The identity columns that define one series.
+#' @param reference_col The reference ISO-week column, written `"YYYY-WW"`.
+#' @param reporting_col The column with the date each count was reported. Its
+#'   class MUST be exactly `Date`, so an `IDate` is an error. It MUST NOT hold
+#'   `NA`. One `NA` would make the as-of boundary `NA`. Every nowcast engine
+#'   would then return the observed totals with no warning.
+#' @param value_col The count column.
+#' @returns A `csfmt_reporting_triangle_v3`: a data.table with the attributes
+#'   `as_of`, a `Date`, and `id_cols`, `reference_col`, `reporting_col` and
+#'   `value_col`.
 #' @family reporting triangle functions
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which builds a
-#'   triangle with this constructor and takes it through the whole pipeline.
+#' @seealso `vignette("pipeline", package = "csalert")`, which takes a triangle
+#'   through the whole pipeline.
 #' @examples
-#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
-#' # right-truncated at one as-of date so the newest weeks are still incomplete
+#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday. The
+#' # data stops at one as-of date, so the newest weeks are still incomplete.
 #' cal <- cstime::dates_by_isoyearweek
 #' i <- match("2023-01", cal$isoyearweek)
 #' set.seed(1)
@@ -80,7 +84,7 @@ isoyearweek_week_start <- function(isoyearweek) {
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
-#' # the as-of boundary is the newest reporting date seen
+#' # the as-of boundary is the newest reporting date in the data
 #' attr(tri, "as_of")
 #' head(tri, 3)
 #' @export
@@ -151,27 +155,27 @@ csfmt_reporting_triangle_v3 <- function(
   return(d[])
 }
 
-#' Densify a reporting triangle into per-series reference x delay count matrices
-#' @param triangle A `csfmt_reporting_triangle_v3`.
-#' @param max_delay_days Number of delay columns, in DAYS: delay 0 to
-#'   `max_delay_days - 1`. `max_delay_days = 35` gives delay days 0 to 34, the
-#'   35 days that start on the reference week's Monday. The last column holds
-#'   delay `max_delay_days - 1` AND every later delay, so a report at delay 35
-#'   or 400 counts in column `"34"`. A report before the reference Monday has a
-#'   negative delay and is dropped.
-#' @param value_col Which value column to reshape (default the triangle's
-#'   `value_col`; pass a denominator column to reshape that instead).
-#' @returns Named list (by time_series_id) of `list(reference, mat)`, where `mat`
-#'   is a reference-week x delay-day count matrix (zeros filled within the
-#'   observed region). The rows stay ISO weeks; only the columns are days. The
-#'   last column, `max_delay_days - 1`, also holds every report at a later
-#'   delay. So a late report adds to `rowSums(mat)` and is not lost. A cell
-#'   sums its counts with `na.rm = TRUE`, so an `NA` count adds nothing, and a
-#'   cell that holds only `NA` counts is 0.
+#' Turn a reporting triangle into one count matrix per series
+#'
+#' Returns, for each series, a matrix of counts with one row per reference week
+#' and one column per delay day. Every nowcast engine calls it first.
+#'
+#' The rows run over every ISO week from the first to the last reference week.
+#' A week with no report is a row of zeros. The last column also holds every
+#' later delay, so a late report adds to `rowSums(mat)`. A report before its
+#' reference Monday has a negative delay, and is dropped.
+#' @param triangle The `csfmt_reporting_triangle_v3` to turn into matrices.
+#' @param max_delay_days The number of delay columns, in days. With 35, the
+#'   columns are delay days 0 to 34, and a report at delay 35 or 400 counts in
+#'   column `"34"`.
+#' @param value_col The count column. The default is the `value_col` of the
+#'   triangle. Give a denominator column to get its matrix.
+#' @returns A list named by `time_series_id`. Each element holds `reference`, the
+#'   ISO weeks of the rows, and `mat`, the matrix. A cell sums its counts with
+#'   `na.rm = TRUE`, so a cell with only `NA` counts is 0.
 #' @family reporting triangle functions
-#' @seealso Neither package vignette covers this function. It is the densification
-#'   step every nowcast engine runs first. Reach for it directly only when you
-#'   want the raw reference x delay matrix rather than an ensemble.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 3, which reads the
+#'   delay distribution from these counts.
 #' @examples
 #' cal <- cstime::dates_by_isoyearweek
 #' i <- match("2023-01", cal$isoyearweek)

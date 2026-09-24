@@ -193,7 +193,7 @@
   return(draws)
 }
 
-#' Nowcast a reporting triangle into an ensemble (daily delay ECDF)
+#' Nowcast a reporting triangle from the delay pattern of settled weeks
 #'
 #' Completes each incomplete reference week from a pool of settled reference
 #' weeks. Each draw is the count observed so far, times a quantile of the
@@ -204,46 +204,45 @@
 #' `s`, `T_s` is its settled total and `O_s` is its count by delay day `d`. The
 #' draws are `observed_so_far * quantile(T_s / O_s)`, in random order. The
 #' quantiles sit at `n_sim` evenly spaced probabilities from 0 to 1, or at 0.5
-#' when `n_sim` is 1. A pool week with `O_s = 0` is left out. With fewer than 3
-#' pool weeks left, the reference week keeps its observed count.
-#'
-#' The interval is empirical: the 5% and 95% draw quantiles are the band.
-#' Nothing parametric is added on top, because the spread of the pool ratios
-#' already carries the estimation error and the reporting noise. A nowcast never
-#' falls below the observed count.
-#'
-#' A pool week counts as settled once it is `max_delay_days - 1` days old. That
-#' means its correction stops, not that its reporting is finished: a later report
-#' still adds to its last delay column. During a long reporting backlog that
-#' reaches most of the pool, the pool ratios are then too small and the nowcast
-#' runs low.
+#' when `n_sim` is 1.
 #'
 #' A pool week with `O_s = 0` has no finite ratio, so it cannot enter the pool.
-#' The interval therefore does not describe a week whose reporting has not
-#' started, and a reference week with no observed count stays at 0.
+#' With fewer than 3 pool weeks left, the reference week keeps its observed
+#' count. The interval therefore does not describe a week whose reporting has
+#' not started, and a reference week with no observed count stays at 0.
 #'
-#' The engine also forms `p(d)`, the pooled share of a week's counts that
-#' arrives by delay day `d`. `p(d)` cancels out of every draw. It only decides
+#' The interval is empirical: the 5% and 95% draw quantiles are the band.
+#' Nothing parametric is added, because the spread of the pool ratios already
+#' carries the estimation error and the reporting noise. A nowcast never falls
+#' below the observed count.
+#'
+#' A pool week is settled once it is `max_delay_days - 1` days old. Its
+#' correction then stops, but its reporting can continue: a later report adds
+#' to its last delay column. So when a long reporting backlog reaches most of
+#' the pool, the pool ratios are too small and the nowcast runs low.
+#'
+#' The engine also forms `p(d)`, the pooled share of the counts of a week that
+#' arrive by delay day `d`. `p(d)` cancels out of every draw. It only decides
 #' whether delay day `d` is completed: when `p(d)` is 0, the reference week
-#' keeps its observed count. So the draws are not built from `observed_so_far / p(d)`, the
-#' closed-form maximum likelihood estimate under
+#' keeps its observed count. So the draws are not built from
+#' `observed_so_far / p(d)`, the closed-form maximum likelihood estimate under
 #' `n[ref, d] ~ Poisson(lambda[ref] * p[d])`.
 #'
 #' There is no weekday term. Every reference week starts on a Monday, so delay
-#' day `d` is always the same weekday. The pool ratios at delay day `d`
-#' therefore absorb the weekly pattern.
+#' day `d` is always the same weekday. The pool ratios at delay day `d` therefore
+#' absorb the weekly pattern.
 #'
-#' Whether the intervals are calibrated for YOUR series is an empirical
-#' question. Measure it with [nowcast_evaluate_v1]. Shares the contract
-#' `f(reporting_triangle, ...) -> csfmt_ensemble_v3`.
-#' @param x A `csfmt_reporting_triangle_v3`.
-#' @param ... Passed to methods.
+#' Whether the intervals are calibrated for your series is an empirical
+#' question. Measure it with [nowcast_evaluate_v1()]. Like every nowcast engine,
+#' this one takes a reporting triangle and returns a `csfmt_ensemble_v3`.
+#' @param x The `csfmt_reporting_triangle_v3` to nowcast.
+#' @param ... Passed to the method.
 #' @family nowcast engines
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
-#'   engine on a synthetic triangle and then scores it.
+#' @seealso `vignette("pipeline", package = "csalert")`, which runs this engine
+#'   on a synthetic triangle and scores it.
 #' @examples
-#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
-#' # right-truncated so the newest weeks are still incomplete
+#' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday. The
+#' # data stops at one as-of date, so the newest weeks are still incomplete.
 #' cal <- cstime::dates_by_isoyearweek
 #' i <- match("2023-01", cal$isoyearweek)
 #' set.seed(1)
@@ -264,8 +263,8 @@
 #' ens <- nowcast_delay_ecdf_v1(tri, max_delay_days = 21, n_sim = 200)
 #' ens
 #'
-#' # settled weeks sit exactly on their observed total; the newest weeks are
-#' # completed, and carry an interval
+#' # a settled week sits on its observed total, and a newest week is completed
+#' # with an interval
 #' r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
 #' tail(r[, .(
 #'   isoyearweek, original,
@@ -279,21 +278,17 @@ nowcast_delay_ecdf_v1 <- function(x, ...) UseMethod("nowcast_delay_ecdf_v1")
 
 #' @method nowcast_delay_ecdf_v1 csfmt_reporting_triangle_v3
 #' @rdname nowcast_delay_ecdf_v1
-#' @param max_delay_days Delay horizon in DAYS: delay day 0 to
-#'   `max_delay_days - 1`. `max_delay_days = 35` gives the 35 days that start on
-#'   the reference week's Monday. Day `max_delay_days - 1` also holds every
-#'   later delay.
-#' @param n_sim Number of nowcast draws.
-#' @param denominator_col Optional denominator column to nowcast alongside.
-#' @param delay_window Build the pool from the settled weeks of roughly this
-#'   many WEEKS, so it tracks a drifting reporting regime. Default 26. `NULL` uses
-#'   every settled week. This argument is the one quantity here that is weeks
-#'   and not days.
-#' @returns A `csfmt_ensemble_v3` with one row per reference week, and an
-#'   `n_sim`-column draw matrix of the nowcasted total per week. Settled weeks
-#'   are degenerate at their observed total. Incomplete weeks carry the
-#'   empirical completion interval measured on the settled pool. A second
-#'   measure is added when `denominator_col` is given.
+#' @param max_delay_days The delay horizon in days, delay day 0 to
+#'   `max_delay_days - 1`. Day `max_delay_days - 1` also holds every later delay.
+#' @param n_sim The number of draws.
+#' @param denominator_col A denominator column to nowcast on the same draws. Its
+#'   observed total goes to `$data` as `<denominator_col>_observed`.
+#' @param delay_window The span, in weeks, of the settled weeks in the pool, so
+#'   that the pool follows a reporting pattern that changes. `NULL` uses every
+#'   settled week.
+#' @returns A `csfmt_ensemble_v3` with one row per reference week and a draw
+#'   matrix `<value_col>_nowcasted` with `n_sim` columns. A settled week has its
+#'   observed total in every draw. `$data` holds `original`, the observed total.
 #' @export
 nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
   x,

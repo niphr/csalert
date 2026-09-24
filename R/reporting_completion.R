@@ -66,43 +66,45 @@
   return(row)
 }
 
-#' Empirical reporting-completion summary from a reporting triangle
-#' @param triangle A `csfmt_reporting_triangle_v3`.
-#' @param max_delay_days Delay horizon in DAYS: delay day 0 to
-#'   `max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
-#'   reference week's Monday, and matches the 5 weekly delay columns of the
-#'   pre-Date format.
-#' @param delay_window Optional: use only settled weeks within roughly this many
-#'   WEEKS (drift-aware). This one is weeks, not days, because it selects
-#'   reference weeks and the reference axis is still an ISO week. `NULL` uses all
-#'   settled weeks. Ignored for the shape of `period` stratification, which
-#'   slices time itself.
-#' @param period Time stratification of the settled weeks, by the calendar year
-#'   or month of each week's Thursday. Choose `"all"` (one pooled curve,
-#'   default), `"year"`, or `"month"` (one row per period). Use `"year"` or
-#'   `"month"` to see whether completion time is trending up or down.
-#' @returns One row per series, and per period when stratified. The columns are
-#'   identity columns + `period` + `n_settled`, `mean_delay`, `complete_by_md`,
-#'   and `pct_delay0`..`pct_delay<max_delay_days-1>`. There are exactly
-#'   `max_delay_days` of those `pct_delayD` columns. Each one is the pooled
-#'   \% of cases reported by the end of day reference Monday + D, the delay ECDF,
-#'   no interpolation. `pct_delay0` is the reference week's own Monday.
-#'   `mean_delay` is in DAYS. A report at delay `max_delay_days` or later
-#'   counts at delay day `max_delay_days - 1`. So `pct_delay<max_delay_days-1>`
-#'   holds that day and the whole later tail, and `mean_delay` is a lower bound
-#'   on the uncapped mean delay.
+#' Measure how fast the counts of a reporting triangle arrive
+#'
+#' Pools the settled weeks of each series, and returns the share of cases
+#' reported by each delay day, and the mean delay. Use it to choose
+#' `max_delay_days`, and with `period` to see reporting speed up or slow down.
+#'
+#' A week is settled when its Monday is at least `max_delay_days - 1` days before
+#' the as-of date. In each period, the function drops a week with a total of 0.
+#' A period with fewer than 3 weeks left gets no row, and no warning.
+#' @param triangle The `csfmt_reporting_triangle_v3` to measure.
+#' @param max_delay_days The delay horizon in days, delay day 0 to
+#'   `max_delay_days - 1`.
+#' @param delay_window Use only the settled weeks of about this many recent weeks.
+#'   It counts weeks, not days. `NULL` uses every settled week.
+#' @param period `"all"` gives one pooled row. `"year"` and `"month"` give one row
+#'   per calendar year or month of the Thursday of each week, so the year is the
+#'   ISO year.
+#' @returns A data.table with one row per series and period: the identity
+#'   columns, `period`, `n_settled`, `mean_delay`, `complete_by_md`, and
+#'   `pct_delay0` to `pct_delay<max_delay_days - 1>`.
+#' * `n_settled`: the settled weeks with a total above 0.
+#' * `mean_delay`: the mean delay in days over the pooled cases. A report at delay
+#'   `max_delay_days` or later counts at `max_delay_days - 1`, so it is a lower
+#'   bound.
+#' * `pct_delayD`: the percentage of pooled cases reported by the end of day `D`
+#'   from the reference Monday, with no interpolation. `pct_delay0` is the Monday
+#'   itself.
 #' @section complete_by_md is always 1:
-#' `complete_by_md` is the last cumulative fraction of a total summed over every
-#' delay column. So it equals 1 for every series and every period, and
-#' `pct_delay<max_delay_days-1>` equals 100. It does NOT measure whether
-#' reporting continues past `max_delay_days`. The last column holds delay
-#' `max_delay_days - 1` and every later delay. So
-#' `100 - pct_delay<max_delay_days-2>` is the share reported on that day or
-#' later. To see the shape of the tail, re-run with a larger `max_delay_days`
-#' and compare `mean_delay` and the `pct_delayD` curve.
+#' `complete_by_md` is the last cumulative share of the total. So it is 1 for
+#' every series and period, and `pct_delay<max_delay_days - 1>` is 100. It does
+#' NOT show whether reporting continues after `max_delay_days`.
+#'
+#' The last column also holds every later delay. So
+#' `100 - pct_delay<max_delay_days - 2>` is the share reported on the last day or
+#' later. To see the tail, run it again with a larger `max_delay_days`, and
+#' compare `mean_delay` and the `pct_delayD` curve.
 #' @family reporting completion functions
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
-#'   function on its synthetic triangle.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 3, which shows how to
+#'   read each column.
 #' @examples
 #' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' set.seed(1)
@@ -118,15 +120,15 @@
 #'   id_cols = c("indicator_tag", "location_code", "age", "sex")
 #' )
 #'
-#' # one pooled curve over 21 delay days. This series reports on days 3, 10 and
-#' # 17 after the reference Monday, so the curve steps at those three days.
+#' # One pooled curve over 21 delay days. This series reports on days 3, 10 and
+#' # 17 after the reference Monday, so the curve steps on those three days.
 #' rc <- reporting_completion_v1(tri, max_delay_days = 21)
 #' rc[, .(n_settled, mean_delay, pct_delay3, pct_delay10, pct_delay17)]
 #'
 #' # there is one pct_delay column per delay day
 #' sum(grepl("^pct_delay", names(rc)))
 #'
-#' # sliced by month, to expose drift in how fast reporting arrives
+#' # sliced by month, to show a change in reporting speed
 #' head(
 #'   reporting_completion_v1(tri, max_delay_days = 21, period = "month")[,
 #'     .(period, n_settled, mean_delay, pct_delay10)
@@ -192,23 +194,19 @@ reporting_completion_v1 <- function(
   return(data.table::rbindlist(out, fill = TRUE))
 }
 
-#' Reporting-completion trend: the delay curve by year and recent months
+#' Reporting speed by year and by recent month, in one table
 #'
-#' Convenience over [reporting_completion_v1]: the completion curve sliced by calendar
-#' `year` (all years) and by `month` (the most recent `n_months`, per series),
-#' stacked with a `scope` column. One table that shows whether reporting is
-#' speeding up or slowing down over time.
-#' @param triangle A `csfmt_reporting_triangle_v3`.
-#' @param max_delay_days Delay horizon in DAYS. Passed straight to
-#'   [reporting_completion_v1].
-#' @param n_months Keep this many most-recent months per series. Default 12.
-#' @returns A data.table: the [reporting_completion_v1] columns plus a `scope` column
-#'   ("year"/"month"), the year rows followed by the last-`n_months` month rows.
-#'   Empty when no series has enough settled data.
+#' Stacks [reporting_completion_v1()] by year, and by month for the latest
+#' `n_months` months of each series, so one table shows reporting speed up or slow
+#' down.
+#' @param triangle The `csfmt_reporting_triangle_v3` to measure.
+#' @param max_delay_days The delay horizon in days.
+#' @param n_months The number of latest months to keep for each series.
+#' @returns A data.table with the columns of [reporting_completion_v1()] and
+#'   `scope`, `"year"` or `"month"`, with the year rows first. It is empty when no
+#'   series has enough settled weeks.
 #' @family reporting completion functions
-#' @seealso Neither package vignette covers this function;
-#'   \code{vignette("pipeline", package = "csalert")} runs
-#'   \code{\link{reporting_completion_v1}}, which this one wraps.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 3.
 #' @examples
 #' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' d <- data.table::data.table(

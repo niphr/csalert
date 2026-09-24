@@ -44,53 +44,45 @@ periodic_pattern <- function(
   return(c)
 }
 
-#' Simulate baseline surveillance data
+#' Simulate daily counts with no outbreak
 #'
 #' @description
-#' Simulates a time series of daily counts in the absence of outbreaks. The
-#' counts are drawn from a Poisson or negative binomial model following the
-#' approach of Noufaily et al. (2019). The baseline frequency, linear trend,
-#' seasonal pattern and day-of-the-week pattern are all controlled through the
-#' function arguments.
+#' Simulates daily counts from a Poisson or negative binomial model with a trend,
+#' a seasonal pattern and a day-of-week pattern, after Noufaily et al. (2019). Use
+#' it to make a series with a known truth.
 #'
-#' @param start_date Starting date of the simulation period.
-#'   Date is in the format of 'yyyy-mm-dd'.
+#' @details
+#' On day `t`, from 1, the log of the mean is `alpha + beta * (t + shift_1)` plus
+#' a seasonal term and a weekly term. With `u = 2 * pi * (t + shift_1) / p`, each
+#' term sums `a * cos(l * u) + b * sin(l * u)` over `l = 1, ..., n`:
+#' * seasonal: `p = 364`, `n = seasonal_pattern_n`, `a = gamma_1`, `b = gamma_2`,
+#' * weekly: `p = 7`, `n = weekly_pattern_n`, `a = gamma_3`, `b = gamma_4`.
 #'
-#' @param end_date Ending date of the simulation period.
-#'   Date is in the format of 'yyyy-mm-dd'.
-#'
-#' @param seasonal_pattern_n Number of seasonal patterns. For no seasonal pattern seasonal_pattern_n = 0. Seasonal_pattern_n = 1 represents annual pattern. Seasonal_pattern_n = 2 indicates biannual pattern.
-#'
-#' @param weekly_pattern_n Number of weekly patterns. For no specific weekly pattern, weekly_pattern_n = 0. Weekly_pattern_n = 1 represents one weekly peak.
-#'
-#' @param alpha The parameter is used to specify the baseline frequencies of reports.
-#' @param beta The parameter is used to specify to specify linear trend.
-#' @param gamma_1 The parameter is used to specify the seasonal pattern.
-#' @param gamma_2 The parameter is used to specify the seasonal pattern.
-#' @param gamma_3 The parameter is used to specify day-of-the week pattern.
-#' @param gamma_4 The parameter is used to specify day-of-the week pattern.
-#' @param phi Dispersion parameter. If phi =0, a Poisson model is used to simulate baseline data.
-#' @param shift_1 Horizontal shift parameter to help control over week/month peaks.
-#'
-#' @return
-#' A \code{csfmt_rts_data_v1} (\code{data.table}) holding one row per day over the
-#' simulation period, including the columns:
-#'
-#' \describe{
-#'   \item{date}{Calendar date of the observation.}
-#'   \item{wday}{Day of the week.}
-#'   \item{mu}{Expected count from the baseline model.}
-#'   \item{n}{Simulated count.}
-#' }
-#'
+#' With both `n` at 0, the log of the mean is `alpha + beta * t`. With
+#' `seasonal_pattern_n > 0`, `weekly_pattern_n = 0` still adds a weekly term,
+#' because `1:0` in R is `c(1, 0)`.
+#' @param start_date,end_date The first and last day, as a `Date` or a
+#'   `"YYYY-MM-DD"` string.
+#' @param seasonal_pattern_n The number of seasonal harmonics: 0 for none, 1 for
+#'   an annual pattern, 2 to add a half-year harmonic.
+#' @param weekly_pattern_n The number of weekly harmonics.
+#' @param alpha The log of the baseline count.
+#' @param beta The trend on the log scale, per day.
+#' @param gamma_1,gamma_2 The cosine and sine coefficients of the seasonal term.
+#' @param gamma_3,gamma_4 The cosine and sine coefficients of the weekly term.
+#' @param phi The dispersion. 1 gives a Poisson count, and above 1 a negative
+#'   binomial with variance `phi * mu`. Below 1 gives `NA` counts and a warning.
+#' @param shift_1 A shift in days, added to `t`, that moves the peaks.
+#' @return A `csfmt_rts_data_v1` with one row per day. Its columns include
+#'   `date`, `time` (`t`), `wday` (1 is Sunday), `mu`, the mean, and `n`, the
+#'   count.
 #' @references
 #' Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
 #' An improved algorithm for outbreak detection in multiple surveillance
 #' systems. Statistics in Medicine. 2013.
-#'
-#' @seealso Neither package vignette covers the data simulators. Use them to
-#'   generate a series whose truth you already know, then run
-#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+#' @family data simulation functions
+#' @seealso `vignette("csalert", package = "csalert")`, which simulates a series
+#'   with a known outbreak.
 #' @export
 #' @examples
 #' library(data.table)
@@ -214,41 +206,46 @@ simulate_baseline_data <- function(
 }
 
 
-#' Add seasonal outbreaks to simulated data
+#' Add seasonal outbreaks to simulated daily counts
 #'
 #' @description
-#' Adds seasonal outbreaks to a simulated baseline time series, for syndromes or
-#' diseases that follow seasonal trends. Seasonal outbreaks vary more in size and
-#' timing than the underlying seasonal pattern. The number of outbreaks per
-#' affected year is set by \code{n_season_outbreak}, and \code{week_season_start}
-#' to \code{week_season_end} define the season window. The outbreak start is drawn
-#' from the season window, with a higher probability near the peak
-#' (\code{week_season_peak}). The outbreak size (the excess number of cases) is
-#' drawn from a Poisson distribution following Noufaily et al. (2019).
+#' Adds outbreaks inside a season window to the output of
+#' [simulate_baseline_data()], after Noufaily et al. (2019). It adds
+#' `n_season_outbreak` outbreaks in each of a random number of years.
 #'
-#' @param data
-#' A \code{csfmt_rts_data_v1} data object, typically the output of
-#' \code{\link{simulate_baseline_data}}.
-#' @param week_season_start Starting season week number.
-#' @param week_season_peak Peak of the season week number.
-#' @param week_season_end Ending season week number.
-#' @param n_season_outbreak Number of seasonal outbreaks to be simulated.
-#' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak).
+#' @details
+#' The candidate years are those in `calyear`, except the last, and the function
+#' prints the years it picks. The window runs from ISO week `week_season_start` of
+#' a year to `week_season_end` of the next. An outbreak starts on a day of the
+#' window drawn with random weights.
 #'
-#' @return
-#' A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
-#' simulated seasonal outbreak counts added to column \code{n} and additional
-#' columns describing the outbreaks (e.g. \code{seasonal_outbreak},
-#' \code{seasonal_outbreak_n}).
+#' An outbreak adds a Poisson number of cases with mean `10 * m * sd`, where
+#' `sd = sqrt(mu * phi)` on the start day. The draw repeats until it is 2 or more,
+#' and it calls `set.seed()`, which resets the random stream. The cases spread
+#' over the next days by a lognormal delay. Each day is then weighted: 0.5 on
+#' Sunday, 2 on Friday and Saturday, and 1 on other days.
 #'
+#' **It needs `calyear`.** Where `calyear` is `NA`, as from
+#' [simulate_baseline_data()] with cstidy 2026.8.21, it adds no outbreak.
+#' @param data The output of [simulate_baseline_data()].
+#' @param week_season_start The ISO week that starts the season window.
+#' @param week_season_peak Not used: the start day is drawn with random
+#'   weights, not near the peak.
+#' @param week_season_end The ISO week, in the next year, that ends the window.
+#' @param n_season_outbreak The number of outbreaks in each outbreak year.
+#' @param m The size factor of an outbreak.
+#' @return A copy of `data` with the cases added to `n`, and these columns:
+#' * `sd` and `weight`,
+#' * `seasonal_outbreak`: 1 on an outbreak day,
+#' * `seasonal_outbreak_n`: the cases,
+#' * `seasonal_outbreak_n_rw`: the weighted cases, which are added to `n`.
 #' @references
 #' Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
 #' An improved algorithm for outbreak detection in multiple surveillance
 #' systems. Statistics in Medicine. 2013.
-#'
-#' @seealso Neither package vignette covers the data simulators. Use them to
-#'   generate a series whose truth you already know, then run
-#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+#' @family data simulation functions
+#' @seealso `vignette("csalert", package = "csalert")`, which simulates a series
+#'   with a known outbreak.
 #' @export
 #' @examples
 #' library(data.table)
@@ -387,35 +384,31 @@ simulate_seasonal_outbreak_data <- function(
 }
 
 
-#' Add spiked outbreaks to simulated data
+#' Add short outbreaks to the end of simulated daily counts
 #'
 #' @description
-#' Adds spiked outbreaks to a simulated baseline time series, following Noufaily
-#' et al. (2019). The method is similar to
-#' \code{\link{simulate_seasonal_outbreak_data}}. The outbreaks are shorter in
-#' duration, and are added only within the last
-#' year of data (the prediction period). A spiked outbreak can start at any week
-#' during that period.
+#' Adds `n_sp_outbreak` short outbreaks to the output of
+#' [simulate_baseline_data()], after Noufaily et al. (2019). Each starts on a
+#' random day in the last 344 days, 49 weeks, of the data.
 #'
-#' @param data
-#' A \code{csfmt_rts_data_v1} data object, typically the output of
-#' \code{\link{simulate_baseline_data}}.
-#' @param n_sp_outbreak Number of spiked outbreaks to be simulated.
-#' @param m Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the spiked outbreak).
-#'
-#' @return
-#' A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
-#' simulated spiked outbreak counts added to column \code{n} and additional
-#' columns describing the outbreaks (e.g. \code{sp_outbreak}, \code{sp_outbreak_n}).
-#'
+#' @details
+#' The size and the spread are as in [simulate_seasonal_outbreak_data()], over
+#' about half as many days, and with no day-of-week weight on `n`. The size draw
+#' also calls `set.seed()`.
+#' @param data The output of [simulate_baseline_data()].
+#' @param n_sp_outbreak The number of outbreaks.
+#' @param m The size factor of an outbreak: the mean size is `10 * m * sd`.
+#' @return A copy of `data` with the cases added to `n`, and these columns:
+#' * `sd` and `weight`,
+#' * `sp_outbreak`: 2 on an outbreak day and 0 on other days,
+#' * `sp_outbreak_n`: the cases, which are added to `n`,
+#' * `sp_outbreak_n_rw`: the weighted cases, which `n` does not use.
 #' @references
 #' Noufaily A, Enki DG, Farrington P, Garthwaite P, Andrews N, Charlett A.
 #' An improved algorithm for outbreak detection in multiple surveillance
 #' systems. Statistics in Medicine. 2013.
-#'
-#' @seealso Neither package vignette covers the data simulators. Use them to
-#'   generate a series whose truth you already know, then run
-#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+#' @family data simulation functions
+#' @seealso `vignette("csalert", package = "csalert")`, which runs it.
 #' @export
 #' @examples
 #' library(data.table)
@@ -514,28 +507,22 @@ simulate_spike_outbreak_data <- function(data, n_sp_outbreak = 1, m) {
 }
 
 
-#' Apply a public holiday effect to simulated data
+#' Multiply simulated counts on public holidays
 #'
 #' @description
-#' Multiplies the daily counts on public holidays by a fixed factor. Simulated
-#' data can then reflect the effect of holidays on a time series of daily counts.
+#' Multiplies the count `n` by `holiday_effect` on each date that `holiday_data`
+#' marks as a holiday.
 #'
-#' @param data
-#' A \code{csfmt_rts_data_v1} data object, typically the output of
-#' \code{\link{simulate_baseline_data}}.
-#' @param holiday_data A \code{data.table} with a \code{date} column and a logical
-#' \code{is_holiday} column, used to flag which dates are public holidays.
-#' @param holiday_effect Multiplicative factor applied to the count \code{n} on
-#' holidays.
-#'
-#' @return
-#' A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
-#' count \code{n} multiplied by \code{holiday_effect} on flagged holidays, and a
-#' \code{holiday} column indicating those dates.
-#'
-#' @seealso Neither package vignette covers the data simulators. Use them to
-#'   generate a series whose truth you already know, then run
-#'   \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+#' @details
+#' An integer `n`, as from [simulate_baseline_data()], stays an integer. So a
+#' factor that gives a fraction truncates the count, with a warning.
+#' @param data A `csfmt_rts_data_v1` with `date` and `n`.
+#' @param holiday_data A data.table with `date` and a logical `is_holiday`.
+#' @param holiday_effect The factor for a holiday.
+#' @return A copy of `data` with `n` changed, and a `holiday` column: the value of
+#'   `is_holiday` on the dates in `holiday_data`, and `NA` on other dates.
+#' @family data simulation functions
+#' @seealso `vignette("csalert", package = "csalert")`, which runs it.
 #' @export
 #' @examples
 #' library(data.table)

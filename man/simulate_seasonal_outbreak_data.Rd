@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{simulate_seasonal_outbreak_data}
 \alias{simulate_seasonal_outbreak_data}
-\title{Add seasonal outbreaks to simulated data}
+\title{Add seasonal outbreaks to simulated daily counts}
 \usage{
 simulate_seasonal_outbreak_data(
   data,
@@ -14,34 +14,47 @@ simulate_seasonal_outbreak_data(
 )
 }
 \arguments{
-\item{data}{A \code{csfmt_rts_data_v1} data object, typically the output of
-\code{\link{simulate_baseline_data}}.}
+\item{data}{The output of \code{\link[=simulate_baseline_data]{simulate_baseline_data()}}.}
 
-\item{week_season_start}{Starting season week number.}
+\item{week_season_start}{The ISO week that starts the season window.}
 
-\item{week_season_peak}{Peak of the season week number.}
+\item{week_season_peak}{Not used: the start day is drawn with random
+weights, not near the peak.}
 
-\item{week_season_end}{Ending season week number.}
+\item{week_season_end}{The ISO week, in the next year, that ends the window.}
 
-\item{n_season_outbreak}{Number of seasonal outbreaks to be simulated.}
+\item{n_season_outbreak}{The number of outbreaks in each outbreak year.}
 
-\item{m}{Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the seasonal outbreak).}
+\item{m}{The size factor of an outbreak.}
 }
 \value{
-A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
-simulated seasonal outbreak counts added to column \code{n} and additional
-columns describing the outbreaks (e.g. \code{seasonal_outbreak},
-\code{seasonal_outbreak_n}).
+A copy of \code{data} with the cases added to \code{n}, and these columns:
+\itemize{
+\item \code{sd} and \code{weight},
+\item \code{seasonal_outbreak}: 1 on an outbreak day,
+\item \code{seasonal_outbreak_n}: the cases,
+\item \code{seasonal_outbreak_n_rw}: the weighted cases, which are added to \code{n}.
+}
 }
 \description{
-Adds seasonal outbreaks to a simulated baseline time series, for syndromes or
-diseases that follow seasonal trends. Seasonal outbreaks vary more in size and
-timing than the underlying seasonal pattern. The number of outbreaks per
-affected year is set by \code{n_season_outbreak}, and \code{week_season_start}
-to \code{week_season_end} define the season window. The outbreak start is drawn
-from the season window, with a higher probability near the peak
-(\code{week_season_peak}). The outbreak size (the excess number of cases) is
-drawn from a Poisson distribution following Noufaily et al. (2019).
+Adds outbreaks inside a season window to the output of
+\code{\link[=simulate_baseline_data]{simulate_baseline_data()}}, after Noufaily et al. (2019). It adds
+\code{n_season_outbreak} outbreaks in each of a random number of years.
+}
+\details{
+The candidate years are those in \code{calyear}, except the last, and the function
+prints the years it picks. The window runs from ISO week \code{week_season_start} of
+a year to \code{week_season_end} of the next. An outbreak starts on a day of the
+window drawn with random weights.
+
+An outbreak adds a Poisson number of cases with mean \code{10 * m * sd}, where
+\code{sd = sqrt(mu * phi)} on the start day. The draw repeats until it is 2 or more,
+and it calls \code{set.seed()}, which resets the random stream. The cases spread
+over the next days by a lognormal delay. Each day is then weighted: 0.5 on
+Sunday, 2 on Friday and Saturday, and 1 on other days.
+
+\strong{It needs \code{calyear}.} Where \code{calyear} is \code{NA}, as from
+\code{\link[=simulate_baseline_data]{simulate_baseline_data()}} with cstidy 2026.8.21, it adds no outbreak.
 }
 \examples{
 library(data.table)
@@ -75,7 +88,12 @@ An improved algorithm for outbreak detection in multiple surveillance
 systems. Statistics in Medicine. 2013.
 }
 \seealso{
-Neither package vignette covers the data simulators. Use them to
-  generate a series whose truth you already know, then run
-  \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+\code{vignette("csalert", package = "csalert")}, which simulates a series
+with a known outbreak.
+
+Other data simulation functions:
+\code{\link[=add_holiday_effect]{add_holiday_effect()}},
+\code{\link[=simulate_baseline_data]{simulate_baseline_data()}},
+\code{\link[=simulate_spike_outbreak_data]{simulate_spike_outbreak_data()}}
 }
+\concept{data simulation functions}

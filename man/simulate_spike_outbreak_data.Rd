@@ -2,30 +2,35 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{simulate_spike_outbreak_data}
 \alias{simulate_spike_outbreak_data}
-\title{Add spiked outbreaks to simulated data}
+\title{Add short outbreaks to the end of simulated daily counts}
 \usage{
 simulate_spike_outbreak_data(data, n_sp_outbreak = 1, m)
 }
 \arguments{
-\item{data}{A \code{csfmt_rts_data_v1} data object, typically the output of
-\code{\link{simulate_baseline_data}}.}
+\item{data}{The output of \code{\link[=simulate_baseline_data]{simulate_baseline_data()}}.}
 
-\item{n_sp_outbreak}{Number of spiked outbreaks to be simulated.}
+\item{n_sp_outbreak}{The number of outbreaks.}
 
-\item{m}{Parameter to determine the size of the outbreak (m times the standard deviation of the baseline count at the starting day of the spiked outbreak).}
+\item{m}{The size factor of an outbreak: the mean size is \code{10 * m * sd}.}
 }
 \value{
-A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
-simulated spiked outbreak counts added to column \code{n} and additional
-columns describing the outbreaks (e.g. \code{sp_outbreak}, \code{sp_outbreak_n}).
+A copy of \code{data} with the cases added to \code{n}, and these columns:
+\itemize{
+\item \code{sd} and \code{weight},
+\item \code{sp_outbreak}: 2 on an outbreak day and 0 on other days,
+\item \code{sp_outbreak_n}: the cases, which are added to \code{n},
+\item \code{sp_outbreak_n_rw}: the weighted cases, which \code{n} does not use.
+}
 }
 \description{
-Adds spiked outbreaks to a simulated baseline time series, following Noufaily
-et al. (2019). The method is similar to
-\code{\link{simulate_seasonal_outbreak_data}}. The outbreaks are shorter in
-duration, and are added only within the last
-year of data (the prediction period). A spiked outbreak can start at any week
-during that period.
+Adds \code{n_sp_outbreak} short outbreaks to the output of
+\code{\link[=simulate_baseline_data]{simulate_baseline_data()}}, after Noufaily et al. (2019). Each starts on a
+random day in the last 344 days, 49 weeks, of the data.
+}
+\details{
+The size and the spread are as in \code{\link[=simulate_seasonal_outbreak_data]{simulate_seasonal_outbreak_data()}}, over
+about half as many days, and with no day-of-week weight on \code{n}. The size draw
+also calls \code{set.seed()}.
 }
 \examples{
 library(data.table)
@@ -57,7 +62,11 @@ An improved algorithm for outbreak detection in multiple surveillance
 systems. Statistics in Medicine. 2013.
 }
 \seealso{
-Neither package vignette covers the data simulators. Use them to
-  generate a series whose truth you already know, then run
-  \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+\code{vignette("csalert", package = "csalert")}, which runs it.
+
+Other data simulation functions:
+\code{\link[=add_holiday_effect]{add_holiday_effect()}},
+\code{\link[=simulate_baseline_data]{simulate_baseline_data()}},
+\code{\link[=simulate_seasonal_outbreak_data]{simulate_seasonal_outbreak_data()}}
 }
+\concept{data simulation functions}

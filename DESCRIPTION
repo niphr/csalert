@@ -56,3 +56,4 @@ VignetteBuilder: knitr
 Remotes: niphr/cstidy
 Config/Needs/website: niphr/cstemplate
 Config/roxygen2/version: 8.0.0
+Roxygen: list(markdown = TRUE)

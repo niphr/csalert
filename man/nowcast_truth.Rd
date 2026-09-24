@@ -2,31 +2,31 @@
 % Please edit documentation in R/nowcast_backtest.R
 \name{nowcast_truth}
 \alias{nowcast_truth}
-\title{The settled (eventually-observed) total per reference week}
+\title{The settled total of each reference week}
 \usage{
 nowcast_truth(triangle, max_delay_days)
 }
 \arguments{
-\item{triangle}{A `csfmt_reporting_triangle_v3` (single series).}
+\item{triangle}{A \code{csfmt_reporting_triangle_v3} with one series.}
 
-\item{max_delay_days}{Delay horizon in DAYS: delay day 0 to
-`max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
-reference week's Monday. It matches the 5 weekly delay columns of the
-pre-Date format.}
+\item{max_delay_days}{The delay horizon in days. 35 is the 35 days from the
+reference Monday. The 5 weekly delay columns of the older format had the
+same span.}
 }
 \value{
-A data.table `reference`, `truth`.
+A data.table with \code{reference}, the ISO week, and \code{truth}, one row per
+settled week.
 }
 \description{
-Sums each reference week's counts over every non-negative delay, the quantity
-a nowcast is trying to predict. A report at delay `max_delay_days` or later
-counts in the last delay day, `max_delay_days - 1`, so it is inside this
-total. Keeps only the weeks old enough to be settled. A settled week's Monday
-is at least `max_delay_days - 1` days before the triangle's as-of date. That
-bound is one lower than it may read. With `max_delay_days = 21`, the newest
-settled week starts 20 days before the as-of date, not 21. A settled week is
-not final. A report that arrives after the as-of date has a delay of
-`max_delay_days` or more, and it still adds to the week's total.
+Sums the counts of each settled reference week, the truth that a backtest
+scores a nowcast against. A report at delay \code{max_delay_days} or later counts in
+the last delay day, so it is in the total.
+}
+\details{
+A week is settled when its Monday is at least \code{max_delay_days - 1} days before
+the as-of date. With \code{max_delay_days = 21}, the newest settled week starts 20
+days before the as-of date, not 21. A settled week is not final: a later report
+still adds to its total.
 }
 \examples{
 monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
@@ -45,16 +45,12 @@ tri <- csfmt_reporting_triangle_v3(
 
 truth <- nowcast_truth(tri, max_delay_days = 21)
 
-# the newest weeks are missing: they are not settled yet, so they have no
-# truth to be scored against
+# the newest weeks are not settled yet, so they have no row
 tail(truth, 3)
 c(reference_weeks = 40L, settled = nrow(truth))
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")} calls this
-  function directly in its validation stage to obtain settled truth.
-  \code{\link{nowcast_evaluate_v1}} calls it for you when you only want the
-  scores.
+\code{vignette("pipeline", package = "csalert")}, stage 2.
 
 Other nowcast diagnostics:
 \code{\link[=nowcast_backtest]{nowcast_backtest()}},

@@ -2,7 +2,7 @@
 % Please edit documentation in R/short_term_trend_ensemble.R
 \name{rolling_slope_matrix}
 \alias{rolling_slope_matrix}
-\title{Rolling regression slope over a weeks x draws matrix}
+\title{Rolling regression slope down every column of a matrix}
 \usage{
 rolling_slope_matrix(
   Y,
@@ -14,53 +14,46 @@ rolling_slope_matrix(
 )
 }
 \arguments{
-\item{Y}{Numeric matrix, rows = time (ordered), columns = draws.}
+\item{Y}{A numeric matrix, rows = weeks in time order, columns = draws.}
 
-\item{width}{Window width (>= 2).}
+\item{width}{The window width in rows, at least 2.}
 
-\item{family}{Error family and link. `"identity"` is the default. It is the
-closed-form ordinary least squares fit on `Y`. `"quasipoisson"` is a log
-link and `"binomial"` is a logit link. Both of those run iteratively
-reweighted least squares, so `beta1` is a slope on the link scale.}
+\item{family}{\code{"identity"} is ordinary least squares. \code{"quasipoisson"} is a log
+link and \code{"binomial"} a logit link, and for those \code{beta1} is on the link
+scale.}
 
-\item{prior_weights}{Numeric matrix of binomial denominators, shaped like `Y`
-or holding one column that is recycled across the draws.
-`family = "binomial"` needs it, and the other two families reject it.}
+\item{prior_weights}{The binomial denominators, a matrix the shape of \code{Y} or
+with one column. Only \code{family = "binomial"} takes it, and it needs it.}
 
-\item{tol}{Convergence tolerance. The iteration stops once no coefficient of
-any window moves further than `tol`.}
+\item{tol}{The iteration stops when no coefficient moves more than \code{tol}.}
 
-\item{maxit}{Maximum number of iterations. A window whose coefficients still
-move further than `tol` at iteration `maxit` did not converge.}
+\item{maxit}{The most iterations. A window that still moves more than \code{tol}
+did not converge.}
 }
 \value{
-List of matrices: `beta0`, `beta1`, `se`, `converged`. `se` is the
-  standard error of `beta1`. Under the two GLM families it is a Wald standard
-  error. `converged` is logical. It is `NA` on the leading `width-1` rows,
-  which hold no window. `beta0`, `beta1` and `se` are `NA_real_` wherever
-  `converged` is `FALSE`. The closed-form identity family solves every
-  complete window, so its `converged` is `TRUE` throughout.
+A list of four matrices, each the shape of \code{Y}: \code{beta0}, \code{beta1},
+\code{se} and \code{converged}. \code{se} is the standard error of \code{beta1}, a Wald
+standard error under IRLS. The logical \code{converged} is \code{NA} on the first
+\code{width - 1} rows.
 }
 \description{
-Fits `y ~ 1 + t` over each window (length `width`, local time index
-`1..width`) independently down every column. Returns matrices of the same
-shape; the leading `width-1` rows of each column are NA.
+Fits \code{y ~ 1 + t}, with \code{t} from 1 to \code{width}, to each window of \code{width} rows in
+every column. It is the kernel of the ensemble method of \code{\link[=short_term_trend]{short_term_trend()}}.
 }
 \details{
-A window with complete or quasi-complete separation drives the slope to
-infinity, so IRLS cannot converge. `beta0`, `beta1` and `se` are then
-`NA_real_`, and the function warns once with the count.
+Row \code{i} holds the fit of the window that ends on row \code{i}, so the first
+\code{width - 1} rows are \code{NA}. The identity family has a closed form. The other two
+families run iteratively reweighted least squares (IRLS) on every window at
+once. A window with complete or quasi-complete separation cannot converge: its
+\code{beta0}, \code{beta1} and \code{se} are \code{NA}, and one warning gives the count.
 }
-\section{A deliberate divergence from glm}{
+\section{One deliberate difference from glm}{
 
-  An all-zero window returns `NA` here. `stats::glm()` returns a slope of 0
-  on the same window. The two use different convergence rules.
-  `stats::glm()` stops on the relative change in the deviance, which is 0 for
-  an all-zero window from the first iteration. This kernel stops on the
-  coefficient step, and that step never settles: the intercept marches to
-  `-Inf` as the fitted mean goes to 0. Agreement with `stats::glm()` is the
-  contract of this function, so the divergence is deliberate, and this is the
-  one case of it. An all-zero window identifies no slope, and `NA` says so.
+The function agrees with \code{stats::glm()} except on an all-zero window. There it
+returns \code{NA}, and \code{stats::glm()} returns a slope of 0. \code{stats::glm()} stops on
+the relative change in deviance, which is 0 from the first step. This function
+stops on the coefficient step, which never settles, because the intercept goes
+to \code{-Inf}. An all-zero window identifies no slope, and \code{NA} says so.
 }
 
 \examples{
@@ -73,19 +66,21 @@ rs <- rolling_slope_matrix(Y, width = 4)
 # the first three rows have no complete window, so they are NA
 head(rs$beta1, 3)
 
-# later rows recover the slope, one estimate per draw
+# the later rows find the slope, one estimate per draw
 round(rs$beta1[8:10, ], 2)
 
-# `se` is the OLS standard error of that slope
+# `se` is the OLS standard error of the slope
 round(rs$se[10, ], 2)
 
-# a log link instead: counts rising at 0.2 per week on the log scale
+# a log link: counts that rise by 0.2 per week on the log scale
 N <- matrix(rpois(40, rep(exp(1 + 0.2 * 1:10), 4)), nrow = 10)
 round(rolling_slope_matrix(N, width = 4, family = "quasipoisson")$beta1[10, ], 2)
 }
 \seealso{
-Neither package vignette covers this function. It is the numeric
-  kernel behind the ensemble method of \code{\link{short_term_trend}}, which
-  is the function you normally want. Use this one when you have a bare
-  weeks x draws matrix and no ensemble.
+\code{vignette("pipeline", package = "csalert")}, stage 5.
+
+Other short-term trend functions:
+\code{\link[=short_term_trend]{short_term_trend()}},
+\code{\link[=short_term_trend_sts_v1]{short_term_trend_sts_v1()}}
 }
+\concept{short-term trend functions}

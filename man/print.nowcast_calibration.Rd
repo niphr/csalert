@@ -2,26 +2,23 @@
 % Please edit documentation in R/nowcast_calibration.R
 \name{print.nowcast_calibration}
 \alias{print.nowcast_calibration}
-\title{Print a `nowcast_calibration`}
+\title{Print a \code{nowcast_calibration}}
 \usage{
 \method{print}{nowcast_calibration}(x, ...)
 }
 \arguments{
-\item{x}{A `nowcast_calibration` from [nowcast_estimate_calibration_v1].}
+\item{x}{The \code{nowcast_calibration} to print.}
 
-\item{...}{Ignored (for S3 consistency).}
+\item{...}{Not used, but the \code{print()} generic has it.}
 }
 \value{
-`x`, invisibly.
+\code{x}, invisibly.
 }
 \description{
-Shows the nominal interval level, the grouping, and the per-group calibration
-factor table (factor > 1 widens an under-dispersed engine; < 1 narrows).
+Prints the interval level, the grouping columns and the table of factors.
 }
 \seealso{
-Neither package vignette covers calibration; see the example on
-  \code{\link{nowcast_estimate_calibration_v1}}, which prints its result with
-  this method.
+\code{vignette("pipeline", package = "csalert")}, stage 2.
 
 Other nowcast calibration functions:
 \code{\link[=nowcast_apply_calibration_v1]{nowcast_apply_calibration_v1()}},

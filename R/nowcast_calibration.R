@@ -27,26 +27,32 @@
 # nearest available quantile_level to a target probability (robust to float repr)
 .nearest_q <- function(levels, p) levels[which.min(abs(levels - p))]
 
-#' Estimate a nowcast calibration from a backtest
+#' Estimate an interval scaling factor from a backtest
 #'
-#' Learns a per-group interval-scaling correction from past nowcasts scored
-#' against settled truth. See [nowcast_apply_calibration_v1] to use it.
+#' Measures, for each group, the factor that would have made the central `level`
+#' interval of past nowcasts cover `level` of their settled truths. Use it to
+#' check an engine. [nowcast_apply_calibration_v1()] applies it if you choose to.
 #'
-#' This is an empirical rescaling, not split conformal. It takes the ordinary
-#' type-7 quantile of the scaled residuals, rather than the conformal order
-#' statistic. It summarises both tails with one symmetric distance from the
-#' median. It therefore carries NO finite-sample coverage guarantee. Read
-#' `coverage_raw` as "what this engine did on these replayed weeks", not as a
+#' The factor is the type-7 `level` quantile of `|truth - median| / halfwidth`,
+#' where `halfwidth` is half the width of the interval. Above 1, the intervals
+#' were too narrow, and below 1 too wide.
+#'
+#' This is an empirical rescaling, not split conformal. It uses the type-7
+#' quantile, not the order statistic that a conformal argument needs, and one
+#' symmetric distance for both tails. So it carries NO finite-sample coverage
+#' guarantee. `coverage_raw` is what the engine did on these replayed weeks, not a
 #' property of the engine.
-#' @param backtest Long quantile nowcasts (from [nowcast_backtest]): `reference`,
-#'   the `by` column(s), `quantile_level`, `predicted`.
-#' @param truth Settled totals (from [nowcast_truth]): `reference`, `truth`.
-#' @param level Central interval level to calibrate on (default 0.9).
-#' @param by Grouping column(s) the factor varies over (default "horizon").
-#' @returns A `nowcast_calibration`: per-group raw coverage + scale `factor`.
+#' @param backtest The output of [nowcast_backtest()]. The function uses the
+#'   `quantile_level` nearest to each end of the interval and to the median.
+#' @param truth The output of [nowcast_truth()].
+#' @param level The central interval level.
+#' @param by The columns that the factor varies over.
+#' @returns A `nowcast_calibration`: a list with `level`, `by` and `table`, which
+#'   has the `by` columns, `n`, `coverage_raw`, the share of truths inside the
+#'   interval, and `factor`.
 #' @family nowcast calibration functions
-#' @seealso Neither package vignette covers calibration. The example below is its
-#'   only worked demonstration.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 2, which measures
+#'   the coverage that the factor corrects.
 #' @examples
 #' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
 #' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
@@ -71,11 +77,9 @@
 #'   horizons = 0:1, seed = 1
 #' )
 #'
-#' # `coverage_raw` is what happened on these replayed weeks, and `factor` is
-#' # what would have made the 90% interval cover 90% of them. The two horizons
-#' # here fall on opposite sides of nominal, on 17 and 18 scored weeks. That is
-#' # far too little evidence to call the engine over- or under-dispersed. Treat
-#' # a factor as a flag to look into, not a verdict.
+#' # The two horizons fall on opposite sides of 0.9, on 17 and 18 scored weeks.
+#' # That is too little evidence to call the engine over- or under-dispersed, so
+#' # read a factor as a reason to look closer, not as a verdict.
 #' nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay_days = 21))
 #' @export
 nowcast_estimate_calibration_v1 <- function(
@@ -138,15 +142,12 @@ nowcast_estimate_calibration_v1 <- function(
 
 #' Print a `nowcast_calibration`
 #'
-#' Shows the nominal interval level, the grouping, and the per-group calibration
-#' factor table (factor > 1 widens an under-dispersed engine; < 1 narrows).
-#' @param x A `nowcast_calibration` from [nowcast_estimate_calibration_v1].
-#' @param ... Ignored (for S3 consistency).
+#' Prints the interval level, the grouping columns and the table of factors.
+#' @param x The `nowcast_calibration` to print.
+#' @param ... Not used, but the `print()` generic has it.
 #' @returns `x`, invisibly.
 #' @family nowcast calibration functions
-#' @seealso Neither package vignette covers calibration; see the example on
-#'   \code{\link{nowcast_estimate_calibration_v1}}, which prints its result with
-#'   this method.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 2.
 #' @export
 print.nowcast_calibration <- function(x, ...) {
   cat(sprintf(
@@ -159,21 +160,21 @@ print.nowcast_calibration <- function(x, ...) {
   return(invisible(x))
 }
 
-#' Apply a nowcast calibration to quantile predictions
+#' Rescale quantile nowcasts by a calibration factor
 #'
-#' Rescales each quantile by moving it away from (or toward) the median by the
-#' learned per-group `factor`. By construction the rescaled central interval
-#' covers `level` of the BACKTEST the factor was learned on; that is not a
-#' guarantee about future weeks, and the median is left unchanged. Groups with no
-#' learned factor (e.g. an unseen horizon) pass through unchanged.
-#' @param x Long quantile predictions (`reference`, the calibration's `by`
-#'   column(s), `quantile_level`, `predicted`) -- e.g. a fresh [nowcast_backtest]
-#'   output or a melted collapse.
-#' @param calibration A `nowcast_calibration` from [nowcast_estimate_calibration_v1].
-#' @returns `x` with `predicted` recalibrated.
+#' Moves every quantile away from the median, or toward it, by the factor of its
+#' group. The median does not move, and a group with no factor passes through.
+#'
+#' The rescaled interval covers about `level` of the backtest that the factor
+#' came from, not exactly. The type-7 quantile interpolates, and each tail moves
+#' by its own distance from the median. On future weeks there is no guarantee.
+#' @param x Long quantile nowcasts with `reference`, the `by` columns,
+#'   `quantile_level` and `predicted`, such as the output of [nowcast_backtest()].
+#' @param calibration A `nowcast_calibration` from
+#'   [nowcast_estimate_calibration_v1()].
+#' @returns A copy of `x` with `predicted` rescaled.
 #' @family nowcast calibration functions
-#' @seealso Neither package vignette covers calibration. The example below is its
-#'   only worked demonstration.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 2.
 #' @examples
 #' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
 #' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
@@ -201,8 +202,7 @@ print.nowcast_calibration <- function(x, ...) {
 #'
 #' adj <- nowcast_apply_calibration_v1(bt, cal)
 #'
-#' # the median is untouched; the other two quantiles move toward or away from
-#' # it, so the interval width changes by the learned factor
+#' # the median stays, and the width of the interval changes by the factor
 #' width <- function(x) {
 #'   x[horizon == 0, .(width = diff(range(predicted))), by = reference][1:3]
 #' }

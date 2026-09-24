@@ -30,47 +30,38 @@
 # `width` lagged slices of Y, which costs the O(width x rows x draws) the
 # identity path already pays for `Stx`.
 
-#' Rolling regression slope over a weeks x draws matrix
+#' Rolling regression slope down every column of a matrix
 #'
-#' Fits `y ~ 1 + t` over each window (length `width`, local time index
-#' `1..width`) independently down every column. Returns matrices of the same
-#' shape; the leading `width-1` rows of each column are NA.
+#' Fits `y ~ 1 + t`, with `t` from 1 to `width`, to each window of `width` rows in
+#' every column. It is the kernel of the ensemble method of [short_term_trend()].
 #'
-#' A window with complete or quasi-complete separation drives the slope to
-#' infinity, so IRLS cannot converge. `beta0`, `beta1` and `se` are then
-#' `NA_real_`, and the function warns once with the count.
-#' @param Y Numeric matrix, rows = time (ordered), columns = draws.
-#' @param width Window width (>= 2).
-#' @param family Error family and link. `"identity"` is the default. It is the
-#'   closed-form ordinary least squares fit on `Y`. `"quasipoisson"` is a log
-#'   link and `"binomial"` is a logit link. Both of those run iteratively
-#'   reweighted least squares, so `beta1` is a slope on the link scale.
-#' @param prior_weights Numeric matrix of binomial denominators, shaped like `Y`
-#'   or holding one column that is recycled across the draws.
-#'   `family = "binomial"` needs it, and the other two families reject it.
-#' @param tol Convergence tolerance. The iteration stops once no coefficient of
-#'   any window moves further than `tol`.
-#' @param maxit Maximum number of iterations. A window whose coefficients still
-#'   move further than `tol` at iteration `maxit` did not converge.
-#' @returns List of matrices: `beta0`, `beta1`, `se`, `converged`. `se` is the
-#'   standard error of `beta1`. Under the two GLM families it is a Wald standard
-#'   error. `converged` is logical. It is `NA` on the leading `width-1` rows,
-#'   which hold no window. `beta0`, `beta1` and `se` are `NA_real_` wherever
-#'   `converged` is `FALSE`. The closed-form identity family solves every
-#'   complete window, so its `converged` is `TRUE` throughout.
-#' @section A deliberate divergence from glm:
-#'   An all-zero window returns `NA` here. `stats::glm()` returns a slope of 0
-#'   on the same window. The two use different convergence rules.
-#'   `stats::glm()` stops on the relative change in the deviance, which is 0 for
-#'   an all-zero window from the first iteration. This kernel stops on the
-#'   coefficient step, and that step never settles: the intercept marches to
-#'   `-Inf` as the fitted mean goes to 0. Agreement with `stats::glm()` is the
-#'   contract of this function, so the divergence is deliberate, and this is the
-#'   one case of it. An all-zero window identifies no slope, and `NA` says so.
-#' @seealso Neither package vignette covers this function. It is the numeric
-#'   kernel behind the ensemble method of \code{\link{short_term_trend}}, which
-#'   is the function you normally want. Use this one when you have a bare
-#'   weeks x draws matrix and no ensemble.
+#' Row `i` holds the fit of the window that ends on row `i`, so the first
+#' `width - 1` rows are `NA`. The identity family has a closed form. The other two
+#' families run iteratively reweighted least squares (IRLS) on every window at
+#' once. A window with complete or quasi-complete separation cannot converge: its
+#' `beta0`, `beta1` and `se` are `NA`, and one warning gives the count.
+#' @param Y A numeric matrix, rows = weeks in time order, columns = draws.
+#' @param width The window width in rows, at least 2.
+#' @param family `"identity"` is ordinary least squares. `"quasipoisson"` is a log
+#'   link and `"binomial"` a logit link, and for those `beta1` is on the link
+#'   scale.
+#' @param prior_weights The binomial denominators, a matrix the shape of `Y` or
+#'   with one column. Only `family = "binomial"` takes it, and it needs it.
+#' @param tol The iteration stops when no coefficient moves more than `tol`.
+#' @param maxit The most iterations. A window that still moves more than `tol`
+#'   did not converge.
+#' @returns A list of four matrices, each the shape of `Y`: `beta0`, `beta1`,
+#'   `se` and `converged`. `se` is the standard error of `beta1`, a Wald
+#'   standard error under IRLS. The logical `converged` is `NA` on the first
+#'   `width - 1` rows.
+#' @section One deliberate difference from glm:
+#' The function agrees with `stats::glm()` except on an all-zero window. There it
+#' returns `NA`, and `stats::glm()` returns a slope of 0. `stats::glm()` stops on
+#' the relative change in deviance, which is 0 from the first step. This function
+#' stops on the coefficient step, which never settles, because the intercept goes
+#' to `-Inf`. An all-zero window identifies no slope, and `NA` says so.
+#' @family short-term trend functions
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 5.
 #' @examples
 #' # 10 weeks x 4 draws, all rising at a true slope of 2 per week
 #' set.seed(1)
@@ -81,13 +72,13 @@
 #' # the first three rows have no complete window, so they are NA
 #' head(rs$beta1, 3)
 #'
-#' # later rows recover the slope, one estimate per draw
+#' # the later rows find the slope, one estimate per draw
 #' round(rs$beta1[8:10, ], 2)
 #'
-#' # `se` is the OLS standard error of that slope
+#' # `se` is the OLS standard error of the slope
 #' round(rs$se[10, ], 2)
 #'
-#' # a log link instead: counts rising at 0.2 per week on the log scale
+#' # a log link: counts that rise by 0.2 per week on the log scale
 #' N <- matrix(rpois(40, rep(exp(1 + 0.2 * 1:10), 4)), nrow = 10)
 #' round(rolling_slope_matrix(N, width = 4, family = "quasipoisson")$beta1[10, ], 2)
 #' @export
@@ -330,7 +321,6 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
   ))
 }
 
-#' @method short_term_trend csfmt_ensemble_v3
 # The binomial denominator is a measure name in $draws, matching
 # ens_add_rate(). It is drawn like everything else, so it carries its own
 # uncertainty column by column.
@@ -415,41 +405,42 @@ stt_error_reference <- function(family, error_reference, width) {
 }
 
 #' @rdname short_term_trend
-#' @param measure Character: the `$draws` measure to compute the trend on.
-#' @param trend_isoyearweeks Rolling window width in isoyearweeks (>= 2).
-#' @param n_sim Integer. Draw-axis width used for the slope-error perturbation
-#'   when the incoming ensemble is degenerate. A degenerate ensemble holds a
-#'   single passthrough draw, so it has no draw axis to carry the uncertainty.
-#'   Ignored when the ensemble already has draws.
-#' @param family Error family and link for the rolling fit. `"identity"` is the
-#'   default. It is ordinary least squares on `measure`, and the growth rate is
-#'   `100 * beta1 / Y`. `"quasipoisson"` is a log link on `measure`.
-#'   `"binomial"` is a logit link, and needs `denominator`. Both of those report
-#'   `beta1` on the link scale. The growth rate is then
-#'   `100 * (exp(beta1) - 1)`, a percent change per week. Under `"binomial"`
-#'   that percent change is in the odds, not in the proportion. A zero in
-#'   `measure` needs no offset: the log link models `E[Y] = exp(b0 + b1 t)` and
-#'   never takes `log(Y)`.
-#' @param denominator Character. The two methods read it differently, and this
-#'   one entry serves both, because they share a help page. For
-#'   `csfmt_rts_data_v1` it names the denominator column, and it is optional.
-#'   For `csfmt_ensemble_v3` it names the `$draws` measure holding the binomial
-#'   denominator, which enters the fit as the prior weight. `measure` MUST then
-#'   be the proportion on the response scale, between 0 and 1.
-#'   `family = "binomial"` needs it, and the other two families reject it.
-#' @param error_reference Character: the reference distribution the slope's own
-#'   sampling error is drawn from. `"auto"` is the default.
-#'   It gives `"identity"` and `"quasipoisson"` a t on
-#'   `trend_isoyearweeks - 2` degrees of freedom. Both estimate a dispersion
-#'   from that many residual degrees of freedom, which is the case
-#'   `summary.glm()` refers to a t. It gives `"binomial"` a standard normal,
-#'   because that family fixes the dispersion at 1. `"normal"` and `"t"` force
-#'   one reference on every family. Use `"normal"` to match a pipeline whose
-#'   interval comes from `stats::confint()`, which profiles the deviance
-#'   against an asymptotic chi-squared.
-#' @returns The `csfmt_ensemble_v3` with per-draw short-term-trend columns added
-#'   to `$draws` for `measure` (the rolling slope/level and a P(increasing)),
-#'   ready for the quantile collapse.
+#' @method short_term_trend csfmt_ensemble_v3
+#' @section The csfmt_ensemble_v3 method:
+#' In every draw, the method fits a line to the window of `trend_isoyearweeks`
+#' weeks that ends on each week, with [rolling_slope_matrix()]. The first
+#' `trend_isoyearweeks - 1` weeks of each series get `NA`.
+#'
+#' It then adds the sampling error of the slope to each draw, `beta1 + se * e`,
+#' with `e` from the distribution that `error_reference` names. So a settled week,
+#' with the same count in every draw, still gets an interval. The method returns
+#' no increasing label: choose your own cut-off on the share of draws with a
+#' positive slope.
+#' @param measure The draw matrix to fit the trend to.
+#' @param trend_isoyearweeks The width of the rolling window, in weeks. The
+#'   ensemble method needs at least 3, or 2 with `family = "binomial"`. The v1
+#'   method needs at least 2.
+#' @param n_sim The number of draws to use when the ensemble has one draw, as the
+#'   output of [nowcast_passthrough_to_ensemble_v1()] has.
+#' @param family `"identity"` is ordinary least squares, with the growth rate
+#'   `100 * beta1 / Y`. `"quasipoisson"` is a log link, and `"binomial"` a logit
+#'   link that needs `denominator`. For those two, `beta1` is on the link scale.
+#'   The growth rate is then `100 * (exp(beta1) - 1)`, a percent change per
+#'   week, in the odds under `"binomial"`. A zero count needs no offset.
+#' @param denominator For `csfmt_rts_data_v1`, an optional denominator column.
+#'   For `csfmt_ensemble_v3`, the draw matrix of the binomial denominator, which
+#'   `family = "binomial"` needs and the other families reject. `measure` MUST
+#'   then be a proportion.
+#' @param error_reference The distribution of the slope error. `"auto"` gives
+#'   `"identity"` and `"quasipoisson"` a t on `trend_isoyearweeks - 2` degrees of
+#'   freedom, the residual degrees of freedom of their dispersion. It gives
+#'   `"binomial"` a normal. At width 3 that t is a Cauchy, with heavy tails. Use
+#'   `"normal"` to match `stats::confint()`, which profiles the deviance against
+#'   an asymptotic chi-squared.
+#' @returns The ensemble method returns `x` with the draw matrices
+#'   `<measure>_trend_beta1`, the slope per week, and `<measure>_trend_gr`, the
+#'   growth rate. It adds `<measure>_trend_increasing_pr`, the share of draws with
+#'   a positive slope, to `$data` by reference, so the input ensemble gets it too.
 #' @export
 short_term_trend.csfmt_ensemble_v3 <- function(
   x,

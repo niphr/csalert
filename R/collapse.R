@@ -7,20 +7,25 @@
 # Lossy and one-way: all draw-level work (trend, mem/hlm classification) must
 # happen BEFORE collapse, while the draws still exist.
 
-#' Collapse a csfmt_ensemble_v3 to a quantile-summary
+#' Collapse the draws of an ensemble to quantiles
 #'
-#' An ensemble operation (`ens_` family): dispatches on the ensemble class,
-#' matching [nowcast_delay_ecdf_v1()] / [short_term_trend()].
-#' @param x A `csfmt_ensemble_v3`.
-#' @param probs Numeric vector of probabilities for the quantile columns.
-#' @param heal If TRUE, heal the result into a `cstidy::csfmt_rts_data_v3` (the
-#'   clean weekly csfmt) instead of returning a plain data.table.
-#' @param ... Passed to methods.
-#' @returns A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
-#'   `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
+#' Reduces every draw matrix to quantile columns, and drops the draws. It is the
+#' last stage: no stage takes a collapsed table as input.
+#'
+#' A status matrix, one with a `levels` attribute, also gives a
+#' `<measure>_prob_<level>` column per level, with the share of draws at that
+#' level. Its quantile columns hold the code of the lowest level whose cumulative
+#' share reaches the probability. Both ignore `NA` draws.
+#' @param x The `csfmt_ensemble_v3` to collapse.
+#' @param probs The probabilities of the quantile columns.
+#' @param heal If `TRUE`, return a `csfmt_rts_data_v3` from
+#'   `cstidy::set_csfmt_rts_data_v3()`, which adds the calendar columns.
+#' @param ... Passed to the method.
+#' @returns A copy of `$data` with a `<measure>_<q-label>` column for each
+#'   measure and probability. It is a data.table, or a `csfmt_rts_data_v3` when
+#'   `heal = TRUE`.
 #' @family ensemble operations
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which collapses a
-#'   nowcast ensemble with this function and plots the resulting band.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 8.
 #' @examples
 #' d <- data.table::data.table(
 #'   location_code = "nation",
@@ -34,7 +39,7 @@
 #'   draws = list(numerator_nowcasted = matrix(rpois(3 * 100, 20), nrow = 3))
 #' )
 #'
-#' # one column per requested probability, named by the grammar
+#' # one column per probability, named by the naming grammar
 #' r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
 #' r[, .(
 #'   isoyearweek,
@@ -43,8 +48,7 @@
 #'   hi = numerator_nowcasted_q95x0
 #' )]
 #'
-#' # the quantile columns are all that collapse adds; the draws are gone, and
-#' # this reduction is one-way
+#' # the quantile columns are all that the collapse adds, and the draws are gone
 #' setdiff(names(r), names(ens$data))
 #' @export
 ens_collapse <- function(x, ...) UseMethod("ens_collapse")

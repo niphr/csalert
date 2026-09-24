@@ -20,32 +20,30 @@
 # deliberate: one name meaning days in one function and weeks in another is the
 # defect the whole rename exists to prevent.
 
-#' Compare two collapsed csfmt result sets
-#' @param current,previous data.tables (or csfmt_rts_data_v3) from two runs.
-#' @returns A long data.table: identity + isoyearweek + column + role/q/level +
-#'   `cur`/`prv`.
+#' Compare two collapsed result sets, column by column
+#'
+#' Joins two runs on `time_series_id` and `isoyearweek`, and returns one row per
+#' series, week and value column. [csfmt_interpret()] finds the value columns of
+#' `current`, and the parts of each name.
+#'
+#' `time_series_id` is a hash of the identity columns, so a series has the same id
+#' in both runs. A week in only one run gets `NA` for the other run.
+#' @param current,previous The output of [ens_collapse()] for two runs.
+#' @returns A long data.table with `time_series_id`, `isoyearweek`, the columns
+#'   among `indicator_tag`, `location_code`, `age` and `sex` that exist, and:
+#' * `column`: the name of the value column,
+#' * `cur`, `prv`: its value in `current` and in `previous`,
+#' * `role`, `q`, `level`: the parts of its name.
 #' @section Identity columns MUST use the csfmt schema names:
-#' The value columns are found with \code{\link{csfmt_interpret}}, which treats
-#' anything outside the csfmt structural schema as a value column. Key the two
-#' runs on schema names such as `location_code` and `indicator_tag`.
+#' [csfmt_interpret()] reads every column outside the csfmt schema as a value
+#' column. `location_code` and `indicator_tag` are schema names, but `location`
+#' and `indicator` are not. So with `location` or `indicator`, `cur` and `prv`
+#' become character.
 #'
-#' A non-schema identity column is a silent trap. `location` and `indicator` are
-#' NOT in the schema, but `location_code` and `indicator_tag` are. So `location`
-#' and `indicator` are read as value columns. Their character values are then
-#' stacked with the numeric measures, and `cur`/`prv` come back as character for
-#' every row. This function
-#' still returns a table, so the damage is easy to miss. But
-#' \code{\link{qc_week_over_week_v1}} then evaluates `abs(cur - prv)` on that
-#' character column and FAILS with
-#' `Error in cur - prv : non-numeric argument to binary operator`.
-#'
-#' Note that `vignette("pipeline", package = "csalert")` builds its triangle
-#' with `id_cols = c("indicator", "location", "age", "sex")`. Those names work
-#' for the nowcast pipeline itself, but a run-over-run comparison of the result
-#' needs `indicator_tag` and `location_code`.
-#' @seealso Neither package vignette covers run-over-run comparison.
-#'   \code{\link{qc_week_over_week_v1}} is the usual entry point; it splits this
-#'   diff at the nowcast horizon.
+#' This function still returns a table. [qc_week_over_week_v1()] then stops with
+#' `non-numeric argument to binary operator`.
+#' @family quality control functions
+#' @seealso `vignette("pipeline", package = "csalert")`, section 9.
 #' @examples
 #' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
 #' mondays <- as.Date("2023-01-02") + 7 * (0:39)
@@ -60,9 +58,8 @@
 #'
 #' id <- c("indicator_tag", "location_code", "age", "sex")
 #'
-#' # The engine is stochastic, so reset the seed inside `run()`. Without that,
-#' # the two runs would also differ by their Monte-Carlo draws and the diff would
-#' # confound sampling noise with the actual data revision.
+#' # Set the seed inside `run()`. Then the two runs differ only by the data
+#' # revision, and not by their Monte-Carlo draws.
 #' run <- function(x) {
 #'   set.seed(2)
 #'   ens_collapse(nowcast_delay_ecdf_v1(
@@ -71,7 +68,7 @@
 #'   ))
 #' }
 #'
-#' # last week's run saw one reference week before it was corrected upward
+#' # last week's run saw one reference week before a correction raised it
 #' cur <- run(d)
 #' d_prv <- data.table::copy(d)
 #' d_prv[
@@ -80,8 +77,7 @@
 #' ]
 #' prv <- run(d_prv)
 #'
-#' # one row per (series, week, value column). With the seed held fixed, the only
-#' # week that moves is the corrected one.
+#' # with the seed held fixed, only the corrected week moves
 #' compare_results(cur, prv)[q == 0.5 & abs(cur - prv) > 0]
 #' @export
 compare_results <- function(current, previous) {
@@ -123,28 +119,37 @@ compare_results <- function(current, previous) {
   return(long[])
 }
 
-#' Week-over-week QC: settled-data integrity (A) + frontier status signal (B)
-#' @param current,previous Two runs' collapsed csfmt.
-#' @param max_delay_weeks Nowcast horizon in reference WEEKS. It sets the
-#'   settled/frontier boundary on the ISO-week axis, so it windows reference
-#'   weeks and never delay days. The nowcast engines take `max_delay_days`
-#'   instead, counted in DAYS. The two names differ because the two units
-#'   differ, and one name for both is the defect this rename removes.
-#' @param status_roles Naming-grammar roles treated as ORDINAL STATUS rather than
-#'   as continuous medians: excluded from `$integrity`, and the only roles whose
-#'   transitions appear in `$signal`. Defaults to both status-writing roles in the
-#'   package -- `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
-#'   [signal_detection_hlm]. Before this argument existed, only `"status"` was
-#'   selected. HLM alert transitions were then silently dropped from `$signal`,
-#'   and HLM status columns were wrongly diffed as continuous values in
-#'   `$integrity`.
-#' @param tol Tolerance for "unchanged" in the integrity check.
-#' @returns `list(integrity = <A>, signal = <B>)`.
-#' @seealso Neither package vignette covers run-over-run comparison.
-#'   \code{\link{compare_results}} is the underlying diff, and documents which
-#'   identity column names this check needs.
-#'   \code{\link{qc_surveillance_data_v1}} answers a different question, about one
-#'   input feed rather than two finished runs.
+#' Compare this week's run with last week's run
+#'
+#' Splits the output of [compare_results()] at the nowcast horizon. `$integrity`
+#' lists the settled weeks whose median changed, and `$signal` lists the status
+#' changes in the newer weeks.
+#'
+#' A week is settled when it is at least `max_delay_weeks` ISO weeks older than the
+#' newest week of `previous`. A row in `$integrity` means that a published number
+#' for a settled week changed, so ideally that table is empty. It compares finite
+#' values only. `$signal` counts a new week as a change. Both tables use the
+#' median, `q = 0.5`.
+#' @param current,previous The output of [ens_collapse()] for this run and for the
+#'   previous run. Their identity columns MUST have the names that
+#'   [compare_results()] needs.
+#' @param max_delay_weeks The nowcast horizon in ISO weeks. The engines take
+#'   `max_delay_days`, in days. The names differ so that one name never means two
+#'   units.
+#' @param status_roles The roles that hold an ordinal status. `$signal` holds only
+#'   these roles, and `$integrity` leaves them out. The default holds `"status"`
+#'   from [mem_thresholds_v1()] and `"hlmstatus"` from [signal_detection_hlm()].
+#' @param tol The largest change in a settled median that counts as no change.
+#' @returns A list of two data.tables:
+#' * `integrity`, with `indicator_tag`, `isoyearweek`, `column`, `prv`, `cur`
+#'   and `abs_diff`,
+#' * `signal`, with `indicator_tag`, `isoyearweek`, `column`, `from`, `to` and
+#'   `change`, which is `"new"` or `"changed"`.
+#'
+#' A table with no rows keeps `prv` and `cur`, and has no added column.
+#' `indicator_tag` is there only when the input has it.
+#' @family quality control functions
+#' @seealso `vignette("pipeline", package = "csalert")`, section 9.
 #' @examples
 #' # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
 #' mondays <- as.Date("2023-01-02") + 7 * (0:39)
@@ -159,8 +164,7 @@ compare_results <- function(current, previous) {
 #'
 #' id <- c("indicator_tag", "location_code", "age", "sex")
 #'
-#' # seed inside `run()`, so the two runs differ only by the data revision and
-#' # not by their Monte-Carlo draws
+#' # set the seed inside `run()`, so the two runs differ only by the data
 #' run <- function(x) {
 #'   set.seed(2)
 #'   ens_collapse(nowcast_delay_ecdf_v1(
@@ -177,17 +181,14 @@ compare_results <- function(current, previous) {
 #' ]
 #' prv <- run(d_prv)
 #'
-#' # the engine horizon is 21 DAYS; this one is 3 WEEKS, and the names say so
+#' # the engine horizon is 21 days, and this horizon is 3 weeks
 #' qc <- qc_week_over_week_v1(cur, prv, max_delay_weeks = 3)
 #'
-#' # A settled week whose published median moved between runs. This table is
-#' # ideally empty; a row in it means history was rewritten.
+#' # the corrected week is settled, so its changed median is listed here
 #' qc$integrity
 #'
-#' # Status transitions on the frontier weeks. Empty here because these runs
-#' # carry no status column at all: mem_thresholds_v1() writes role "status" and
-#' # signal_detection_hlm() writes role "hlmstatus", and neither was run. Both
-#' # roles are selected by default -- see `status_roles`.
+#' # empty: these runs hold no status column, because neither
+#' # mem_thresholds_v1() nor signal_detection_hlm() ran
 #' qc$signal
 #' @export
 qc_week_over_week_v1 <- function(

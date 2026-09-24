@@ -18,6 +18,18 @@
   settled pool week can still receive late reports, so a long backlog makes the
   nowcast run low, and that a pool week with no early reports cannot enter the
   pool.
+- Documentation only: the help pages render as markdown, so their links, code
+  and lists no longer show as raw text.
+- Documentation only: every public help page has a description, a family and
+  a vignette link.
+- Documentation only: the `mem_thresholds_v1()` help page says it adds the five
+  threshold columns to `$data`, by reference, and not to `$draws`.
+- Documentation only: the `signal_detection_hlm()` help page says the ensemble
+  method codes a draw 1 for `null` and 2 for `high`, not 0 and 1.
+- Documentation only: the `simulate_baseline_data()` help page says `phi = 1`
+  gives Poisson counts. It said `phi = 0`, which gives `NA`.
+- Documentation only: the help pages state that `remove_last_isoyearweeks` of
+  the deprecated `signal_detection_hlm()` method has no effect.
 
 ## Version
 

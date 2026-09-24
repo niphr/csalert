@@ -2,36 +2,36 @@
 % Please edit documentation in R/short_term_trend_sts_v1.R
 \name{short_term_trend_sts_v1}
 \alias{short_term_trend_sts_v1}
-\title{Determine the short term trend of a surveillance time series}
+\title{Short-term trend alarms on a surveillance sts object}
 \usage{
 short_term_trend_sts_v1(sts, control = list(w = 5, alpha = 0.05))
 }
 \arguments{
-\item{sts}{Data object of type sts.}
+\item{sts}{A \code{surveillance::sts} object.}
 
-\item{control}{Control object, a named list with several elements.
-  \describe{
-    \item{w}{Length of the window that is being analyzed.}
-    \item{alpha}{Significance level for change in trend.}
-}}
+\item{control}{A list with \code{w}, the window width, and \code{alpha}, the
+significance level. A missing element takes its default.}
 }
 \value{
-sts object with the alarms slot set to 0/1 if not-increasing/increasing.
+\code{sts} with its alarms set.
 }
 \description{
-Fits a quasi-Poisson regression over a moving window of recent observations of
-a \code{surveillance} \code{sts} object. It sets the alarm slot to 1 for
-time points with a significant increasing trend, and to 0 otherwise. The method is
-based upon a published analytics strategy by Benedetti (2019)
-<doi:10.5588/pha.19.0002>. This function was frozen on 2024-06-24 and operates
-on \code{sts} objects.
+Sets an alarm where a rolling quasi-Poisson regression finds a significant rise,
+in each column of a \code{surveillance::sts} object, after Benedetti (2019)
+\url{doi:10.5588/pha.19.0002}. It has not changed since 2024-06-24.
+}
+\details{
+Each time point gets the fit of \code{observed ~ trend + log(population)}, by
+\code{glm2::glm2()}, on the \code{w} time points that end there. Its alarm is 1 when the
+slope is positive with a p-value below \code{alpha}, and 0 otherwise. The first
+\code{w - 1} time points keep their alarm.
 }
 \examples{
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
 sts <- surveillance::sts(
-  observed = d$hospitalization_with_covid19_as_primary_cause_n, # weekly number of cases
-  start = c(d$isoyear[1], d$isoweek[1]), # first week of the time series
+  observed = d$hospitalization_with_covid19_as_primary_cause_n, # weekly counts
+  start = c(d$isoyear[1], d$isoweek[1]), # the first week of the series
   frequency = 52
 )
 x <- csalert::short_term_trend_sts_v1(
@@ -44,8 +44,12 @@ x <- csalert::short_term_trend_sts_v1(
 plot(x)
 }
 \seealso{
-Neither package vignette covers this function. It is the
-  \code{surveillance::sts} form of the deprecated `csfmt_rts_data_v1` trend
-  method of \code{\link{short_term_trend}}, whose help page carries the only
-  worked example of that method.
+\code{vignette("csalert", package = "csalert")}, which explains the
+deprecated trend methods. The \code{csfmt_rts_data_v1} method of
+\code{\link[=short_term_trend]{short_term_trend()}} is the table form of this function.
+
+Other short-term trend functions:
+\code{\link[=rolling_slope_matrix]{rolling_slope_matrix()}},
+\code{\link[=short_term_trend]{short_term_trend()}}
 }
+\concept{short-term trend functions}

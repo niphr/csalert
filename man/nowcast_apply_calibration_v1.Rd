@@ -2,26 +2,28 @@
 % Please edit documentation in R/nowcast_calibration.R
 \name{nowcast_apply_calibration_v1}
 \alias{nowcast_apply_calibration_v1}
-\title{Apply a nowcast calibration to quantile predictions}
+\title{Rescale quantile nowcasts by a calibration factor}
 \usage{
 nowcast_apply_calibration_v1(x, calibration)
 }
 \arguments{
-\item{x}{Long quantile predictions (`reference`, the calibration's `by`
-column(s), `quantile_level`, `predicted`) -- e.g. a fresh [nowcast_backtest]
-output or a melted collapse.}
+\item{x}{Long quantile nowcasts with \code{reference}, the \code{by} columns,
+\code{quantile_level} and \code{predicted}, such as the output of \code{\link[=nowcast_backtest]{nowcast_backtest()}}.}
 
-\item{calibration}{A `nowcast_calibration` from [nowcast_estimate_calibration_v1].}
+\item{calibration}{A \code{nowcast_calibration} from
+\code{\link[=nowcast_estimate_calibration_v1]{nowcast_estimate_calibration_v1()}}.}
 }
 \value{
-`x` with `predicted` recalibrated.
+A copy of \code{x} with \code{predicted} rescaled.
 }
 \description{
-Rescales each quantile by moving it away from (or toward) the median by the
-learned per-group `factor`. By construction the rescaled central interval
-covers `level` of the BACKTEST the factor was learned on; that is not a
-guarantee about future weeks, and the median is left unchanged. Groups with no
-learned factor (e.g. an unseen horizon) pass through unchanged.
+Moves every quantile away from the median, or toward it, by the factor of its
+group. The median does not move, and a group with no factor passes through.
+}
+\details{
+The rescaled interval covers about \code{level} of the backtest that the factor
+came from, not exactly. The type-7 quantile interpolates, and each tail moves
+by its own distance from the median. On future weeks there is no guarantee.
 }
 \examples{
 # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
@@ -50,8 +52,7 @@ cal <- nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay_days = 2
 
 adj <- nowcast_apply_calibration_v1(bt, cal)
 
-# the median is untouched; the other two quantiles move toward or away from
-# it, so the interval width changes by the learned factor
+# the median stays, and the width of the interval changes by the factor
 width <- function(x) {
   x[horizon == 0, .(width = diff(range(predicted))), by = reference][1:3]
 }
@@ -59,8 +60,7 @@ width(bt)
 width(adj)
 }
 \seealso{
-Neither package vignette covers calibration. The example below is its
-  only worked demonstration.
+\code{vignette("pipeline", package = "csalert")}, stage 2.
 
 Other nowcast calibration functions:
 \code{\link[=nowcast_estimate_calibration_v1]{nowcast_estimate_calibration_v1()}},

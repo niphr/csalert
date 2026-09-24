@@ -2,7 +2,7 @@
 % Please edit documentation in R/reporting_completion.R
 \name{reporting_completion_v1}
 \alias{reporting_completion_v1}
-\title{Empirical reporting-completion summary from a reporting triangle}
+\title{Measure how fast the counts of a reporting triangle arrive}
 \usage{
 reporting_completion_v1(
   triangle,
@@ -12,49 +12,52 @@ reporting_completion_v1(
 )
 }
 \arguments{
-\item{triangle}{A `csfmt_reporting_triangle_v3`.}
+\item{triangle}{The \code{csfmt_reporting_triangle_v3} to measure.}
 
-\item{max_delay_days}{Delay horizon in DAYS: delay day 0 to
-`max_delay_days - 1`. `max_delay_days = 35` is the 35 days that start on the
-reference week's Monday, and matches the 5 weekly delay columns of the
-pre-Date format.}
+\item{max_delay_days}{The delay horizon in days, delay day 0 to
+\code{max_delay_days - 1}.}
 
-\item{delay_window}{Optional: use only settled weeks within roughly this many
-WEEKS (drift-aware). This one is weeks, not days, because it selects
-reference weeks and the reference axis is still an ISO week. `NULL` uses all
-settled weeks. Ignored for the shape of `period` stratification, which
-slices time itself.}
+\item{delay_window}{Use only the settled weeks of about this many recent weeks.
+It counts weeks, not days. \code{NULL} uses every settled week.}
 
-\item{period}{Time stratification of the settled weeks, by the calendar year
-or month of each week's Thursday. Choose `"all"` (one pooled curve,
-default), `"year"`, or `"month"` (one row per period). Use `"year"` or
-`"month"` to see whether completion time is trending up or down.}
+\item{period}{\code{"all"} gives one pooled row. \code{"year"} and \code{"month"} give one row
+per calendar year or month of the Thursday of each week, so the year is the
+ISO year.}
 }
 \value{
-One row per series, and per period when stratified. The columns are
-  identity columns + `period` + `n_settled`, `mean_delay`, `complete_by_md`,
-  and `pct_delay0`..`pct_delay<max_delay_days-1>`. There are exactly
-  `max_delay_days` of those `pct_delayD` columns. Each one is the pooled
-  \% of cases reported by the end of day reference Monday + D, the delay ECDF,
-  no interpolation. `pct_delay0` is the reference week's own Monday.
-  `mean_delay` is in DAYS. A report at delay `max_delay_days` or later
-  counts at delay day `max_delay_days - 1`. So `pct_delay<max_delay_days-1>`
-  holds that day and the whole later tail, and `mean_delay` is a lower bound
-  on the uncapped mean delay.
+A data.table with one row per series and period: the identity
+columns, \code{period}, \code{n_settled}, \code{mean_delay}, \code{complete_by_md}, and
+\code{pct_delay0} to \verb{pct_delay<max_delay_days - 1>}.
+\itemize{
+\item \code{n_settled}: the settled weeks with a total above 0.
+\item \code{mean_delay}: the mean delay in days over the pooled cases. A report at delay
+\code{max_delay_days} or later counts at \code{max_delay_days - 1}, so it is a lower
+bound.
+\item \code{pct_delayD}: the percentage of pooled cases reported by the end of day \code{D}
+from the reference Monday, with no interpolation. \code{pct_delay0} is the Monday
+itself.
+}
 }
 \description{
-Empirical reporting-completion summary from a reporting triangle
+Pools the settled weeks of each series, and returns the share of cases
+reported by each delay day, and the mean delay. Use it to choose
+\code{max_delay_days}, and with \code{period} to see reporting speed up or slow down.
+}
+\details{
+A week is settled when its Monday is at least \code{max_delay_days - 1} days before
+the as-of date. In each period, the function drops a week with a total of 0.
+A period with fewer than 3 weeks left gets no row, and no warning.
 }
 \section{complete_by_md is always 1}{
 
-`complete_by_md` is the last cumulative fraction of a total summed over every
-delay column. So it equals 1 for every series and every period, and
-`pct_delay<max_delay_days-1>` equals 100. It does NOT measure whether
-reporting continues past `max_delay_days`. The last column holds delay
-`max_delay_days - 1` and every later delay. So
-`100 - pct_delay<max_delay_days-2>` is the share reported on that day or
-later. To see the shape of the tail, re-run with a larger `max_delay_days`
-and compare `mean_delay` and the `pct_delayD` curve.
+\code{complete_by_md} is the last cumulative share of the total. So it is 1 for
+every series and period, and \verb{pct_delay<max_delay_days - 1>} is 100. It does
+NOT show whether reporting continues after \code{max_delay_days}.
+
+The last column also holds every later delay. So
+\verb{100 - pct_delay<max_delay_days - 2>} is the share reported on the last day or
+later. To see the tail, run it again with a larger \code{max_delay_days}, and
+compare \code{mean_delay} and the \code{pct_delayD} curve.
 }
 
 \examples{
@@ -72,15 +75,15 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# one pooled curve over 21 delay days. This series reports on days 3, 10 and
-# 17 after the reference Monday, so the curve steps at those three days.
+# One pooled curve over 21 delay days. This series reports on days 3, 10 and
+# 17 after the reference Monday, so the curve steps on those three days.
 rc <- reporting_completion_v1(tri, max_delay_days = 21)
 rc[, .(n_settled, mean_delay, pct_delay3, pct_delay10, pct_delay17)]
 
 # there is one pct_delay column per delay day
 sum(grepl("^pct_delay", names(rc)))
 
-# sliced by month, to expose drift in how fast reporting arrives
+# sliced by month, to show a change in reporting speed
 head(
   reporting_completion_v1(tri, max_delay_days = 21, period = "month")[,
     .(period, n_settled, mean_delay, pct_delay10)
@@ -89,8 +92,8 @@ head(
 )
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which runs this
-  function on its synthetic triangle.
+\code{vignette("pipeline", package = "csalert")}, stage 3, which shows how to
+read each column.
 
 Other reporting completion functions:
 \code{\link[=reporting_completion_trend_v1]{reporting_completion_trend_v1()}}

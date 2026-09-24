@@ -17,16 +17,22 @@
 # vectorisable. The draw axis (matrix columns) is anonymous; the measure name
 # (the list key) carries the semantics via the naming grammar.
 
-#' Assign content-hash time_series_id (+ readable label) by reference
-#' @param d data.table.
-#' @param id_cols Character vector of identity columns defining a series.
-#' @param sep Separator for the canonical key (default unit-separator).
-#' @returns `d`, modified by reference (invisibly).
+#' Add a content-hash series id to a data.table
+#'
+#' Adds `time_series_label`, the identity values joined by `sep`, and
+#' `time_series_id`, the xxhash64 digest of that label. The id depends only on the
+#' identity values, so a series gets the same id in every table.
+#'
+#' [csfmt_ensemble_v3()] and [csfmt_reporting_triangle_v3()] call this function for
+#' you.
+#' @param d A data.table. The function changes it by reference.
+#' @param id_cols The identity columns that define one series.
+#' @param sep The separator in the label. The default is the ASCII unit
+#'   separator, `"\037"`.
+#' @returns `d`, invisibly.
 #' @family ensemble format functions
-#' @seealso Neither package vignette covers this function. It is called for you by
-#'   \code{\link{csfmt_ensemble_v3}} and \code{\link{csfmt_reporting_triangle_v3}};
-#'   call it directly only when you are keying a data.table those constructors
-#'   never see.
+#' @seealso `vignette("pipeline", package = "csalert")`, which shows the ensemble
+#'   format.
 #' @examples
 #' d <- data.table::data.table(
 #'   location_code = c("nation", "nation", "county03"),
@@ -36,7 +42,7 @@
 #' )
 #' set_time_series_id(d, id_cols = c("location_code", "age"))
 #'
-#' # the two nation rows share one content hash; the county row gets its own
+#' # the two nation rows share one id, and the county row has its own
 #' d[]
 #' @export
 set_time_series_id <- function(d, id_cols, sep = "") {
@@ -65,19 +71,25 @@ set_time_series_id <- function(d, id_cols, sep = "") {
   return(invisible(d))
 }
 
-#' Construct a csfmt_ensemble_v3
-#' @param data data.table with the identity columns and `time_col`.
-#' @param id_cols Character vector of identity columns defining a series.
-#' @param time_col Time-ordering column (default "isoyearweek").
-#' @param draws Optional named list of `[nrow(data) x n_draws]` matrices, given in
-#'   `data`'s input row order (they are reordered to match the canonical sort).
+#' Build a csfmt_ensemble_v3
+#'
+#' Builds the working format of the pipeline. `$data` is a data.table with one
+#' row per series and week. `$draws` holds one matrix per measure, with one row
+#' per row of `$data` and one column per draw.
+#'
+#' The constructor copies `data`, adds the ids of [set_time_series_id()], and
+#' sorts the rows by series and `time_col`. It adds `time_series_internal_id`,
+#' `1..n` within each series, and puts the draw rows in the same order. The
+#' nowcast engines call it for you.
+#' @param data A data.table with the identity columns and `time_col`.
+#' @param id_cols The identity columns that define one series.
+#' @param time_col The column that orders time within a series.
+#' @param draws A named list of matrices, one per measure, with `nrow(data)` rows
+#'   in the row order of `data`.
 #' @returns A `csfmt_ensemble_v3`.
 #' @family ensemble format functions
-#' @seealso \code{vignette("pipeline", package = "csalert")} is built on this
-#'   format: its nowcast engine produces one and \code{\link{ens_collapse}}
-#'   reduces it. The vignette never calls this constructor directly, because the
-#'   engines build the ensemble for you. Call it yourself only when you already
-#'   hold draws from somewhere else.
+#' @seealso `vignette("pipeline", package = "csalert")`, which builds an ensemble
+#'   with a nowcast engine.
 #' @examples
 #' d <- data.table::data.table(
 #'   location_code = "nation",
@@ -92,12 +104,11 @@ set_time_series_id <- function(d, id_cols, sep = "") {
 #' )
 #' ens
 #'
-#' # $data carries the identity + the canonical sort keys. The trailing []
-#' # forces the print: data.table suppresses the first auto-print of a table
-#' # that was last modified by reference, which the constructor does.
+#' # $data holds the identity columns and the sort keys. The trailing [] makes
+#' # data.table print a table that was last changed by reference.
 #' ens$data[]
 #'
-#' # $draws holds one [weeks x draws] matrix per measure
+#' # $draws holds one matrix per measure, with rows = weeks, columns = draws
 #' dim(ens$draws$numerator_nowcasted)
 #' @export
 csfmt_ensemble_v3 <- function(
@@ -150,33 +161,25 @@ csfmt_ensemble_v3 <- function(
   )))
 }
 
-#' Check a csfmt_ensemble_v3's structural shape
+#' Check the shape of a csfmt_ensemble_v3
 #'
-#' Checks the shape of an ensemble, and only the shape. It verifies the class,
-#' that `$data` is a data.table and `$draws` a list, that `$data` has the
-#' `time_series_id` and `time_series_internal_id` columns, and that every entry of
-#' `$draws` is a matrix with one row per row of `$data`.
-#'
+#' Checks the class, and that `$data` is a data.table with `time_series_id` and
+#' `time_series_internal_id`. Checks that each entry of `$draws` is a matrix
+#' with one row per row of `$data`. Every ensemble stage calls it.
 #' @section What it does NOT check:
-#' The constructor [csfmt_ensemble_v3] establishes more than this function
-#' verifies. It does NOT check the sort order or the key. It also does NOT check:
-#' \itemize{
-#'   \item that `time_series_internal_id` is a dense 1..n within each series;
-#'   \item that `time_series_label` is present;
-#'   \item that a draw matrix's rows still correspond to the same weeks as
-#'     `$data`.
-#' }
-#' Only the row COUNT is compared, so permuting the
-#' rows of `$data` or of a draw matrix passes.
+#' It does NOT check:
+#' * the sort order or the key of `$data`,
+#' * that `time_series_internal_id` counts `1..n` in each series,
+#' * that `time_series_label` exists.
 #'
-#' So this is not a safety net for hand-edited objects. If you have edited `$data`
-#' or `$draws` yourself, rebuild with [csfmt_ensemble_v3] rather than relying on
-#' this check.
-#' @param ens A `csfmt_ensemble_v3`.
-#' @returns `ens` invisibly; errors on a violation of the shape checks above.
+#' It compares only the number of rows, so a draw
+#' matrix with its rows in the wrong order passes. If you edit `$data` or `$draws`
+#' yourself, rebuild the object with [csfmt_ensemble_v3()].
+#' @param ens The `csfmt_ensemble_v3` to check.
+#' @returns `ens`, invisibly. A failed check is an error.
 #' @family ensemble format functions
-#' @seealso Neither package vignette covers this function. [csfmt_ensemble_v3] and
-#'   every ensemble stage call it on the way out, so you rarely call it yourself.
+#' @seealso `vignette("pipeline", package = "csalert")`, which shows the ensemble
+#'   format.
 #' @examples
 #' d <- data.table::data.table(
 #'   location_code = "nation",
@@ -189,16 +192,15 @@ csfmt_ensemble_v3 <- function(
 #'   draws = list(numerator_nowcasted = matrix(1:12, nrow = 3))
 #' )
 #'
-#' # returns invisibly when the shape checks pass
+#' # returns invisibly when the checks pass
 #' validate_ensemble(ens)
 #'
-#' # a draw matrix with the wrong number of rows is caught
+#' # a draw matrix with the wrong number of rows is an error
 #' bad <- ens
 #' bad$draws$numerator_nowcasted <- matrix(1, nrow = 2, ncol = 4)
 #' try(validate_ensemble(bad))
 #'
-#' # but a draw matrix whose rows have been PERMUTED has the right count, so it
-#' # passes -- the row-to-week correspondence is not checked
+#' # a draw matrix with PERMUTED rows has the right count, so it passes
 #' scrambled <- ens
 #' scrambled$draws$numerator_nowcasted <-
 #'   ens$draws$numerator_nowcasted[c(2, 3, 1), , drop = FALSE]
@@ -242,14 +244,13 @@ validate_ensemble <- function(ens) {
 
 #' Print a `csfmt_ensemble_v3`
 #'
-#' Compact one-line summary: number of rows, number of time series, and the names
-#' of the per-measure draw matrices.
-#' @param x A `csfmt_ensemble_v3`.
-#' @param ... Ignored (for S3 consistency).
+#' Prints one line: the number of rows and of series, and the names of the draw
+#' matrices.
+#' @param x The `csfmt_ensemble_v3` to print.
+#' @param ... Not used, but the `print()` generic has it.
 #' @returns `x`, invisibly.
 #' @family ensemble format functions
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which prints an
-#'   ensemble with this method right after the nowcast step.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 1.
 #' @export
 print.csfmt_ensemble_v3 <- function(x, ...) {
   cat(sprintf(

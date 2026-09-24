@@ -2,39 +2,33 @@
 % Please edit documentation in R/naming_grammar.R
 \name{q_value}
 \alias{q_value}
-\title{Quantile label -> probability}
+\title{Read the probability in a quantile label}
 \usage{
 q_value(label)
 }
 \arguments{
-\item{label}{Character vector of quantile labels, e.g. "q02x5".}
+\item{label}{A character vector of labels, for example \code{"q02x5"}.}
 }
 \value{
-Numeric vector of probabilities; `NA` for an unparseable label.
+A numeric vector of probabilities.
 }
 \description{
-Reads back a label written by [q_label]. The pattern accepted is exactly two
-integer-percent digits, `x`, then one decimal digit. Any string that does not
-match returns `NA` rather than erroring.
+Reads a label that \code{\link[=q_label]{q_label()}} wrote: \code{q}, two digits, \code{x} and one digit. Any
+other string gives \code{NA}.
 }
 \details{
-The round trip `q_value(q_label(p))` returns `p` only when `p` is expressible
-in that format, i.e. a probability on the 0.001 grid below 1. `q_label()`
-rounds anything finer (`0.0125` becomes `"q01x2"`, which reads back as
-`0.012`), and `q_label(1)` gives the three-digit `"q100x0"`, which returns
-`NA`. Every probability the package itself uses is on the grid.
+\code{q_value(q_label(p))} returns \code{p} only for a \code{p} on the 0.001 grid and below 1.
+Every probability that the package uses is on that grid.
 }
 \examples{
 q_value(c("q02x5", "q50x0", "q97x5"))
 
-# unparseable labels come back NA, including the three-digit q100x0
+# a string that is not a label gives NA, and so does the three-digit q100x0
 q_value(c("q100x0", "not_a_label"))
 }
 \seealso{
-[q_label] writes these labels.
-  \code{vignette("pipeline", package = "csalert")} calls this function in its
-  naming-grammar section. It is how generic tooling recovers the probability
-  behind a `_qNNxN` column.
+\code{vignette("pipeline", package = "csalert")}, whose naming-grammar
+section shows the round trip.
 
 Other naming grammar functions:
 \code{\link[=csfmt_interpret]{csfmt_interpret()}},

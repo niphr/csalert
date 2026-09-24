@@ -2,51 +2,54 @@
 % Please edit documentation in R/naming_grammar.R
 \name{csfmt_parse}
 \alias{csfmt_parse}
-\title{Parse a csfmt measure column name into components}
+\title{Split a measure column name into its parts}
 \usage{
 csfmt_parse(varname)
 }
 \arguments{
-\item{varname}{Character scalar column name.}
+\item{varname}{The column name.}
 }
 \value{
-Named list with the components that were present (e.g. `measure`,
-  `role`, `q`, `denom`, `per`).
+A named list of the parts that are present: \code{measure}, \code{denom},
+\code{role}, \code{q}, \code{level}, \code{per} and \code{suffix}, in that order.
 }
 \description{
-Reads a column name written by [csfmt_var] back into its parts. It strips the
-trailing coordinates, then a role, then a `_vs_<denom>` segment, and whatever
-is left is the measure.
+Reads a name that \code{\link[=csfmt_var]{csfmt_var()}} wrote back into its parts. From the right, it
+removes a \verb{_n} suffix, a \verb{_pr<per>} scale, a quantile label and a
+\verb{_prob_<level>} level. It then removes a role and \verb{_vs_<denom>}, and the rest
+is the measure.
+}
+\details{
+The roles it knows are \code{observed}, \code{nowcasted}, \code{forecasted}, \code{trend},
+\code{baseline}, \code{status} and \code{hlmstatus}.
 }
 \section{Where it does not invert csfmt_var}{
 
-The parse is a right-to-left strip against a fixed role vocabulary, so it
-cannot tell which of several role-looking segments was the role. On the
-package's own rate name it gets the denominator wrong:
+The parse cannot tell which of two role words was the role. On the rate name of
+the package, it gets the denominator wrong:
 
 \preformatted{
 csfmt_var("numerator_nowcasted", denom = "denominator_nowcasted", per = 100)
 #> "numerator_nowcasted_vs_denominator_nowcasted_pr100"
 csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")$denom
-#> "denominator"          # the denominator's own "_nowcasted" was eaten as the role
+#> "denominator"   # "_nowcasted" of the denominator was read as the role
 }
 
-Treat it as reliable for a single-role name such as
-`numerator_nowcasted_q50x0`. Check the result whenever the measure or the
-denominator itself ends in a role word.
+The parse is reliable for a name with one role word, such as
+\code{numerator_nowcasted_q50x0}. Check the result when the measure or the
+denominator ends in a role word.
 }
 
 \examples{
 csfmt_parse("numerator_nowcasted_q50x0")
 
-# the documented limit: a denominator that itself ends in a role word is
-# truncated, because the role is stripped before the _vs_ segment is read
+# the limit: the role is removed before the _vs_ part is read, so a
+# denominator that ends in a role word loses that word
 csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")
 }
 \seealso{
-[csfmt_var] writes these names.
-  \code{vignette("pipeline", package = "csalert")}, whose closing section
-  parses a collapsed median column with this function.
+\code{vignette("pipeline", package = "csalert")}, whose naming-grammar
+section shows this limit.
 
 Other naming grammar functions:
 \code{\link[=csfmt_interpret]{csfmt_interpret()}},

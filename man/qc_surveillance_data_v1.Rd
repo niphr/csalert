@@ -2,7 +2,7 @@
 % Please edit documentation in R/qc.R
 \name{qc_surveillance_data_v1}
 \alias{qc_surveillance_data_v1}
-\title{Quality-control checks on surveillance input data}
+\title{Check that a surveillance feed has data and is up to date}
 \usage{
 qc_surveillance_data_v1(
   d,
@@ -12,20 +12,28 @@ qc_surveillance_data_v1(
 )
 }
 \arguments{
-\item{d}{A data.table of one indicator's data.}
+\item{d}{A data.table with the data of one indicator.}
 
-\item{reference_col}{The reference time column (default "isoyearweek_reference").}
+\item{reference_col}{The reference-period column.}
 
-\item{expect_latest}{Optional: the latest reference period that *should* be
-present. If `max(reference) < expect_latest`, the feed is flagged stale.}
+\item{expect_latest}{The newest period that the caller expects, or \code{NULL} to
+skip the check. The check uses \code{<}, which orders zero-padded \code{"YYYY-WW"}
+strings correctly.}
 
-\item{min_rows}{Minimum rows required (default 1).}
+\item{min_rows}{The fewest rows that pass.}
 }
 \value{
-A list: `ok` (logical) and `reasons` (character vector; empty if ok).
+A list with \code{ok}, \code{TRUE} when every check passes, and \code{reasons}, a
+character vector that is empty when \code{ok} is \code{TRUE}.
 }
 \description{
-Quality-control checks on surveillance input data
+Checks the input of one indicator for too few rows, a missing reference column,
+and a newest period older than \code{expect_latest}. It returns a verdict, and the
+caller decides what to do.
+}
+\details{
+The checks run in that order and stop at the first failure, so \code{reasons} has at
+most one entry.
 }
 \examples{
 d <- data.table::data.table(
@@ -42,8 +50,10 @@ qc_surveillance_data_v1(d, expect_latest = "2023-05")
 qc_surveillance_data_v1(d[0])
 }
 \seealso{
-Neither package vignette covers input quality control. This function
-  returns a verdict and nothing else -- the caller decides what to do with it.
-  \code{\link{qc_week_over_week_v1}} answers a different question, about two
-  finished runs rather than one input feed.
+\code{vignette("pipeline", package = "csalert")}, section 9.
+
+Other quality control functions:
+\code{\link[=compare_results]{compare_results()}},
+\code{\link[=qc_week_over_week_v1]{qc_week_over_week_v1()}}
 }
+\concept{quality control functions}

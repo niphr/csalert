@@ -2,28 +2,28 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{add_holiday_effect}
 \alias{add_holiday_effect}
-\title{Apply a public holiday effect to simulated data}
+\title{Multiply simulated counts on public holidays}
 \usage{
 add_holiday_effect(data, holiday_data, holiday_effect = 2)
 }
 \arguments{
-\item{data}{A \code{csfmt_rts_data_v1} data object, typically the output of
-\code{\link{simulate_baseline_data}}.}
+\item{data}{A \code{csfmt_rts_data_v1} with \code{date} and \code{n}.}
 
-\item{holiday_data}{A \code{data.table} with a \code{date} column and a logical
-\code{is_holiday} column, used to flag which dates are public holidays.}
+\item{holiday_data}{A data.table with \code{date} and a logical \code{is_holiday}.}
 
-\item{holiday_effect}{Multiplicative factor applied to the count \code{n} on
-holidays.}
+\item{holiday_effect}{The factor for a holiday.}
 }
 \value{
-A \code{csfmt_rts_data_v1} (\code{data.table}) equal to \code{data} with the
-count \code{n} multiplied by \code{holiday_effect} on flagged holidays, and a
-\code{holiday} column indicating those dates.
+A copy of \code{data} with \code{n} changed, and a \code{holiday} column: the value of
+\code{is_holiday} on the dates in \code{holiday_data}, and \code{NA} on other dates.
 }
 \description{
-Multiplies the daily counts on public holidays by a fixed factor. Simulated
-data can then reflect the effect of holidays on a time series of daily counts.
+Multiplies the count \code{n} by \code{holiday_effect} on each date that \code{holiday_data}
+marks as a holiday.
+}
+\details{
+An integer \code{n}, as from \code{\link[=simulate_baseline_data]{simulate_baseline_data()}}, stays an integer. So a
+factor that gives a fraction truncates the count, with a warning.
 }
 \examples{
 library(data.table)
@@ -50,7 +50,11 @@ d <- add_holiday_effect(baseline, holiday_data = holidays, holiday_effect = 2)
 print(d[holiday == TRUE, .(date, n, holiday)])
 }
 \seealso{
-Neither package vignette covers the data simulators. Use them to
-  generate a series whose truth you already know, then run
-  \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+\code{vignette("csalert", package = "csalert")}, which runs it.
+
+Other data simulation functions:
+\code{\link[=simulate_baseline_data]{simulate_baseline_data()}},
+\code{\link[=simulate_seasonal_outbreak_data]{simulate_seasonal_outbreak_data()}},
+\code{\link[=simulate_spike_outbreak_data]{simulate_spike_outbreak_data()}}
 }
+\concept{data simulation functions}

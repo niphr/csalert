@@ -7,18 +7,15 @@
 isoyearweek_week_start(isoyearweek)
 }
 \arguments{
-\item{isoyearweek}{Character vector of ISO weeks, written `"YYYY-WW"`, for
-example `"2026-01"`.}
+\item{isoyearweek}{A character vector of ISO weeks, written \code{"YYYY-WW"}.}
 }
 \value{
-A `Date` vector with one element per element of `isoyearweek`. A
-  value that is not an ISO week in `cstime::dates_by_isoyearweek` gives
-  `NA`.
+A \code{Date} vector as long as \code{isoyearweek}, with \code{NA} for a value that
+is not an ISO week in \code{cstime::dates_by_isoyearweek}.
 }
 \description{
-Returns the Monday that starts each ISO week, as a `Date`. Every delay in a
-reporting triangle is the number of days from this Monday to the reporting
-date.
+Returns the Monday that starts each ISO week, as a \code{Date}. Every delay in a
+reporting triangle counts days from this Monday.
 }
 \examples{
 # ISO week 2026-01 starts on Monday 2025-12-29
@@ -31,8 +28,8 @@ as.Date("2026-01-08") - isoyearweek_week_start("2026-01")
 isoyearweek_week_start("2026-99")
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which measures
-  every delay and every age in days from this Monday.
+\code{vignette("pipeline", package = "csalert")}, which counts every delay
+and age in days from this Monday.
 
 Other reporting triangle functions:
 \code{\link[=csfmt_reporting_triangle_v3]{csfmt_reporting_triangle_v3()}},

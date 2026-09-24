@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulation_data_baseline.R
 \name{simulate_baseline_data}
 \alias{simulate_baseline_data}
-\title{Simulate baseline surveillance data}
+\title{Simulate daily counts with no outbreak}
 \usage{
 simulate_baseline_data(
   start_date,
@@ -20,49 +20,49 @@ simulate_baseline_data(
 )
 }
 \arguments{
-\item{start_date}{Starting date of the simulation period.
-Date is in the format of 'yyyy-mm-dd'.}
+\item{start_date, end_date}{The first and last day, as a \code{Date} or a
+\code{"YYYY-MM-DD"} string.}
 
-\item{end_date}{Ending date of the simulation period.
-Date is in the format of 'yyyy-mm-dd'.}
+\item{seasonal_pattern_n}{The number of seasonal harmonics: 0 for none, 1 for
+an annual pattern, 2 to add a half-year harmonic.}
 
-\item{seasonal_pattern_n}{Number of seasonal patterns. For no seasonal pattern seasonal_pattern_n = 0. Seasonal_pattern_n = 1 represents annual pattern. Seasonal_pattern_n = 2 indicates biannual pattern.}
+\item{weekly_pattern_n}{The number of weekly harmonics.}
 
-\item{weekly_pattern_n}{Number of weekly patterns. For no specific weekly pattern, weekly_pattern_n = 0. Weekly_pattern_n = 1 represents one weekly peak.}
+\item{alpha}{The log of the baseline count.}
 
-\item{alpha}{The parameter is used to specify the baseline frequencies of reports.}
+\item{beta}{The trend on the log scale, per day.}
 
-\item{beta}{The parameter is used to specify to specify linear trend.}
+\item{gamma_1, gamma_2}{The cosine and sine coefficients of the seasonal term.}
 
-\item{gamma_1}{The parameter is used to specify the seasonal pattern.}
+\item{gamma_3, gamma_4}{The cosine and sine coefficients of the weekly term.}
 
-\item{gamma_2}{The parameter is used to specify the seasonal pattern.}
+\item{phi}{The dispersion. 1 gives a Poisson count, and above 1 a negative
+binomial with variance \code{phi * mu}. Below 1 gives \code{NA} counts and a warning.}
 
-\item{gamma_3}{The parameter is used to specify day-of-the week pattern.}
-
-\item{gamma_4}{The parameter is used to specify day-of-the week pattern.}
-
-\item{phi}{Dispersion parameter. If phi =0, a Poisson model is used to simulate baseline data.}
-
-\item{shift_1}{Horizontal shift parameter to help control over week/month peaks.}
+\item{shift_1}{A shift in days, added to \code{t}, that moves the peaks.}
 }
 \value{
-A \code{csfmt_rts_data_v1} (\code{data.table}) holding one row per day over the
-simulation period, including the columns:
-
-\describe{
-  \item{date}{Calendar date of the observation.}
-  \item{wday}{Day of the week.}
-  \item{mu}{Expected count from the baseline model.}
-  \item{n}{Simulated count.}
-}
+A \code{csfmt_rts_data_v1} with one row per day. Its columns include
+\code{date}, \code{time} (\code{t}), \code{wday} (1 is Sunday), \code{mu}, the mean, and \code{n}, the
+count.
 }
 \description{
-Simulates a time series of daily counts in the absence of outbreaks. The
-counts are drawn from a Poisson or negative binomial model following the
-approach of Noufaily et al. (2019). The baseline frequency, linear trend,
-seasonal pattern and day-of-the-week pattern are all controlled through the
-function arguments.
+Simulates daily counts from a Poisson or negative binomial model with a trend,
+a seasonal pattern and a day-of-week pattern, after Noufaily et al. (2019). Use
+it to make a series with a known truth.
+}
+\details{
+On day \code{t}, from 1, the log of the mean is \code{alpha + beta * (t + shift_1)} plus
+a seasonal term and a weekly term. With \code{u = 2 * pi * (t + shift_1) / p}, each
+term sums \code{a * cos(l * u) + b * sin(l * u)} over \verb{l = 1, ..., n}:
+\itemize{
+\item seasonal: \code{p = 364}, \code{n = seasonal_pattern_n}, \code{a = gamma_1}, \code{b = gamma_2},
+\item weekly: \code{p = 7}, \code{n = weekly_pattern_n}, \code{a = gamma_3}, \code{b = gamma_4}.
+}
+
+With both \code{n} at 0, the log of the mean is \code{alpha + beta * t}. With
+\code{seasonal_pattern_n > 0}, \code{weekly_pattern_n = 0} still adds a weekly term,
+because \code{1:0} in R is \code{c(1, 0)}.
 }
 \examples{
 library(data.table)
@@ -89,7 +89,12 @@ An improved algorithm for outbreak detection in multiple surveillance
 systems. Statistics in Medicine. 2013.
 }
 \seealso{
-Neither package vignette covers the data simulators. Use them to
-  generate a series whose truth you already know, then run
-  \code{\link{short_term_trend}} or \code{\link{signal_detection_hlm}} on it.
+\code{vignette("csalert", package = "csalert")}, which simulates a series
+with a known outbreak.
+
+Other data simulation functions:
+\code{\link[=add_holiday_effect]{add_holiday_effect()}},
+\code{\link[=simulate_seasonal_outbreak_data]{simulate_seasonal_outbreak_data()}},
+\code{\link[=simulate_spike_outbreak_data]{simulate_spike_outbreak_data()}}
 }
+\concept{data simulation functions}

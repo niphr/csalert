@@ -2,7 +2,7 @@
 % Please edit documentation in R/naming_grammar.R
 \name{csfmt_var}
 \alias{csfmt_var}
-\title{Construct a csfmt measure column name from components}
+\title{Build a measure column name from its parts}
 \usage{
 csfmt_var(
   measure,
@@ -15,34 +15,38 @@ csfmt_var(
 )
 }
 \arguments{
-\item{measure}{Character scalar, the measure identity (e.g. "consults_r80").}
+\item{measure}{The name of the measure, for example \code{"consults_r80"}.}
 
-\item{denom}{Optional denominator name; inserts `_vs_<denom>`.}
+\item{denom}{A denominator. It adds \verb{_vs_<denom>}.}
 
-\item{role}{Optional statistic role: observed/nowcasted/forecasted/trend/baseline/status.}
+\item{role}{A role, for example \code{"nowcasted"}, \code{"trend"} or \code{"status"}. It adds
+\verb{_<role>}.}
 
-\item{q}{Optional probability for a quantile coordinate (mutually exclusive with `level`).}
+\item{q}{A probability. It adds the label from \code{\link[=q_label]{q_label()}}. Give \code{q} or
+\code{level}, not both.}
 
-\item{level}{Optional status level for a `prob_<level>` coordinate.}
+\item{level}{A status level. It adds \verb{_prob_<level>}.}
 
-\item{per}{Optional rate scaling (e.g. 100 -> `_pr100`).}
+\item{per}{A rate scale. \code{100} adds \verb{_pr100}.}
 
-\item{suffix}{Optional unit suffix (e.g. "_n").}
+\item{suffix}{A unit suffix, added as written, for example \code{"_n"}.}
 }
 \value{
-Character scalar column name.
+The column name.
 }
 \description{
-Construct a csfmt measure column name from components
+Joins the parts in the order
+\verb{<measure>[_vs_<denom>][_<role>][_<q-label> | _prob_<level>][_pr<per>][<suffix>]}.
+The pipeline names its draw matrices and quantile columns with it, so build a
+name with it before you look a column up.
 }
 \examples{
 csfmt_var("numerator", role = "nowcasted", q = 0.5)   # "numerator_nowcasted_q50x0"
 csfmt_var("consults", denom = "population", per = 100) # a rate column name
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, whose closing
-  section builds a column name with this function and takes it apart again with
-  \code{\link{csfmt_parse}}.
+\code{vignette("pipeline", package = "csalert")}, whose naming-grammar
+section builds and parses a name.
 
 Other naming grammar functions:
 \code{\link[=csfmt_interpret]{csfmt_interpret()}},

@@ -9,12 +9,17 @@
 
 #' @method signal_detection_hlm csfmt_ensemble_v3
 #' @rdname signal_detection_hlm
-#' @param measure The `$draws` measure to detect signals on.
-#' @param baseline_isoyears Years of history used for the baseline.
-#' @returns The `csfmt_ensemble_v3` with a per-draw exceedance column added to
-#'   `$draws` for `measure`. The column is 1 where the draw exceeds its HLM
-#'   baseline threshold and 0 otherwise, so the exceedance probability falls out
-#'   of the quantile collapse. Weeks without a full baseline are NA.
+#' @section The csfmt_ensemble_v3 method:
+#' The baseline uses the median of the draws of each earlier week. A draw at or
+#' above the limit is `high`, and otherwise `null`. After [ens_collapse()],
+#' `<measure>_hlmstatus_prob_high` is the share of draws at or above the limit.
+#' That share describes the nowcast uncertainty. It is not a p-value, a posterior
+#' probability or a false-alarm rate.
+#' @param measure The draw matrix to compare with the limit.
+#' @returns The ensemble method returns `x` with a draw matrix
+#'   `<measure>_hlmstatus`: 1 for `null`, 2 for `high`, and `NA` with no limit,
+#'   with a `levels` attribute. It adds `hlm_threshold`, the limit, to `$data` by
+#'   reference, so the input ensemble gets it too.
 #' @export
 signal_detection_hlm.csfmt_ensemble_v3 <- function(
   x,

@@ -3,7 +3,7 @@
 \name{ens_collapse}
 \alias{ens_collapse}
 \alias{ens_collapse.csfmt_ensemble_v3}
-\title{Collapse a csfmt_ensemble_v3 to a quantile-summary}
+\title{Collapse the draws of an ensemble to quantiles}
 \usage{
 ens_collapse(x, ...)
 
@@ -15,22 +15,29 @@ ens_collapse(x, ...)
 )
 }
 \arguments{
-\item{x}{A `csfmt_ensemble_v3`.}
+\item{x}{The \code{csfmt_ensemble_v3} to collapse.}
 
-\item{...}{Passed to methods.}
+\item{...}{Passed to the method.}
 
-\item{probs}{Numeric vector of probabilities for the quantile columns.}
+\item{probs}{The probabilities of the quantile columns.}
 
-\item{heal}{If TRUE, heal the result into a `cstidy::csfmt_rts_data_v3` (the
-clean weekly csfmt) instead of returning a plain data.table.}
+\item{heal}{If \code{TRUE}, return a \code{csfmt_rts_data_v3} from
+\code{cstidy::set_csfmt_rts_data_v3()}, which adds the calendar columns.}
 }
 \value{
-A `data.table` (or `csfmt_rts_data_v3` if `heal=TRUE`): `$data` plus
-  `<measure>_qNNxN` columns for every measure in `$draws`; no draws.
+A copy of \verb{$data} with a \verb{<measure>_<q-label>} column for each
+measure and probability. It is a data.table, or a \code{csfmt_rts_data_v3} when
+\code{heal = TRUE}.
 }
 \description{
-An ensemble operation (`ens_` family): dispatches on the ensemble class,
-matching [nowcast_delay_ecdf_v1()] / [short_term_trend()].
+Reduces every draw matrix to quantile columns, and drops the draws. It is the
+last stage: no stage takes a collapsed table as input.
+}
+\details{
+A status matrix, one with a \code{levels} attribute, also gives a
+\verb{<measure>_prob_<level>} column per level, with the share of draws at that
+level. Its quantile columns hold the code of the lowest level whose cumulative
+share reaches the probability. Both ignore \code{NA} draws.
 }
 \examples{
 d <- data.table::data.table(
@@ -45,7 +52,7 @@ ens <- csfmt_ensemble_v3(
   draws = list(numerator_nowcasted = matrix(rpois(3 * 100, 20), nrow = 3))
 )
 
-# one column per requested probability, named by the grammar
+# one column per probability, named by the naming grammar
 r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
 r[, .(
   isoyearweek,
@@ -54,15 +61,16 @@ r[, .(
   hi = numerator_nowcasted_q95x0
 )]
 
-# the quantile columns are all that collapse adds; the draws are gone, and
-# this reduction is one-way
+# the quantile columns are all that the collapse adds, and the draws are gone
 setdiff(names(r), names(ens$data))
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which collapses a
-  nowcast ensemble with this function and plots the resulting band.
+\code{vignette("pipeline", package = "csalert")}, stage 8.
 
 Other ensemble operations:
-\code{\link[=ens_add_rate]{ens_add_rate()}}
+\code{\link[=ens_add_rate]{ens_add_rate()}},
+\code{\link[=mem_thresholds_v1]{mem_thresholds_v1()}},
+\code{\link[=short_term_trend]{short_term_trend()}},
+\code{\link[=signal_detection_hlm]{signal_detection_hlm()}}
 }
 \concept{ensemble operations}

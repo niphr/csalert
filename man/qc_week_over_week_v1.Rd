@@ -2,7 +2,7 @@
 % Please edit documentation in R/compare.R
 \name{qc_week_over_week_v1}
 \alias{qc_week_over_week_v1}
-\title{Week-over-week QC: settled-data integrity (A) + frontier status signal (B)}
+\title{Compare this week's run with last week's run}
 \usage{
 qc_week_over_week_v1(
   current,
@@ -13,30 +13,43 @@ qc_week_over_week_v1(
 )
 }
 \arguments{
-\item{current, previous}{Two runs' collapsed csfmt.}
+\item{current, previous}{The output of \code{\link[=ens_collapse]{ens_collapse()}} for this run and for the
+previous run. Their identity columns MUST have the names that
+\code{\link[=compare_results]{compare_results()}} needs.}
 
-\item{max_delay_weeks}{Nowcast horizon in reference WEEKS. It sets the
-settled/frontier boundary on the ISO-week axis, so it windows reference
-weeks and never delay days. The nowcast engines take `max_delay_days`
-instead, counted in DAYS. The two names differ because the two units
-differ, and one name for both is the defect this rename removes.}
+\item{max_delay_weeks}{The nowcast horizon in ISO weeks. The engines take
+\code{max_delay_days}, in days. The names differ so that one name never means two
+units.}
 
-\item{tol}{Tolerance for "unchanged" in the integrity check.}
+\item{tol}{The largest change in a settled median that counts as no change.}
 
-\item{status_roles}{Naming-grammar roles treated as ORDINAL STATUS rather than
-as continuous medians: excluded from `$integrity`, and the only roles whose
-transitions appear in `$signal`. Defaults to both status-writing roles in the
-package -- `"status"` from [mem_thresholds_v1] and `"hlmstatus"` from
-[signal_detection_hlm]. Before this argument existed, only `"status"` was
-selected. HLM alert transitions were then silently dropped from `$signal`,
-and HLM status columns were wrongly diffed as continuous values in
-`$integrity`.}
+\item{status_roles}{The roles that hold an ordinal status. \verb{$signal} holds only
+these roles, and \verb{$integrity} leaves them out. The default holds \code{"status"}
+from \code{\link[=mem_thresholds_v1]{mem_thresholds_v1()}} and \code{"hlmstatus"} from \code{\link[=signal_detection_hlm]{signal_detection_hlm()}}.}
 }
 \value{
-`list(integrity = <A>, signal = <B>)`.
+A list of two data.tables:
+\itemize{
+\item \code{integrity}, with \code{indicator_tag}, \code{isoyearweek}, \code{column}, \code{prv}, \code{cur}
+and \code{abs_diff},
+\item \code{signal}, with \code{indicator_tag}, \code{isoyearweek}, \code{column}, \code{from}, \code{to} and
+\code{change}, which is \code{"new"} or \code{"changed"}.
+}
+
+A table with no rows keeps \code{prv} and \code{cur}, and has no added column.
+\code{indicator_tag} is there only when the input has it.
 }
 \description{
-Week-over-week QC: settled-data integrity (A) + frontier status signal (B)
+Splits the output of \code{\link[=compare_results]{compare_results()}} at the nowcast horizon. \verb{$integrity}
+lists the settled weeks whose median changed, and \verb{$signal} lists the status
+changes in the newer weeks.
+}
+\details{
+A week is settled when it is at least \code{max_delay_weeks} ISO weeks older than the
+newest week of \code{previous}. A row in \verb{$integrity} means that a published number
+for a settled week changed, so ideally that table is empty. It compares finite
+values only. \verb{$signal} counts a new week as a change. Both tables use the
+median, \code{q = 0.5}.
 }
 \examples{
 # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
@@ -52,8 +65,7 @@ d <- d[reporting_date <= mondays[40] + 6]
 
 id <- c("indicator_tag", "location_code", "age", "sex")
 
-# seed inside `run()`, so the two runs differ only by the data revision and
-# not by their Monte-Carlo draws
+# set the seed inside `run()`, so the two runs differ only by the data
 run <- function(x) {
   set.seed(2)
   ens_collapse(nowcast_delay_ecdf_v1(
@@ -70,23 +82,21 @@ d_prv[
 ]
 prv <- run(d_prv)
 
-# the engine horizon is 21 DAYS; this one is 3 WEEKS, and the names say so
+# the engine horizon is 21 days, and this horizon is 3 weeks
 qc <- qc_week_over_week_v1(cur, prv, max_delay_weeks = 3)
 
-# A settled week whose published median moved between runs. This table is
-# ideally empty; a row in it means history was rewritten.
+# the corrected week is settled, so its changed median is listed here
 qc$integrity
 
-# Status transitions on the frontier weeks. Empty here because these runs
-# carry no status column at all: mem_thresholds_v1() writes role "status" and
-# signal_detection_hlm() writes role "hlmstatus", and neither was run. Both
-# roles are selected by default -- see `status_roles`.
+# empty: these runs hold no status column, because neither
+# mem_thresholds_v1() nor signal_detection_hlm() ran
 qc$signal
 }
 \seealso{
-Neither package vignette covers run-over-run comparison.
-  \code{\link{compare_results}} is the underlying diff, and documents which
-  identity column names this check needs.
-  \code{\link{qc_surveillance_data_v1}} answers a different question, about one
-  input feed rather than two finished runs.
+\code{vignette("pipeline", package = "csalert")}, section 9.
+
+Other quality control functions:
+\code{\link[=compare_results]{compare_results()}},
+\code{\link[=qc_surveillance_data_v1]{qc_surveillance_data_v1()}}
 }
+\concept{quality control functions}

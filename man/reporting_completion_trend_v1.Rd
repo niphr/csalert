@@ -2,28 +2,26 @@
 % Please edit documentation in R/reporting_completion.R
 \name{reporting_completion_trend_v1}
 \alias{reporting_completion_trend_v1}
-\title{Reporting-completion trend: the delay curve by year and recent months}
+\title{Reporting speed by year and by recent month, in one table}
 \usage{
 reporting_completion_trend_v1(triangle, max_delay_days, n_months = 12L)
 }
 \arguments{
-\item{triangle}{A `csfmt_reporting_triangle_v3`.}
+\item{triangle}{The \code{csfmt_reporting_triangle_v3} to measure.}
 
-\item{max_delay_days}{Delay horizon in DAYS. Passed straight to
-[reporting_completion_v1].}
+\item{max_delay_days}{The delay horizon in days.}
 
-\item{n_months}{Keep this many most-recent months per series. Default 12.}
+\item{n_months}{The number of latest months to keep for each series.}
 }
 \value{
-A data.table: the [reporting_completion_v1] columns plus a `scope` column
-  ("year"/"month"), the year rows followed by the last-`n_months` month rows.
-  Empty when no series has enough settled data.
+A data.table with the columns of \code{\link[=reporting_completion_v1]{reporting_completion_v1()}} and
+\code{scope}, \code{"year"} or \code{"month"}, with the year rows first. It is empty when no
+series has enough settled weeks.
 }
 \description{
-Convenience over [reporting_completion_v1]: the completion curve sliced by calendar
-`year` (all years) and by `month` (the most recent `n_months`, per series),
-stacked with a `scope` column. One table that shows whether reporting is
-speeding up or slowing down over time.
+Stacks \code{\link[=reporting_completion_v1]{reporting_completion_v1()}} by year, and by month for the latest
+\code{n_months} months of each series, so one table shows reporting speed up or slow
+down.
 }
 \examples{
 monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
@@ -36,9 +34,7 @@ reporting_completion_trend_v1(tri, max_delay_days = 21, n_months = 6)[,
   .(scope, period, n_settled, mean_delay)]
 }
 \seealso{
-Neither package vignette covers this function;
-  \code{vignette("pipeline", package = "csalert")} runs
-  \code{\link{reporting_completion_v1}}, which this one wraps.
+\code{vignette("pipeline", package = "csalert")}, stage 3.
 
 Other reporting completion functions:
 \code{\link[=reporting_completion_v1]{reporting_completion_v1()}}

@@ -2,24 +2,28 @@
 % Please edit documentation in R/naming_grammar.R
 \name{csfmt_interpret}
 \alias{csfmt_interpret}
-\title{Interpret a dataset's columns via the naming grammar}
+\title{Split every value column name of a table into its parts}
 \usage{
 csfmt_interpret(d, value_cols = NULL)
 }
 \arguments{
-\item{d}{A data.table / data.frame.}
+\item{d}{A data.table or data.frame.}
 
-\item{value_cols}{Optional columns to interpret; defaults to all non-structural.}
+\item{value_cols}{The columns to read. \code{NULL} reads every value column.}
 }
 \value{
-A data.table: `column, measure, denom, role, q, level, per, suffix,
-  interpretable` (the last TRUE when a role/quantile/level coordinate was found).
+A data.table with the columns \code{column}, \code{measure}, \code{denom}, \code{role},
+\code{q}, \code{level}, \code{per}, \code{suffix} and \code{interpretable}. \code{interpretable} is
+\code{TRUE} when the name has a role, a quantile label or a level.
 }
 \description{
-Applies [csfmt_parse] to every value column (everything not in the structural
-schema) and returns a catalog: one row per column with its parsed components.
-This makes a dataset self-describing -- generic tooling (QC, collapse,
-presentation) routes on the catalog instead of hardcoding column names.
+Runs \code{\link[=csfmt_parse]{csfmt_parse()}} on every value column, and returns one row per column.
+Code can then find a column by its parts.
+}
+\details{
+A value column is any column outside a fixed list of 23 structural names.
+The list includes \code{location_code}, \code{age}, \code{sex}, \code{isoyearweek},
+\code{indicator_tag}, \code{original} and the \verb{time_series_*} columns.
 }
 \examples{
 d <- data.table::data.table(
@@ -30,14 +34,13 @@ d <- data.table::data.table(
   a_column_outside_the_grammar = 1
 )
 
-# isoyearweek is structural, so it is not a value column at all; the last
-# column is a value column the grammar cannot read (interpretable = FALSE)
+# isoyearweek is structural, so it has no row. The last column is a value
+# column that the grammar cannot read, so its interpretable is FALSE.
 csfmt_interpret(d)
 }
 \seealso{
-Neither package vignette covers this function. It is the dataset-wide
-  form of \code{\link{csfmt_parse}}, and is what
-  \code{\link{compare_results}} uses to find the value columns it should diff.
+\code{vignette("pipeline", package = "csalert")}, whose naming-grammar
+section shows the grammar. \code{\link[=compare_results]{compare_results()}} uses this function.
 
 Other naming grammar functions:
 \code{\link[=csfmt_parse]{csfmt_parse()}},

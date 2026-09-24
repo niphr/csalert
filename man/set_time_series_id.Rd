@@ -2,22 +2,29 @@
 % Please edit documentation in R/csfmt_ensemble.R
 \name{set_time_series_id}
 \alias{set_time_series_id}
-\title{Assign content-hash time_series_id (+ readable label) by reference}
+\title{Add a content-hash series id to a data.table}
 \usage{
 set_time_series_id(d, id_cols, sep = "\\037")
 }
 \arguments{
-\item{d}{data.table.}
+\item{d}{A data.table. The function changes it by reference.}
 
-\item{id_cols}{Character vector of identity columns defining a series.}
+\item{id_cols}{The identity columns that define one series.}
 
-\item{sep}{Separator for the canonical key (default unit-separator).}
+\item{sep}{The separator in the label. The default is the ASCII unit
+separator, \code{"\\037"}.}
 }
 \value{
-`d`, modified by reference (invisibly).
+\code{d}, invisibly.
 }
 \description{
-Assign content-hash time_series_id (+ readable label) by reference
+Adds \code{time_series_label}, the identity values joined by \code{sep}, and
+\code{time_series_id}, the xxhash64 digest of that label. The id depends only on the
+identity values, so a series gets the same id in every table.
+}
+\details{
+\code{\link[=csfmt_ensemble_v3]{csfmt_ensemble_v3()}} and \code{\link[=csfmt_reporting_triangle_v3]{csfmt_reporting_triangle_v3()}} call this function for
+you.
 }
 \examples{
 d <- data.table::data.table(
@@ -28,14 +35,12 @@ d <- data.table::data.table(
 )
 set_time_series_id(d, id_cols = c("location_code", "age"))
 
-# the two nation rows share one content hash; the county row gets its own
+# the two nation rows share one id, and the county row has its own
 d[]
 }
 \seealso{
-Neither package vignette covers this function. It is called for you by
-  \code{\link{csfmt_ensemble_v3}} and \code{\link{csfmt_reporting_triangle_v3}};
-  call it directly only when you are keying a data.table those constructors
-  never see.
+\code{vignette("pipeline", package = "csalert")}, which shows the ensemble
+format.
 
 Other ensemble format functions:
 \code{\link[=csfmt_ensemble_v3]{csfmt_ensemble_v3()}},

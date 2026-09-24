@@ -7,31 +7,32 @@
 # The numerator is a subset of the denominator, so the rate is capped at `per`
 # (coherence guard); a violation warns rather than silently exceeding 100%.
 
-#' Add a rate measure to an ensemble
+#' Add a rate to an ensemble
 #'
-#' An ensemble operation (`ens_` family). It dispatches on the ensemble class, so
-#' the class -- not a name prefix on the caller -- carries the "operates on an
-#' ensemble" meaning. That matches [nowcast_delay_ecdf_v1()] and
-#' [short_term_trend()].
-#' @param x A `csfmt_ensemble_v3`.
-#' @param numerator,denominator Measure names present in `$draws`.
-#' @param per Scaling factor (e.g. 100 for percent).
-#' @param name Optional output measure name (defaults to the grammar name).
-#' @param ... Passed to methods.
-#' @returns `x` with the rate measure added to `$draws`.
+#' Divides one draw matrix by another, draw by draw, and adds the result as a new
+#' draw matrix. Column `j` is the same draw in every measure, so the rate carries
+#' the uncertainty of both.
+#'
+#' A zero denominator gives `NA`, not 0. The rate is capped at `per`, because the
+#' numerator is a subset of the denominator, and a draw above the cap gives a
+#' warning.
+#' @param x The `csfmt_ensemble_v3` that holds both measures.
+#' @param numerator,denominator Two draw matrices in `$draws`.
+#' @param per The scale of the rate. `100` gives a percentage.
+#' @param name The name of the new measure. `NULL` uses
+#'   `csfmt_var(numerator, denom = denominator, per = per)`.
+#' @param ... Passed to the method.
+#' @returns `x` with the rate in `$draws`.
 #' @family ensemble operations
-#' @seealso \code{vignette("pipeline", package = "csalert")}, which runs this
-#'   function as stage 4 of its pipeline, on a numerator and denominator that
-#'   were nowcast together.
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 4.
 #' @examples
 #' d <- data.table::data.table(
 #'   location_code = "nation",
 #'   age = "total",
 #'   isoyearweek = c("2023-01", "2023-02", "2023-03")
 #' )
-#' # The numerator must be a SUBSET of the denominator (tests positive out of
-#' # tests taken), so simulate the denominator first and the numerator
-#' # conditionally on it. Two independent Poissons would not be a proportion.
+#' # The numerator is a SUBSET of the denominator: positive tests out of tests
+#' # taken. So simulate the denominator first, and the numerator from it.
 #' set.seed(1)
 #' denom <- matrix(rpois(3 * 100, 200), nrow = 3)
 #' numer <- matrix(rbinom(length(denom), size = denom, prob = 0.10), nrow = 3)

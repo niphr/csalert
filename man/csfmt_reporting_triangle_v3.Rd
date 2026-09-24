@@ -2,7 +2,7 @@
 % Please edit documentation in R/csfmt_reporting_triangle_v3.R
 \name{csfmt_reporting_triangle_v3}
 \alias{csfmt_reporting_triangle_v3}
-\title{Construct a csfmt_reporting_triangle_v3}
+\title{Build a csfmt_reporting_triangle_v3}
 \usage{
 csfmt_reporting_triangle_v3(
   data,
@@ -13,33 +13,39 @@ csfmt_reporting_triangle_v3(
 )
 }
 \arguments{
-\item{data}{data.table with identity columns, a reference ISO-week column, a
-reporting date column, and a value column.}
+\item{data}{A data.table with the identity, reference, reporting and count
+columns.}
 
-\item{id_cols}{Identity columns defining a series.}
+\item{id_cols}{The identity columns that define one series.}
 
-\item{reference_col}{ISO-week column name.}
+\item{reference_col}{The reference ISO-week column, written \code{"YYYY-WW"}.}
 
-\item{reporting_col}{Column name holding the calendar date the count was
-reported. The column MUST be a `Date`. A character, a number, a factor and
-an `IDate` each error. It MUST NOT hold `NA`, and a missing value errors
-with its count. One `NA` makes `max()` return `NA`, so the as-of boundary
-would be `NA`, no reference week would settle, and every nowcast engine
-would quietly return the observed totals.}
+\item{reporting_col}{The column with the date each count was reported. Its
+class MUST be exactly \code{Date}, so an \code{IDate} is an error. It MUST NOT hold
+\code{NA}. One \code{NA} would make the as-of boundary \code{NA}. Every nowcast engine
+would then return the observed totals with no warning.}
 
-\item{value_col}{Count column name.}
+\item{value_col}{The count column.}
 }
 \value{
-A validated `csfmt_reporting_triangle_v3` (a data.table with the
-  as-of boundary and column roles stored as attributes). The as-of boundary
-  is a `Date`.
+A \code{csfmt_reporting_triangle_v3}: a data.table with the attributes
+\code{as_of}, a \code{Date}, and \code{id_cols}, \code{reference_col}, \code{reporting_col} and
+\code{value_col}.
 }
 \description{
-Construct a csfmt_reporting_triangle_v3
+Builds the input of the nowcast engines: counts by reference ISO week and by
+the date each count was reported. The newest reporting date is the as-of
+boundary.
+}
+\details{
+The triangle is sparse. An absent cell on or before the as-of date is a zero,
+and a cell after it is not reported yet. The constructor copies \code{data} and adds
+the ids of \code{\link[=set_time_series_id]{set_time_series_id()}}. It stops with an error when a reporting date
+comes before its reference Monday, or a count is negative.
 }
 \examples{
-# 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
-# right-truncated at one as-of date so the newest weeks are still incomplete
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday. The
+# data stops at one as-of date, so the newest weeks are still incomplete.
 cal <- cstime::dates_by_isoyearweek
 i <- match("2023-01", cal$isoyearweek)
 set.seed(1)
@@ -57,13 +63,13 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# the as-of boundary is the newest reporting date seen
+# the as-of boundary is the newest reporting date in the data
 attr(tri, "as_of")
 head(tri, 3)
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which builds a
-  triangle with this constructor and takes it through the whole pipeline.
+\code{vignette("pipeline", package = "csalert")}, which takes a triangle
+through the whole pipeline.
 
 Other reporting triangle functions:
 \code{\link[=isoyearweek_week_start]{isoyearweek_week_start()}},

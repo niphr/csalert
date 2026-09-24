@@ -2,40 +2,40 @@
 % Please edit documentation in R/compare.R
 \name{compare_results}
 \alias{compare_results}
-\title{Compare two collapsed csfmt result sets}
+\title{Compare two collapsed result sets, column by column}
 \usage{
 compare_results(current, previous)
 }
 \arguments{
-\item{current, previous}{data.tables (or csfmt_rts_data_v3) from two runs.}
+\item{current, previous}{The output of \code{\link[=ens_collapse]{ens_collapse()}} for two runs.}
 }
 \value{
-A long data.table: identity + isoyearweek + column + role/q/level +
-  `cur`/`prv`.
+A long data.table with \code{time_series_id}, \code{isoyearweek}, the columns
+among \code{indicator_tag}, \code{location_code}, \code{age} and \code{sex} that exist, and:
+\itemize{
+\item \code{column}: the name of the value column,
+\item \code{cur}, \code{prv}: its value in \code{current} and in \code{previous},
+\item \code{role}, \code{q}, \code{level}: the parts of its name.
+}
 }
 \description{
-Compare two collapsed csfmt result sets
+Joins two runs on \code{time_series_id} and \code{isoyearweek}, and returns one row per
+series, week and value column. \code{\link[=csfmt_interpret]{csfmt_interpret()}} finds the value columns of
+\code{current}, and the parts of each name.
+}
+\details{
+\code{time_series_id} is a hash of the identity columns, so a series has the same id
+in both runs. A week in only one run gets \code{NA} for the other run.
 }
 \section{Identity columns MUST use the csfmt schema names}{
 
-The value columns are found with \code{\link{csfmt_interpret}}, which treats
-anything outside the csfmt structural schema as a value column. Key the two
-runs on schema names such as `location_code` and `indicator_tag`.
+\code{\link[=csfmt_interpret]{csfmt_interpret()}} reads every column outside the csfmt schema as a value
+column. \code{location_code} and \code{indicator_tag} are schema names, but \code{location}
+and \code{indicator} are not. So with \code{location} or \code{indicator}, \code{cur} and \code{prv}
+become character.
 
-A non-schema identity column is a silent trap. `location` and `indicator` are
-NOT in the schema, but `location_code` and `indicator_tag` are. So `location`
-and `indicator` are read as value columns. Their character values are then
-stacked with the numeric measures, and `cur`/`prv` come back as character for
-every row. This function
-still returns a table, so the damage is easy to miss. But
-\code{\link{qc_week_over_week_v1}} then evaluates `abs(cur - prv)` on that
-character column and FAILS with
-`Error in cur - prv : non-numeric argument to binary operator`.
-
-Note that `vignette("pipeline", package = "csalert")` builds its triangle
-with `id_cols = c("indicator", "location", "age", "sex")`. Those names work
-for the nowcast pipeline itself, but a run-over-run comparison of the result
-needs `indicator_tag` and `location_code`.
+This function still returns a table. \code{\link[=qc_week_over_week_v1]{qc_week_over_week_v1()}} then stops with
+\verb{non-numeric argument to binary operator}.
 }
 
 \examples{
@@ -52,9 +52,8 @@ d <- d[reporting_date <= mondays[40] + 6]
 
 id <- c("indicator_tag", "location_code", "age", "sex")
 
-# The engine is stochastic, so reset the seed inside `run()`. Without that,
-# the two runs would also differ by their Monte-Carlo draws and the diff would
-# confound sampling noise with the actual data revision.
+# Set the seed inside `run()`. Then the two runs differ only by the data
+# revision, and not by their Monte-Carlo draws.
 run <- function(x) {
   set.seed(2)
   ens_collapse(nowcast_delay_ecdf_v1(
@@ -63,7 +62,7 @@ run <- function(x) {
   ))
 }
 
-# last week's run saw one reference week before it was corrected upward
+# last week's run saw one reference week before a correction raised it
 cur <- run(d)
 d_prv <- data.table::copy(d)
 d_prv[
@@ -72,12 +71,14 @@ d_prv[
 ]
 prv <- run(d_prv)
 
-# one row per (series, week, value column). With the seed held fixed, the only
-# week that moves is the corrected one.
+# with the seed held fixed, only the corrected week moves
 compare_results(cur, prv)[q == 0.5 & abs(cur - prv) > 0]
 }
 \seealso{
-Neither package vignette covers run-over-run comparison.
-  \code{\link{qc_week_over_week_v1}} is the usual entry point; it splits this
-  diff at the nowcast horizon.
+\code{vignette("pipeline", package = "csalert")}, section 9.
+
+Other quality control functions:
+\code{\link[=qc_surveillance_data_v1]{qc_surveillance_data_v1()}},
+\code{\link[=qc_week_over_week_v1]{qc_week_over_week_v1()}}
 }
+\concept{quality control functions}

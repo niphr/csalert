@@ -2,27 +2,26 @@
 % Please edit documentation in R/nowcast_backtest.R
 \name{nowcast_censor}
 \alias{nowcast_censor}
-\title{Censor a reporting triangle to what was known "as of" a past date}
+\title{Cut a reporting triangle back to what was known on a past date}
 \usage{
 nowcast_censor(triangle, as_of)
 }
 \arguments{
-\item{triangle}{A `csfmt_reporting_triangle_v3`.}
+\item{triangle}{The \code{csfmt_reporting_triangle_v3} to cut back.}
 
-\item{as_of}{A `Date`. Cells reported after it are dropped. A character, a
-number, a factor and an `IDate` each error. The check is strict because R
-reads `reporting date <= as_of` from the type of `as_of`. A number is a day
-count since 1970-01-01, so `as_of = 18262` censors to 2020-01-01 and
-reports nothing wrong. A character goes through `as.Date()`, so `"2020-11"`
-errors inside `charToDate()` with a message that never names `as_of`.}
+\item{as_of}{A \code{Date}. Any other class is an error. R compares
+\verb{reporting date <= as_of} by the type of \code{as_of}, so the number 18262 would
+cut to 2020-01-01 with no warning. A date with no report on or before it is
+an error.}
 }
 \value{
-A `csfmt_reporting_triangle_v3` censored to `as_of`.
+A \code{csfmt_reporting_triangle_v3}. Its as-of boundary is the newest
+reporting date that remains.
 }
 \description{
-Keeps only cells reported on or before `as_of` and rebuilds the triangle. Its
-as-of boundary and delay structure are then exactly what an engine would have
-seen on that date. The basis for replay-based backtesting.
+Keeps the cells reported on or before \code{as_of}, and rebuilds the triangle. That
+is exactly what an engine saw on that date only when the reporting system
+never corrects or deletes a count.
 }
 \examples{
 # 40 reference weeks, each reported 3, 10 and 17 days after its Monday
@@ -40,16 +39,13 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# rewind to what was known nine weeks earlier
+# go back to what was known nine weeks earlier
 past <- nowcast_censor(tri, as_of = as.Date("2023-01-02") + 7 * 30 + 6)
 c(now = attr(tri, "as_of"), then = attr(past, "as_of"))
 c(rows_now = nrow(tri), rows_then = nrow(past))
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")} calls this
-  function directly in its validation stage, to rebuild what was known on an
-  earlier date. \code{\link{nowcast_evaluate_v1}} censors for you when you do
-  not need the censored triangle itself.
+\code{vignette("pipeline", package = "csalert")}, stage 2.
 
 Other nowcast diagnostics:
 \code{\link[=nowcast_backtest]{nowcast_backtest()}},

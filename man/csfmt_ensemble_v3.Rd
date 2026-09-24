@@ -2,25 +2,33 @@
 % Please edit documentation in R/csfmt_ensemble.R
 \name{csfmt_ensemble_v3}
 \alias{csfmt_ensemble_v3}
-\title{Construct a csfmt_ensemble_v3}
+\title{Build a csfmt_ensemble_v3}
 \usage{
 csfmt_ensemble_v3(data, id_cols, time_col = "isoyearweek", draws = list())
 }
 \arguments{
-\item{data}{data.table with the identity columns and `time_col`.}
+\item{data}{A data.table with the identity columns and \code{time_col}.}
 
-\item{id_cols}{Character vector of identity columns defining a series.}
+\item{id_cols}{The identity columns that define one series.}
 
-\item{time_col}{Time-ordering column (default "isoyearweek").}
+\item{time_col}{The column that orders time within a series.}
 
-\item{draws}{Optional named list of `[nrow(data) x n_draws]` matrices, given in
-`data`'s input row order (they are reordered to match the canonical sort).}
+\item{draws}{A named list of matrices, one per measure, with \code{nrow(data)} rows
+in the row order of \code{data}.}
 }
 \value{
-A `csfmt_ensemble_v3`.
+A \code{csfmt_ensemble_v3}.
 }
 \description{
-Construct a csfmt_ensemble_v3
+Builds the working format of the pipeline. \verb{$data} is a data.table with one
+row per series and week. \verb{$draws} holds one matrix per measure, with one row
+per row of \verb{$data} and one column per draw.
+}
+\details{
+The constructor copies \code{data}, adds the ids of \code{\link[=set_time_series_id]{set_time_series_id()}}, and
+sorts the rows by series and \code{time_col}. It adds \code{time_series_internal_id},
+\verb{1..n} within each series, and puts the draw rows in the same order. The
+nowcast engines call it for you.
 }
 \examples{
 d <- data.table::data.table(
@@ -36,20 +44,16 @@ ens <- csfmt_ensemble_v3(
 )
 ens
 
-# $data carries the identity + the canonical sort keys. The trailing []
-# forces the print: data.table suppresses the first auto-print of a table
-# that was last modified by reference, which the constructor does.
+# $data holds the identity columns and the sort keys. The trailing [] makes
+# data.table print a table that was last changed by reference.
 ens$data[]
 
-# $draws holds one [weeks x draws] matrix per measure
+# $draws holds one matrix per measure, with rows = weeks, columns = draws
 dim(ens$draws$numerator_nowcasted)
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")} is built on this
-  format: its nowcast engine produces one and \code{\link{ens_collapse}}
-  reduces it. The vignette never calls this constructor directly, because the
-  engines build the ensemble for you. Call it yourself only when you already
-  hold draws from somewhere else.
+\code{vignette("pipeline", package = "csalert")}, which builds an ensemble
+with a nowcast engine.
 
 Other ensemble format functions:
 \code{\link[=print.csfmt_ensemble_v3]{print.csfmt_ensemble_v3()}},

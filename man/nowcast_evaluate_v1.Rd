@@ -2,7 +2,7 @@
 % Please edit documentation in R/nowcast_evaluate.R
 \name{nowcast_evaluate_v1}
 \alias{nowcast_evaluate_v1}
-\title{Evaluate nowcast method(s): interval coverage + point-estimate revision}
+\title{Score nowcast methods on interval coverage and revision}
 \usage{
 nowcast_evaluate_v1(
   triangle,
@@ -17,44 +17,51 @@ nowcast_evaluate_v1(
 )
 }
 \arguments{
-\item{triangle}{A `csfmt_reporting_triangle_v3` (single series).}
+\item{triangle}{A \code{csfmt_reporting_triangle_v3} with one series.}
 
-\item{methods}{A method `f(triangle) -> csfmt_ensemble_v3`, or a NAMED list of
-them (each with its parameters baked in, e.g. via a closure).}
+\item{methods}{One method, or a named list of methods. A method takes a
+triangle and returns a \code{csfmt_ensemble_v3}. One method gets the name
+\code{"method"}.}
 
-\item{max_delay_days}{Delay horizon in DAYS. Passed to [nowcast_truth] and
-[nowcast_backtest]. `max_delay_days = 35` is the 35 days that start on the
-reference week's Monday.}
+\item{max_delay_days}{The delay horizon in days.}
 
-\item{as_of_weeks, horizons, probs, seed}{Passed to [nowcast_backtest].
-`as_of_weeks` is a `Date` vector. Every method gets the same `seed`, so each
-one starts from the same RNG state on each as-of date. That pairs the
-comparison. It does not by itself give common random numbers, which would
-also need the methods to consume compatible variates.}
+\item{as_of_weeks, horizons, probs, seed}{Passed to \code{\link[=nowcast_backtest]{nowcast_backtest()}}. \code{probs}
+MUST include 0.05, 0.25, 0.5, 0.75 and 0.95.}
 
-\item{by}{Grouping for the evaluation summary (default "horizon").}
+\item{by}{The columns to group the scores by.}
 
-\item{thresholds}{Absolute-revision cut-offs to report the exceedance
-probability for (default 25\% and 50\%).}
+\item{thresholds}{The absolute revisions for the \verb{p_gt_<t>} columns.}
 }
 \value{
-A data.table, one row per group x method: `n`, interval coverage
-  (`coverage_50`, `coverage_90`), the point-estimate revision (`median_signed`
-  bias, `median_abs`, `q05`/`q95` band, `p_gt_<t>` tails) and `method`.
+A data.table with one row per group and method:
+\itemize{
+\item \code{n}: the number of scored forecasts,
+\item \code{coverage_50}, \code{coverage_90}: the share of truths from the 0.25 to the 0.75
+quantile, and from the 0.05 to the 0.95 quantile,
+\item \code{median_signed}, \code{median_abs}, \code{q05}, \code{q95}: the median revision, the median
+absolute revision, and the 5\% and 95\% quantiles of the revision,
+\item \verb{p_gt_<t>}: the share of absolute revisions above each threshold, such as
+\code{p_gt_25} for 0.25,
+\item \code{method}.
+}
+
+A method with no nowcast gives a warning and no rows.
 }
 \description{
-Replays each method over the triangle (backtest) and scores it on interval
-coverage and point-estimate revision. Coverage asks whether the intervals are
-honest; revision asks how much the number will still move. The scores are
-stacked into one per-horizon table with a `method`
-column. Pass a single method or a named list. Every method replays the same
-as-of dates from the same starting RNG state, so the comparison is paired.
-Coverage is read straight off the interval quantiles, so this needs no
-`scoringutils`.
+Replays each method with \code{\link[=nowcast_backtest]{nowcast_backtest()}}, and scores every nowcast against
+the settled truth from \code{\link[=nowcast_truth]{nowcast_truth()}}. It returns a row for each horizon and
+method.
+}
+\details{
+The revision is \code{(median - truth) / truth}, over the weeks with a truth above
+0. Every score is a measurement on the replayed weeks, not a property of a
+method. The methods replay the same as-of dates with the same \code{seed}, so they
+are paired by forecast. That does not give common random numbers, which would
+also need the methods to use their random numbers in the same way.
 }
 \examples{
-# a small reporting triangle: 30 weeks, each reported 3, 10 and 17 days after
-# its own Monday
+# a small reporting triangle: 30 weeks, each reported 3, 10 and 17 days
+# after its Monday
 monday <- as.Date("2023-01-02") + 7 * rep(0:29, each = 3)
 d <- data.table::data.table(
   isoyearweek_reference = format(monday, "\%G-\%V"),
@@ -62,17 +69,16 @@ d <- data.table::data.table(
   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
 tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
 
-# one method:
+# one method
 nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21),
                     max_delay_days = 21, horizons = 0:2, seed = 1)
-# several methods, paired by as-of date, stacked with a `method` column:
+# a named list of methods, with a `method` column in the result
 nowcast_evaluate_v1(tri, max_delay_days = 21, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21)))
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which runs this
-  function on its synthetic triangle and reads the coverage and revision
-  columns off the result.
+\code{vignette("pipeline", package = "csalert")}, stage 2, which explains
+how to read each column.
 
 Other nowcast diagnostics:
 \code{\link[=nowcast_backtest]{nowcast_backtest()}},

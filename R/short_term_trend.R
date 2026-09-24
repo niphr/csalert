@@ -511,22 +511,37 @@ short_term_trend_internal <- function(
   return(with_pred)
 }
 
-#' Determine the short term trend of a timeseries
+#' Estimate the short-term trend of a series
 #'
 #' @description
-#' Fits a quasi-Poisson regression over a moving window of recent weeks. It
-#' classifies the short-term trend of the numerator (optionally per a
-#' denominator) as increasing or not, and estimates a doubling time.
-#' The method is based upon a published analytics strategy by Benedetti (2019)
+#' The `csfmt_ensemble_v3` method fits a line through a rolling window of weeks in
+#' every draw. The deprecated `csfmt_rts_data_v1` method fits a rolling
+#' quasi-Poisson regression to a table, after Benedetti (2019)
 #' <doi:10.5588/pha.19.0002>.
-#' @param x Data object.
-#' @param ... Not in use.
-#' @seealso \code{vignette("pipeline", package = "csalert")} runs the ensemble
-#'   method as stage 5 of its pipeline, on the output of a nowcast. No vignette
-#'   runs the deprecated `csfmt_rts_data_v1` method; the example below is its
-#'   only worked demonstration.
-#'   \code{vignette("csalert", package = "csalert")} explains which of the two
-#'   generations to use.
+#' @param x A `csfmt_ensemble_v3`, or a deprecated `csfmt_rts_data_v1`.
+#' @param ... Passed to the method.
+#' @family ensemble operations
+#' @family short-term trend functions
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 5, and
+#'   `vignette("csalert", package = "csalert")` on which method to use.
+#' @examples
+#' # the ensemble method: 10 weeks x 200 draws of a rising count
+#' set.seed(1)
+#' ens <- csfmt_ensemble_v3(
+#'   data.table::data.table(
+#'     isoyearweek = sprintf("2023-%02d", 1:10),
+#'     location_code = "nation",
+#'     age = "total"
+#'   ),
+#'   id_cols = c("location_code", "age"),
+#'   draws = list(numerator_nowcasted = matrix(rpois(2000, 20 + 3 * 1:10), 10))
+#' )
+#' ens <- short_term_trend(ens, measure = "numerator_nowcasted", trend_isoyearweeks = 5)
+#' names(ens$draws)
+#'
+#' # the share of draws with a positive slope; the first 4 weeks have no window
+#' ens$data[, .(isoyearweek, numerator_nowcasted_trend_increasing_pr)]
+#'
 #' @rdname short_term_trend
 #' @export
 short_term_trend <- function(
@@ -538,16 +553,10 @@ short_term_trend <- function(
 
 #' @method short_term_trend csfmt_rts_data_v1
 #' @rdname short_term_trend
-#' @section Deprecated (the csfmt_rts_data_v1 method):
-#' `short_term_trend.csfmt_rts_data_v1` is **deprecated**. It belongs to the
-#' pre-ensemble architecture, in which each analysis stage read and wrote a
-#' `cstidy` table. The current architecture makes `csfmt_ensemble_v3` the
-#' analysis substrate: every stage takes the ensemble and returns the ensemble,
-#' and [ens_collapse] is terminal.
-#'
-#' It still works and emits no warning, so existing pipelines are undisturbed.
-#' New work SHOULD call `short_term_trend()` on the **ensemble**, before
-#' `ens_collapse()`:
+#' @section The deprecated csfmt_rts_data_v1 method:
+#' `short_term_trend.csfmt_rts_data_v1()` is **deprecated**. It still works and
+#' gives no warning. New work SHOULD run the ensemble method before
+#' [ens_collapse()]:
 #'
 #' \preformatted{
 #' ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
@@ -555,35 +564,41 @@ short_term_trend <- function(
 #' out <- ens_collapse(ens, heal = TRUE)
 #' }
 #'
-#' **The replacement is not a drop-in.** The two methods differ in interface and
-#' in output, not only in the class they accept:
-#' \itemize{
-#'   \item the v1 method takes `numerator`, `denominator`, `prX` and the
-#'     `*_naming_prefix` arguments. The ensemble method takes one `measure`
-#'     naming a `$draws` matrix; a rate is built beforehand with [ens_add_rate].
-#'   \item the v1 method fits a quasi-Poisson log-link model and returns a factor
-#'     status column plus a doubling time. The ensemble method computes a
-#'     per-draw OLS slope, a growth rate and a P(increasing), and returns no
-#'     classification at all.
-#' }
-#' Migrating is therefore a rewrite of the call site, and the numbers will not
-#' match. See \code{vignette("pipeline", package = "csalert")}, which runs the
-#' ensemble method as stage 5 of its pipeline.
-#' @param numerator Character of name of numerator.
-#' @param denominator Character of name of denominator (optional).
-#' @param prX If using denominator, what scaling factor should be used for numerator/denominator?
-#' @param trend_isoyearweeks Same as trend_dates, but used if granularity_geo=='isoyearweek'.
-#' @param remove_last_isoyearweeks Same as remove_last_dates, but used if granularity_geo=='isoyearweek'.
-#' @param forecast_isoyearweeks Same as forecast_dates, but used if granularity_geo=='isoyearweek'.
-#' @param numerator_naming_prefix "from_numerator", "generic", or a custom prefix.
-#' @param denominator_naming_prefix "from_denominator", "generic", or a custom prefix.
-#' @param statistics_naming_prefix "universal" (one variable for trend status, one variable for doubling dates), "from_numerator_and_prX" (If denominator is NULL, then one variable corresponding to numerator. If denominator exists, then one variable for each of the prXs).
-#' @param remove_training_data Boolean. If TRUE, removes the training data (i.e. 1:(trend_dates-1) or 1:(trend_isoyearweeks-1)) from the returned dataset.
-#' @param include_decreasing If true, then *_trend*_status contains the levels c("training", "forecast", "decreasing", "null", "increasing"), otherwise the levels c("training", "forecast", "notincreasing", "increasing").
-#' @param alpha Significance level for change in trend.
-#' @param ... Not in use.
-#' @returns The original csfmt_rts_data_v1 dataset with extra columns. *_trend*_status contains a factor with levels c("training", "forecast", "decreasing", "null", "increasing"), while *_doublingdays* contains the expected number of days before the numerator doubles.
+#' **The replacement is not a drop-in.** The v1 method takes `numerator`,
+#' `denominator`, `prX` and the `*_naming_prefix` arguments. The ensemble method
+#' takes one draw matrix, `measure`. The v1 method returns a status and a
+#' doubling time from a quasi-Poisson log-link fit. The ensemble method returns a
+#' slope, a growth rate and the share of draws with a positive slope. So the call
+#' changes, and the numbers do not match.
+#'
+#' The v1 method needs `granularity_time == "isoyearweek"`. A window is
+#' `increasing` when its slope is positive with a p-value at most `alpha`.
+#' @param numerator The count column.
+#' @param prX The scale of the rate `numerator / denominator`, such as `100`. It
+#'   MAY hold more than one scale.
+#' @param remove_last_isoyearweeks The number of latest weeks to leave out of the
+#'   fit. They get the status `"forecast"`.
+#' @param forecast_isoyearweeks The number of weeks to forecast after the data.
+#' @param numerator_naming_prefix The start of the new column names.
+#'   `"from_numerator"` is the numerator name without its last `_<word>`, and
+#'   `"generic"` is `"numerator"`. Any other string is used as written.
+#' @param denominator_naming_prefix The same for the denominator.
+#' @param statistics_naming_prefix `"universal"` names the columns
+#'   `<prefix>_trend0_<days>_status` and `<prefix>_doublingdays0_<days>`, with
+#'   `<days> = 7 * trend_isoyearweeks - 1`. `"from_numerator_and_prX"` adds the
+#'   numerator suffix, or `_pr<prX>` with a denominator.
+#' @param remove_training_data If `TRUE`, drop the first `trend_isoyearweeks - 1`
+#'   rows, which have no window.
+#' @param include_decreasing If `FALSE`, the levels are `"training"`,
+#'   `"forecast"`, `"notincreasing"` and `"increasing"`. If `TRUE`, they are
+#'   `"training"`, `"forecast"`, `"decreasing"`, `"null"` and `"increasing"`.
+#' @param alpha The significance level of the test on the slope.
+#' @returns The v1 method returns `x` with the forecast weeks added. The new
+#'   columns are the status, the doubling time in days, the forecast with its
+#'   2.5% and 97.5% limits, and a logical forecast marker. With a denominator,
+#'   it also adds the forecast denominator and rates.
 #' @examples
+#' # the deprecated csfmt_rts_data_v1 method
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]
 #' res <- csalert::short_term_trend(
@@ -684,12 +699,11 @@ short_term_trend.csfmt_rts_data_v1 <- function(
 
 #' @method short_term_trend csfmt_rts_data_v3
 #' @rdname short_term_trend
-#' @returns The `csfmt_rts_data_v3` method always errors: see the section below.
-#' @section Why there is no csfmt_rts_data_v3 method:
-#' `csfmt_rts_data_v3` is the COLLAPSED output of the pipeline, and the collapse
-#' is terminal. It carries quantiles, not draws, so a per-draw trend and a
-#' P(increasing) cannot be recovered from it. Calling `short_term_trend()` on one
-#' is always a mistake, so the method exists only to say so:
+#' @returns The `csfmt_rts_data_v3` method always stops with an error.
+#' @section Why the csfmt_rts_data_v3 method is an error:
+#' A `csfmt_rts_data_v3` is the collapsed output of the pipeline. It holds
+#' quantiles, not draws, so no per-draw trend can come from it. Run the trend
+#' before the collapse:
 #'
 #' \preformatted{
 #' ens <- short_term_trend(ens, measure = "numerator_nowcasted")  # before

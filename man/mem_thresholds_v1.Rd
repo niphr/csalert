@@ -3,7 +3,7 @@
 \name{mem_thresholds_v1}
 \alias{mem_thresholds_v1}
 \alias{mem_thresholds_v1.csfmt_ensemble_v3}
-\title{MEM intensity thresholds}
+\title{Classify every draw into MEM intensity levels}
 \usage{
 mem_thresholds_v1(x, ...)
 
@@ -19,38 +19,65 @@ mem_thresholds_v1(x, ...)
 )
 }
 \arguments{
-\item{x}{Data object.}
+\item{x}{The \code{csfmt_ensemble_v3} that holds \code{measure}.}
 
-\item{...}{Passed to methods.}
+\item{...}{Passed to the method.}
 
-\item{measure}{The `$draws` measure to threshold on (a rate or count).}
+\item{measure}{The draw matrix to classify, a count or a rate.}
 
-\item{min_seasons}{Hard floor of complete prior seasons needed to fit.}
+\item{min_seasons}{The fewest training seasons for a fit.}
 
-\item{prefer_seasons}{Preferred training depth (provisional below this).}
+\item{prefer_seasons}{A fit on fewer training seasons is provisional.}
 
-\item{i.seasons}{Max seasons passed to mem::memmodel.}
+\item{i.seasons}{The most training seasons in one fit, passed to
+\code{mem::memmodel()}.}
 
-\item{min_weeks_per_season}{Weeks needed for a season to count as training.}
+\item{min_weeks_per_season}{The fewest weeks that a training season needs.}
 
-\item{exclude_seasons}{Optional character vector of seasons (e.g.
-`c("2009/2010", "2019/2020")`, the `isoyearweek_to_season_c` form) to drop
-from the MEM training baseline -- anomalous seasons (pandemic years, data
-gaps) that would distort the thresholds. Thresholds are still ESTIMATED for
-every season (including excluded ones) from its remaining non-excluded prior
-seasons; only the baseline they are fit on changes.}
+\item{exclude_seasons}{Seasons to leave out of every training set, written as
+\code{cstime::isoyearweek_to_season_c()} writes them, such as \code{"2019/2020"}. Use it
+for a pandemic year or a season with a data gap. An excluded season still
+gets thresholds, and a message names the excluded seasons in the data.}
 }
 \value{
-The `csfmt_ensemble_v3` with per-draw MEM intensity columns added to
-  `$draws`. The added columns are the ordinal 1..5 status for `measure` and its
-  threshold levels, so the intensity level propagates through the later
-  quantile collapse.
+\code{x} with a new draw matrix, \verb{<measure>_status}, of level codes with a
+\code{levels} attribute. It also adds \code{mem_preepidemic}, \code{mem_medium}, \code{mem_high},
+\code{mem_veryhigh} and \code{mem_n_seasons}, the number of training seasons, to
+\verb{$data}. It adds them by reference, so the input ensemble gets them too.
 }
 \description{
-MEM intensity thresholds
+Fits Moving Epidemic Method (MEM) thresholds for each season from the earlier
+seasons of the same series, and classifies every draw against them. After
+\code{\link[=ens_collapse]{ens_collapse()}}, each week has the share of its draws at each of five levels.
+}
+\details{
+The fit uses the median of the draws of each week. A season is fit only on
+earlier seasons: those with at least \code{min_weeks_per_season} weeks, minus
+\code{exclude_seasons}, and at most the latest \code{i.seasons}.
+
+A season gets no thresholds, and \code{NA} in every draw, in three cases:
+\itemize{
+\item it has fewer than \code{min_seasons} training seasons,
+\item fewer than 2 of them hold a non-zero week,
+\item \code{mem::memmodel()} fails with its default method and with \code{i.method = 3}.
+}
+
+A fit on fewer than \code{prefer_seasons} seasons is provisional, and a message
+counts those seasons.
+
+The levels, coded 1 to 5, are:
+\enumerate{
+\item \code{preepidemic}: below \code{mem_preepidemic}, the MEM epidemic threshold,
+\item \code{low}: below \code{mem_medium}, the 40\% intensity threshold,
+\item \code{medium}: below \code{mem_high}, the 90\% intensity threshold,
+\item \code{high}: below \code{mem_veryhigh}, the 97.5\% intensity threshold,
+\item \code{veryhigh}: at or above \code{mem_veryhigh}.
+}
+
+It needs the mem package.
 }
 \examples{
-# MEM needs several complete prior seasons, so this fixture spans four:
+# MEM needs several earlier seasons, so this series spans four:
 # 212 weeks with a winter peak in each.
 if (requireNamespace("mem", quietly = TRUE)) {
   w <- cstime::dates_by_isoyearweek$isoyearweek
@@ -69,7 +96,7 @@ if (requireNamespace("mem", quietly = TRUE)) {
 
   ens <- mem_thresholds_v1(ens, measure = "numerator_nowcasted")
 
-  # thresholds are estimated leave-future-out, so the early seasons get none
+  # each season is fit on earlier seasons only, so the first seasons get none
   print(unique(ens$data[
     !is.na(mem_high),
     .(
@@ -78,16 +105,14 @@ if (requireNamespace("mem", quietly = TRUE)) {
     )
   ]))
 
-  # A week whose season has no thresholds gets NA for every draw, so it is not
-  # classified at all. On this fixture that is the first two seasons:
+  # every draw of a week in the first two seasons is NA
   status <- ens$draws$numerator_nowcasted_status
   print(c(
     weeks = nrow(status),
     weeks_with_no_threshold = sum(apply(status, 1, function(r) all(is.na(r))))
   ))
 
-  # For a week that DOES have thresholds, every draw is classified, so the
-  # alert level arrives as a distribution rather than as a single label.
+  # a week with thresholds gets a share of draws at each level
   r <- ens_collapse(ens, probs = 0.5)
   pcols <- grep("_status_prob_", names(r), value = TRUE)
   print(r[
@@ -98,6 +123,12 @@ if (requireNamespace("mem", quietly = TRUE)) {
 }
 }
 \seealso{
-\code{vignette("pipeline", package = "csalert")}, which runs this
-  function as stage 6 of its pipeline, on a five-season synthetic series.
+\code{vignette("pipeline", package = "csalert")}, stage 6.
+
+Other ensemble operations:
+\code{\link[=ens_add_rate]{ens_add_rate()}},
+\code{\link[=ens_collapse]{ens_collapse()}},
+\code{\link[=short_term_trend]{short_term_trend()}},
+\code{\link[=signal_detection_hlm]{signal_detection_hlm()}}
 }
+\concept{ensemble operations}
