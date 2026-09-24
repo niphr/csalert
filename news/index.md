@@ -25,6 +25,36 @@
   help page says that a settled pool week can still receive late
   reports, so a long backlog makes the nowcast run low, and that a pool
   week with no early reports cannot enter the pool.
+- Documentation only: the help pages render as markdown, so their links,
+  code and lists no longer show as raw text.
+- Documentation only: every public help page has a description, a family
+  and a vignette link.
+- Documentation only: the
+  [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  help page says it adds the five threshold columns to `$data`, by
+  reference, and not to `$draws`.
+- Documentation only: the
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  help page says the ensemble method codes a draw 1 for `null` and 2 for
+  `high`, not 0 and 1.
+- Documentation only: the
+  [`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md)
+  help page says `phi = 1` gives Poisson counts. It said `phi = 0`,
+  which gives `NA`.
+- Documentation only: the help pages state that
+  `remove_last_isoyearweeks` of the deprecated
+  [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  method has no effect.
+- Documentation only:
+  [`prediction_interval()`](https://niphr.github.io/csalert/reference/prediction_interval.md)
+  and its glm method are internal, and left the reference index. The
+  generic was never exported.
+- Documentation only: the pipeline vignette has a quality-control
+  section, and the Get started vignette has a simulation section.
+- Documentation only: the vignettes say that csdb cannot validate a v3
+  table. They said that a v3 table cannot be stored.
+- Documentation only: the README no longer says that `denominator`
+  belongs only to the deprecated trend method.
 
 ### Version
 

@@ -1,6 +1,8 @@
-# Quality-control checks on surveillance input data
+# Check that a surveillance feed has data and is up to date
 
-Quality-control checks on surveillance input data
+Checks the input of one indicator for too few rows, a missing reference
+column, and a newest period older than `expect_latest`. It returns a
+verdict, and the caller decides what to do.
 
 ## Usage
 
@@ -17,34 +19,40 @@ qc_surveillance_data_v1(
 
 - d:
 
-  A data.table of one indicator's data.
+  A data.table with the data of one indicator.
 
 - reference_col:
 
-  The reference time column (default "isoyearweek_reference").
+  The reference-period column.
 
 - expect_latest:
 
-  Optional: the latest reference period that \*should\* be present. If
-  \`max(reference) \< expect_latest\`, the feed is flagged stale.
+  The newest period that the caller expects, or `NULL` to skip the
+  check. The check uses `<`, which orders zero-padded `"YYYY-WW"`
+  strings correctly.
 
 - min_rows:
 
-  Minimum rows required (default 1).
+  The fewest rows that pass.
 
 ## Value
 
-A list: \`ok\` (logical) and \`reasons\` (character vector; empty if
-ok).
+A list with `ok`, `TRUE` when every check passes, and `reasons`, a
+character vector that is empty when `ok` is `TRUE`.
+
+## Details
+
+The checks run in that order and stop at the first failure, so `reasons`
+has at most one entry.
 
 ## See also
 
-Neither package vignette covers input quality control. This function
-returns a verdict and nothing else – the caller decides what to do with
-it.
-[`qc_week_over_week_v1`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
-answers a different question, about two finished runs rather than one
-input feed.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+section 9.
+
+Other quality control functions:
+[`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md),
+[`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
 
 ## Examples
 

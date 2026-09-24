@@ -1,14 +1,9 @@
-# Add seasonal outbreaks to simulated data
+# Add seasonal outbreaks to simulated daily counts
 
-Adds seasonal outbreaks to a simulated baseline time series, for
-syndromes or diseases that follow seasonal trends. Seasonal outbreaks
-vary more in size and timing than the underlying seasonal pattern. The
-number of outbreaks per affected year is set by `n_season_outbreak`, and
-`week_season_start` to `week_season_end` define the season window. The
-outbreak start is drawn from the season window, with a higher
-probability near the peak (`week_season_peak`). The outbreak size (the
-excess number of cases) is drawn from a Poisson distribution following
-Noufaily et al. (2019).
+Adds outbreaks inside a season window to the output of
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md),
+after Noufaily et al. (2019). It adds `n_season_outbreak` outbreaks in
+each of a random number of years.
 
 ## Usage
 
@@ -27,37 +22,60 @@ simulate_seasonal_outbreak_data(
 
 - data:
 
-  A `csfmt_rts_data_v1` data object, typically the output of
-  [`simulate_baseline_data`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md).
+  The output of
+  [`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md).
 
 - week_season_start:
 
-  Starting season week number.
+  The ISO week that starts the season window.
 
 - week_season_peak:
 
-  Peak of the season week number.
+  Not used: the start day is drawn with random weights, not near the
+  peak.
 
 - week_season_end:
 
-  Ending season week number.
+  The ISO week, in the next year, that ends the window.
 
 - n_season_outbreak:
 
-  Number of seasonal outbreaks to be simulated.
+  The number of outbreaks in each outbreak year.
 
 - m:
 
-  Parameter to determine the size of the outbreak (m times the standard
-  deviation of the baseline count at the starting day of the seasonal
-  outbreak).
+  The size factor of an outbreak.
 
 ## Value
 
-A `csfmt_rts_data_v1` (`data.table`) equal to `data` with the simulated
-seasonal outbreak counts added to column `n` and additional columns
-describing the outbreaks (e.g. `seasonal_outbreak`,
-`seasonal_outbreak_n`).
+A copy of `data` with the cases added to `n`, and these columns:
+
+- `sd` and `weight`,
+
+- `seasonal_outbreak`: 1 on an outbreak day,
+
+- `seasonal_outbreak_n`: the cases,
+
+- `seasonal_outbreak_n_rw`: the weighted cases, which are added to `n`.
+
+## Details
+
+The candidate years are those in `calyear`, except the last, and the
+function prints the years it picks. The window runs from ISO week
+`week_season_start` of a year to `week_season_end` of the next. An
+outbreak starts on a day of the window drawn with random weights.
+
+An outbreak adds a Poisson number of cases with mean `10 * m * sd`,
+where `sd = sqrt(mu * phi)` on the start day. The draw repeats until it
+is 2 or more, and it calls
+[`set.seed()`](https://rdrr.io/r/base/Random.html), which resets the
+random stream. The cases spread over the next days by a lognormal delay.
+Each day is then weighted: 0.5 on Sunday, 2 on Friday and Saturday, and
+1 on other days.
+
+**It needs `calyear`.** Where `calyear` is `NA`, as from
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md)
+with cstidy 2026.8.21, it adds no outbreak.
 
 ## References
 
@@ -67,12 +85,13 @@ systems. Statistics in Medicine. 2013.
 
 ## See also
 
-Neither package vignette covers the data simulators. Use them to
-generate a series whose truth you already know, then run
-[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
-or
-[`signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
-on it.
+[`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
+which simulates a series with a known outbreak.
+
+Other data simulation functions:
+[`add_holiday_effect()`](https://niphr.github.io/csalert/reference/add_holiday_effect.md),
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md),
+[`simulate_spike_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_spike_outbreak_data.md)
 
 ## Examples
 

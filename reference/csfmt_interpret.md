@@ -1,10 +1,9 @@
-# Interpret a dataset's columns via the naming grammar
+# Split every value column name of a table into its parts
 
-Applies \[csfmt_parse\] to every value column (everything not in the
-structural schema) and returns a catalog: one row per column with its
-parsed components. This makes a dataset self-describing – generic
-tooling (QC, collapse, presentation) routes on the catalog instead of
-hardcoding column names.
+Runs
+[`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md)
+on every value column, and returns one row per column. Code can then
+find a column by its parts.
 
 ## Usage
 
@@ -16,26 +15,30 @@ csfmt_interpret(d, value_cols = NULL)
 
 - d:
 
-  A data.table / data.frame.
+  A data.table or data.frame.
 
 - value_cols:
 
-  Optional columns to interpret; defaults to all non-structural.
+  The columns to read. `NULL` reads every value column.
 
 ## Value
 
-A data.table: \`column, measure, denom, role, q, level, per, suffix,
-interpretable\` (the last TRUE when a role/quantile/level coordinate was
-found).
+A data.table with the columns `column`, `measure`, `denom`, `role`, `q`,
+`level`, `per`, `suffix` and `interpretable`. `interpretable` is `TRUE`
+when the name has a role, a quantile label or a level.
+
+## Details
+
+A value column is any column outside a fixed list of 23 structural
+names. The list includes `location_code`, `age`, `sex`, `isoyearweek`,
+`indicator_tag`, `original` and the `time_series_*` columns.
 
 ## See also
 
-Neither package vignette covers this function. It is the dataset-wide
-form of
-[`csfmt_parse`](https://niphr.github.io/csalert/reference/csfmt_parse.md),
-and is what
-[`compare_results`](https://niphr.github.io/csalert/reference/compare_results.md)
-uses to find the value columns it should diff.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+whose naming-grammar section shows the grammar.
+[`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md)
+uses this function.
 
 Other naming grammar functions:
 [`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md),
@@ -54,8 +57,8 @@ d <- data.table::data.table(
   a_column_outside_the_grammar = 1
 )
 
-# isoyearweek is structural, so it is not a value column at all; the last
-# column is a value column the grammar cannot read (interpretable = FALSE)
+# isoyearweek is structural, so it has no row. The last column is a value
+# column that the grammar cannot read, so its interpretable is FALSE.
 csfmt_interpret(d)
 #>                                                      column
 #>                                                      <char>

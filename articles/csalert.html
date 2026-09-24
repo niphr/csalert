@@ -86,135 +86,157 @@ White</h4>
 
     
     
-<p>This page is an orientation. It says what the package is for, which
-half of it is current, and what it cannot do yet. It runs no analysis.
-For a worked run, read
+<p>This page says what the package is for, which methods are current,
+and what they cannot do yet. For a worked run, read
 <code><a href="../articles/pipeline.html">vignette("pipeline", package = "csalert")</a></code>.</p>
 <div class="section level2">
 <h2 id="what-csalert-is-for">What csalert is for<a class="anchor" aria-label="anchor" href="#what-csalert-is-for"></a>
 </h2>
-<p>Weekly surveillance counts arrive late. A case that belongs to last
-week may not be reported for another two or three weeks. So the newest
-weeks always look lower than they will turn out to be, and anything
-measured on them is pulled down with them.</p>
-<p>csalert does four things about that:</p>
+<p>Weekly surveillance counts arrive late. A case from last week can
+take two or three more weeks to be reported. So the newest weeks look
+lower than they will be, and every trend, intensity level or alert
+measured on them is too low as well.</p>
+<p>csalert does four things:</p>
 <ol style="list-style-type: decimal">
-<li>
-<strong>Completes the counts that are still arriving</strong>, and
-says how uncertain each completion is.</li>
-<li>
-<strong>Measures whether that completion can be trusted.</strong>
-Replay the method against weeks that have since settled, and score how
-close it got.</li>
-<li>
-<strong>Estimates recent direction.</strong> Is the completed series
-rising or falling, and how sure can you be.</li>
-<li>
-<strong>Turns a series into intensity levels and alerts.</strong>
-Which of five seasonal levels this week sits in, and whether it is above
-a historical baseline.</li>
+<li>It completes the counts that are still arriving, and says how
+uncertain each completion is.</li>
+<li>It measures how far to trust that completion. It replays the method
+on weeks that have since settled, and scores the result.</li>
+<li>It estimates whether the completed series rises or falls, and how
+sure that is.</li>
+<li>It places each week in one of five seasonal intensity levels, and
+flags a week above a historical baseline.</li>
 </ol>
 </div>
 <div class="section level2">
-<h2 id="there-are-two-generations--use-the-current-one-">There are two generations. Use the current one.<a class="anchor" aria-label="anchor" href="#there-are-two-generations--use-the-current-one-"></a>
+<h2 id="use-the-ensemble-methods">Use the ensemble methods<a class="anchor" aria-label="anchor" href="#use-the-ensemble-methods"></a>
 </h2>
 <div class="section level3">
-<h3 id="the-current-generation-works-on-an-ensemble">The current generation works on an ensemble<a class="anchor" aria-label="anchor" href="#the-current-generation-works-on-an-ensemble"></a>
+<h3 id="the-current-methods-work-on-an-ensemble">The current methods work on an ensemble<a class="anchor" aria-label="anchor" href="#the-current-methods-work-on-an-ensemble"></a>
 </h3>
-<p>Every analytical step happens on a <code>csfmt_ensemble_v3</code>. An
-ensemble is a table plus, for each measure, a matrix of simulated values
-— one column per simulation. Uncertainty travels as those columns, not
-as a summary.</p>
-<p>One rule follows, and it is the most useful thing to know about the
-package:</p>
+<p>Every analysis stage works on a <code>csfmt_ensemble_v3</code>: a
+table, plus a matrix of simulated values for each measure, with one
+column per draw. The uncertainty travels as those columns.</p>
 <blockquote>
-<p><strong>Every analytical stage takes the ensemble and returns the
-ensemble</strong>. <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code> is
-<strong>terminal</strong>. A collapsed table is output, never input.</p>
+<p><strong>Every analysis stage takes the ensemble and returns the
+ensemble.</strong> <code><a href="../reference/ens_collapse.html">ens_collapse()</a></code> is the last stage: a
+collapsed table is output, never input.</p>
 </blockquote>
-<p>Collapsing reduces the simulations to quantiles. Quantiles are not
-simulations, so nothing per-simulation survives it. You cannot feed a
-collapsed table back into <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> and recover a
-per-draw trend. Do every analytical step first, then collapse once, at
-the end.</p>
-<p>The canonical chain:</p>
+<p>The collapse reduces the draws to quantiles, and no per-draw quantity
+survives it. So <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> cannot get a per-draw
+trend back from a collapsed table. Run every analysis stage first, and
+collapse once, at the end.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Not run here. See vignette("pipeline", package = "csalert").</span></span>
 <span><span class="co">#</span></span>
 <span><span class="co"># csfmt_reporting_triangle_v3   the input: what was reported when</span></span>
-<span><span class="co">#   nowcast_delay_ecdf_v1()     fill in the weeks still arriving</span></span>
-<span><span class="co">#   ens_add_rate()              a rate, per simulation</span></span>
-<span><span class="co">#   short_term_trend()          recent direction, per simulation</span></span>
-<span><span class="co">#   mem_thresholds_v1()         seasonal intensity level, per simulation</span></span>
-<span><span class="co">#   signal_detection_hlm()      above the historical baseline, per simulation</span></span>
-<span><span class="co">#   ens_collapse(heal = TRUE)   simulations -&gt; quantiles. Terminal.</span></span></code></pre></div>
-<p>The middle stages are optional, and can be reordered among
-themselves.</p>
+<span><span class="co">#   nowcast_delay_ecdf_v1()     complete the weeks still arriving</span></span>
+<span><span class="co">#   ens_add_rate()              a rate, per draw</span></span>
+<span><span class="co">#   short_term_trend()          recent direction, per draw</span></span>
+<span><span class="co">#   mem_thresholds_v1()         seasonal intensity level, per draw</span></span>
+<span><span class="co">#   signal_detection_hlm()      above the historical baseline, per draw</span></span>
+<span><span class="co">#   ens_collapse(heal = TRUE)   draws -&gt; quantiles. The last stage.</span></span></code></pre></div>
+<p>The middle stages are optional, and their order is free, as long as
+each stage finds the measure that it reads.</p>
 </div>
 <div class="section level3">
-<h3 id="the-old-generation-worked-on-tables-directly">The old generation worked on tables directly<a class="anchor" aria-label="anchor" href="#the-old-generation-worked-on-tables-directly"></a>
+<h3 id="the-deprecated-methods-work-on-tables">The deprecated methods work on tables<a class="anchor" aria-label="anchor" href="#the-deprecated-methods-work-on-tables"></a>
 </h3>
 <p><code><a href="../reference/short_term_trend.html">short_term_trend.csfmt_rts_data_v1()</a></code> and
 <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm.csfmt_rts_data_v1()</a></code> read a
-<code>cstidy</code> table and wrote new columns straight back onto it.
-There was no simulation axis at all.</p>
+<code>cstidy</code> table and write new columns onto it. They have no
+draws.</p>
 <p>Both are <strong>deprecated</strong>. Both still work, and
-<strong>neither warns at run time</strong>. An existing pipeline is
-therefore undisturbed, and will never tell you it is on the old
-route.</p>
-<p><strong>The replacement is not a drop-in.</strong> The arguments
-differ, the shape of the return value differs, and the numbers differ,
-because the two are not the same estimator. Moving a call site over is a
-rewrite, not a rename. <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code> and
-<code><a href="../reference/signal_detection_hlm.html">?signal_detection_hlm</a></code> set out each difference in full.</p>
+<strong>neither gives a warning</strong>. So an existing pipeline keeps
+running, and never tells you that it uses them.</p>
+<p><strong>The replacement is not a drop-in.</strong> The arguments, the
+shape of the result and the numbers all differ, because the two are
+different estimators. A move to the new method is a rewrite of the call.
+<code><a href="../reference/short_term_trend.html">?short_term_trend</a></code> and <code><a href="../reference/signal_detection_hlm.html">?signal_detection_hlm</a></code>
+list each difference.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="where-the-data-formats-live">Where the data formats live<a class="anchor" aria-label="anchor" href="#where-the-data-formats-live"></a>
 </h2>
-<p>The table classes belong to <strong>cstidy, not to csalert</strong>:
-<code>csfmt_rts_data_v1</code>, <code>v2</code> and <code>v3</code>.
-csalert consumes and returns them; cstidy defines them.</p>
-<p>v1 and v2 are deprecated. <strong>v3 is the target</strong>, and it
-is what <code>ens_collapse(heal = TRUE)</code> returns.</p>
-<p>Three facts about v3 are worth carrying with you:</p>
+<p>The table classes <code>csfmt_rts_data_v1</code>, <code>v2</code> and
+<code>v3</code> belong to <strong>cstidy</strong>. csalert reads and
+returns them.</p>
+<p>v1 and v2 are deprecated. <strong>v3 is the target</strong>, and
+<code>ens_collapse(heal = TRUE)</code> returns it. Three facts about
+v3:</p>
 <ul>
 <li>
 <strong>The three classes are siblings.</strong> None of them
-inherits from another. A v3 object is not a v2 object, so a method
-written for v2 will not dispatch on it.</li>
+inherits from another, so a method written for v2 does not run on a v3
+object.</li>
 <li>
 <strong>v3 derives fewer columns than v2, but removes none.</strong>
 Counted on the unified set, v2 derives 18 columns and v3 derives 11.
 <code>set_csfmt_rts_data_v3()</code> deletes nothing, so a v2 table
-converted to v3 keeps every column it already had. What you give up is
-the <em>guarantee</em> that those columns are present, not the
-data.</li>
+converted to v3 keeps every column it had. You lose the
+<em>guarantee</em> that those columns are present, not the data.</li>
 <li>
-<strong>v3 is weekly-only.</strong> Its healing derives everything
-from <code>isoyearweek</code> alone. Daily and monthly data stays on
-v2.</li>
+<strong>v3 is weekly only.</strong> It derives everything from
+<code>isoyearweek</code>. Daily and monthly data stays on v2.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="what-cannot-be-done-yet">What cannot be done yet<a class="anchor" aria-label="anchor" href="#what-cannot-be-done-yet"></a>
 </h2>
-<p><strong>A v3 table cannot be written to a database today.</strong>
-<code>csdb</code> ships table validators for
-<code>csfmt_rts_data_v1</code> and <code>csfmt_rts_data_v2</code>, and
-has no v3 equivalent.</p>
-<p>So v3 is an analysis and presentation format. It is fine for plots,
-tables and reports, and it is not yet a storage format. That is the main
-limit on the direction of travel. Keep v2 wherever the result has to
-reach a database.</p>
+<p><strong>csdb cannot validate a v3 table.</strong> csdb ships
+validators for <code>csfmt_rts_data_v1</code> and
+<code>csfmt_rts_data_v2</code>, and none for v3.</p>
+<p>So use v3 for plots, tables and reports. Keep v2 where a result goes
+to a database through csdb.</p>
 </div>
 <div class="section level2">
-<h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
+<h2 id="test-data-with-a-known-truth">Test data with a known truth<a class="anchor" aria-label="anchor" href="#test-data-with-a-known-truth"></a>
 </h2>
-<p><code><a href="../articles/pipeline.html">vignette("pipeline", package = "csalert")</a></code> runs one
-synthetic series through the whole chain, stage by stage, with the
-numbers and the caveats attached to each stage. Start there when you
-want code.</p>
+<p>The simulators make daily counts in which you know where each
+outbreak is. Run a detector on them, and check that it fires on those
+days.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
+<span><span class="co">#&gt; csalert 2026.9.24</span></span>
+<span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'data.table'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:base':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     %notin%</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_baseline_data.html">simulate_baseline_data</a></span><span class="op">(</span></span>
+<span>  start_date <span class="op">=</span> <span class="st">"2018-01-01"</span>, end_date <span class="op">=</span> <span class="st">"2019-12-31"</span>,</span>
+<span>  seasonal_pattern_n <span class="op">=</span> <span class="fl">1</span>, weekly_pattern_n <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fl">3</span>, beta <span class="op">=</span> <span class="fl">0</span>, gamma_1 <span class="op">=</span> <span class="fl">0.8</span>, gamma_2 <span class="op">=</span> <span class="fl">0.6</span>,</span>
+<span>  gamma_3 <span class="op">=</span> <span class="fl">0.8</span>, gamma_4 <span class="op">=</span> <span class="fl">0.4</span>, phi <span class="op">=</span> <span class="fl">4</span>, shift_1 <span class="op">=</span> <span class="fl">29</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_spike_outbreak_data.html">simulate_spike_outbreak_data</a></span><span class="op">(</span><span class="va">d</span>, n_sp_outbreak <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add_holiday_effect.html">add_holiday_effect</a></span><span class="op">(</span></span>
+<span>  <span class="va">d</span>,</span>
+<span>  holiday_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span>
+<span>    date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2018-12-25"</span>, <span class="st">"2019-12-25"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    is_holiday <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  holiday_effect <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># the days of the outbreak, and the cases it added to n</span></span>
+<span><span class="va">d</span><span class="op">[</span><span class="va">sp_outbreak</span> <span class="op">==</span> <span class="fl">2</span>, <span class="fu">.</span><span class="op">(</span>first_day <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">date</span><span class="op">)</span>, last_day <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">date</span><span class="op">)</span>,</span>
+<span>                      days <span class="op">=</span> <span class="va">.N</span>, cases_added <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">sp_outbreak_n</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;     first_day   last_day  days cases_added</span></span>
+<span><span class="co">#&gt;        &lt;Date&gt;     &lt;Date&gt; &lt;int&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1: 2019-02-05 2019-02-24    20         202</span></span></code></pre></div>
+<p><code><a href="../reference/simulate_baseline_data.html">simulate_baseline_data()</a></code> draws the counts from a trend,
+a seasonal pattern and a weekly pattern.
+<code><a href="../reference/simulate_spike_outbreak_data.html">simulate_spike_outbreak_data()</a></code> adds a short outbreak in the
+last 49 weeks, and marks its days in <code>sp_outbreak</code>.
+<code><a href="../reference/add_holiday_effect.html">add_holiday_effect()</a></code> multiplies the counts on the dates you
+give. <code><a href="../reference/simulate_seasonal_outbreak_data.html">simulate_seasonal_outbreak_data()</a></code> adds outbreaks
+inside a season window. Read its help page before you use it.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

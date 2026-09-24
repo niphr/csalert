@@ -1,8 +1,7 @@
 # The Monday that starts an ISO week
 
-Returns the Monday that starts each ISO week, as a \`Date\`. Every delay
-in a reporting triangle is the number of days from this Monday to the
-reporting date.
+Returns the Monday that starts each ISO week, as a `Date`. Every delay
+in a reporting triangle counts days from this Monday.
 
 ## Usage
 
@@ -14,19 +13,18 @@ isoyearweek_week_start(isoyearweek)
 
 - isoyearweek:
 
-  Character vector of ISO weeks, written \`"YYYY-WW"\`, for example
-  \`"2026-01"\`.
+  A character vector of ISO weeks, written `"YYYY-WW"`.
 
 ## Value
 
-A \`Date\` vector with one element per element of \`isoyearweek\`. A
-value that is not an ISO week in \`cstime::dates_by_isoyearweek\` gives
-\`NA\`.
+A `Date` vector as long as `isoyearweek`, with `NA` for a value that is
+not an ISO week in
+[`cstime::dates_by_isoyearweek`](https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html).
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-which measures every delay and every age in days from this Monday.
+which counts every delay and age in days from this Monday.
 
 Other reporting triangle functions:
 [`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md),

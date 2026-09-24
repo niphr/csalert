@@ -1,13 +1,10 @@
-# Evaluate nowcast method(s): interval coverage + point-estimate revision
+# Score nowcast methods on interval coverage and revision
 
-Replays each method over the triangle (backtest) and scores it on
-interval coverage and point-estimate revision. Coverage asks whether the
-intervals are honest; revision asks how much the number will still move.
-The scores are stacked into one per-horizon table with a \`method\`
-column. Pass a single method or a named list. Every method replays the
-same as-of dates from the same starting RNG state, so the comparison is
-paired. Coverage is read straight off the interval quantiles, so this
-needs no \`scoringutils\`.
+Replays each method with
+[`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
+and scores every nowcast against the settled truth from
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md).
+It returns a row for each horizon and method.
 
 ## Usage
 
@@ -29,48 +26,64 @@ nowcast_evaluate_v1(
 
 - triangle:
 
-  A \`csfmt_reporting_triangle_v3\` (single series).
+  A `csfmt_reporting_triangle_v3` with one series.
 
 - methods:
 
-  A method \`f(triangle) -\> csfmt_ensemble_v3\`, or a NAMED list of
-  them (each with its parameters baked in, e.g. via a closure).
+  One method, or a named list of methods. A method takes a triangle and
+  returns a `csfmt_ensemble_v3`. One method gets the name `"method"`.
 
 - max_delay_days:
 
-  Delay horizon in DAYS. Passed to \[nowcast_truth\] and
-  \[nowcast_backtest\]. \`max_delay_days = 35\` is the 35 days that
-  start on the reference week's Monday.
+  The delay horizon in days.
 
 - as_of_weeks, horizons, probs, seed:
 
-  Passed to \[nowcast_backtest\]. \`as_of_weeks\` is a \`Date\` vector.
-  Every method gets the same \`seed\`, so each one starts from the same
-  RNG state on each as-of date. That pairs the comparison. It does not
-  by itself give common random numbers, which would also need the
-  methods to consume compatible variates.
+  Passed to
+  [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md).
+  `probs` MUST include 0.05, 0.25, 0.5, 0.75 and 0.95.
 
 - by:
 
-  Grouping for the evaluation summary (default "horizon").
+  The columns to group the scores by.
 
 - thresholds:
 
-  Absolute-revision cut-offs to report the exceedance probability for
-  (default 25% and 50%).
+  The absolute revisions for the `p_gt_<t>` columns.
 
 ## Value
 
-A data.table, one row per group x method: \`n\`, interval coverage
-(\`coverage_50\`, \`coverage_90\`), the point-estimate revision
-(\`median_signed\` bias, \`median_abs\`, \`q05\`/\`q95\` band,
-\`p_gt\_\<t\>\` tails) and \`method\`.
+A data.table with one row per group and method:
+
+- `n`: the number of scored forecasts,
+
+- `coverage_50`, `coverage_90`: the share of truths from the 0.25 to the
+  0.75 quantile, and from the 0.05 to the 0.95 quantile,
+
+- `median_signed`, `median_abs`, `q05`, `q95`: the median revision, the
+  median absolute revision, and the 5% and 95% quantiles of the
+  revision,
+
+- `p_gt_<t>`: the share of absolute revisions above each threshold, such
+  as `p_gt_25` for 0.25,
+
+- `method`.
+
+A method with no nowcast gives a warning and no rows.
+
+## Details
+
+The revision is `(median - truth) / truth`, over the weeks with a truth
+above 0. Every score is a measurement on the replayed weeks, not a
+property of a method. The methods replay the same as-of dates with the
+same `seed`, so they are paired by forecast. That does not give common
+random numbers, which would also need the methods to use their random
+numbers in the same way.
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-which runs this function on its synthetic triangle and reads the
-coverage and revision columns off the result.
+stage 2, which explains how to read each column.
 
 Other nowcast diagnostics:
 [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
@@ -80,8 +93,8 @@ Other nowcast diagnostics:
 ## Examples
 
 ``` r
-# a small reporting triangle: 30 weeks, each reported 3, 10 and 17 days after
-# its own Monday
+# a small reporting triangle: 30 weeks, each reported 3, 10 and 17 days
+# after its Monday
 monday <- as.Date("2023-01-02") + 7 * rep(0:29, each = 3)
 d <- data.table::data.table(
   isoyearweek_reference = format(monday, "%G-%V"),
@@ -89,7 +102,7 @@ d <- data.table::data.table(
   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
 tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
 
-# one method:
+# one method
 nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21),
                     max_delay_days = 21, horizons = 0:2, seed = 1)
 #>    horizon     n coverage_50 coverage_90 median_signed median_abs     q05
@@ -102,7 +115,7 @@ nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_d
 #> 1:  0.0000       0       0 method
 #> 2: -0.3333       1       0 method
 #> 3: -0.6667       1       1 method
-# several methods, paired by as-of date, stacked with a `method` column:
+# a named list of methods, with a `method` column in the result
 nowcast_evaluate_v1(tri, max_delay_days = 21, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21)))
 #>    horizon     n coverage_50 coverage_90 median_signed median_abs     q05

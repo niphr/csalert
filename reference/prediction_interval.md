@@ -1,6 +1,8 @@
-# Prediction thresholds
+# Prediction interval for new data from a fitted model
 
-Prediction thresholds
+Internal: the deprecated `csfmt_rts_data_v1` method of
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+uses it for its forecast.
 
 ## Usage
 
@@ -12,26 +14,26 @@ prediction_interval(object, newdata, alpha = 0.05, z = NULL, ...)
 
 - object:
 
-  Object.
+  A fitted model.
 
 - newdata:
 
-  New data.
+  A data.frame of covariates.
 
 - alpha:
 
-  Two-sided alpha (e.g 0.05).
+  The two-sided significance level.
 
 - z:
 
-  Similar to `alpha` (e.g. z=1.96 is the same as alpha=0.05).
+  The normal quantile. When given, it replaces `alpha`: `z = 1.96`
+  equals `alpha = 0.05`.
 
 - ...:
 
-  dots.
+  Passed to the method.
 
 ## Value
 
-A \`data.table\` with one row per row of \`newdata\` and the columns
-\`lower\`, \`point\` and \`upper\`. They give the two-sided prediction
-interval and the point estimate on the response scale.
+A `data.table` with one row per row of `newdata`: `lower`, `point` and
+`upper`, on the response scale.

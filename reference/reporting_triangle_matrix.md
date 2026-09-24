@@ -1,7 +1,7 @@
-# Densify a reporting triangle into per-series reference x delay count matrices
+# Turn a reporting triangle into one count matrix per series
 
-Densify a reporting triangle into per-series reference x delay count
-matrices
+Returns, for each series, a matrix of counts with one row per reference
+week and one column per delay day. Every nowcast engine calls it first.
 
 ## Usage
 
@@ -17,37 +17,35 @@ reporting_triangle_matrix(
 
 - triangle:
 
-  A \`csfmt_reporting_triangle_v3\`.
+  The `csfmt_reporting_triangle_v3` to turn into matrices.
 
 - max_delay_days:
 
-  Number of delay columns, in DAYS: delay 0 to \`max_delay_days - 1\`.
-  \`max_delay_days = 35\` gives delay days 0 to 34, the 35 days that
-  start on the reference week's Monday. The last column holds delay
-  \`max_delay_days - 1\` AND every later delay, so a report at delay 35
-  or 400 counts in column \`"34"\`. A report before the reference Monday
-  has a negative delay and is dropped.
+  The number of delay columns, in days. With 35, the columns are delay
+  days 0 to 34, and a report at delay 35 or 400 counts in column `"34"`.
 
 - value_col:
 
-  Which value column to reshape (default the triangle's \`value_col\`;
-  pass a denominator column to reshape that instead).
+  The count column. The default is the `value_col` of the triangle. Give
+  a denominator column to get its matrix.
 
 ## Value
 
-Named list (by time_series_id) of \`list(reference, mat)\`, where
-\`mat\` is a reference-week x delay-day count matrix (zeros filled
-within the observed region). The rows stay ISO weeks; only the columns
-are days. The last column, \`max_delay_days - 1\`, also holds every
-report at a later delay. So a late report adds to \`rowSums(mat)\` and
-is not lost. A cell sums its counts with \`na.rm = TRUE\`, so an \`NA\`
-count adds nothing, and a cell that holds only \`NA\` counts is 0.
+A list named by `time_series_id`. Each element holds `reference`, the
+ISO weeks of the rows, and `mat`, the matrix. A cell sums its counts
+with `na.rm = TRUE`, so a cell with only `NA` counts is 0.
+
+## Details
+
+The rows run over every ISO week from the first to the last reference
+week. A week with no report is a row of zeros. The last column also
+holds every later delay, so a late report adds to `rowSums(mat)`. A
+report before its reference Monday has a negative delay, and is dropped.
 
 ## See also
 
-Neither package vignette covers this function. It is the densification
-step every nowcast engine runs first. Reach for it directly only when
-you want the raw reference x delay matrix rather than an ensemble.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 3, which reads the delay distribution from these counts.
 
 Other reporting triangle functions:
 [`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md),

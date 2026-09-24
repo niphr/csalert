@@ -1,9 +1,8 @@
-# Add a rate measure to an ensemble
+# Add a rate to an ensemble
 
-An ensemble operation (\`ens\_\` family). It dispatches on the ensemble
-class, so the class – not a name prefix on the caller – carries the
-"operates on an ensemble" meaning. That matches
-\[nowcast_delay_ecdf_v1()\] and \[short_term_trend()\].
+Divides one draw matrix by another, draw by draw, and adds the result as
+a new draw matrix. Column `j` is the same draw in every measure, so the
+rate carries the uncertainty of both.
 
 ## Usage
 
@@ -18,36 +17,45 @@ ens_add_rate(x, numerator, denominator, per = 100, name = NULL, ...)
 
 - x:
 
-  A \`csfmt_ensemble_v3\`.
+  The `csfmt_ensemble_v3` that holds both measures.
 
 - ...:
 
-  Passed to methods.
+  Passed to the method.
 
 - numerator, denominator:
 
-  Measure names present in \`\$draws\`.
+  Two draw matrices in `$draws`.
 
 - per:
 
-  Scaling factor (e.g. 100 for percent).
+  The scale of the rate. `100` gives a percentage.
 
 - name:
 
-  Optional output measure name (defaults to the grammar name).
+  The name of the new measure. `NULL` uses
+  `csfmt_var(numerator, denom = denominator, per = per)`.
 
 ## Value
 
-\`x\` with the rate measure added to \`\$draws\`.
+`x` with the rate in `$draws`.
+
+## Details
+
+A zero denominator gives `NA`, not 0. The rate is capped at `per`,
+because the numerator is a subset of the denominator, and a draw above
+the cap gives a warning.
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-which runs this function as stage 4 of its pipeline, on a numerator and
-denominator that were nowcast together.
+stage 4.
 
 Other ensemble operations:
-[`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+[`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md),
+[`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md),
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md),
+[`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
 
 ## Examples
 
@@ -57,9 +65,8 @@ d <- data.table::data.table(
   age = "total",
   isoyearweek = c("2023-01", "2023-02", "2023-03")
 )
-# The numerator must be a SUBSET of the denominator (tests positive out of
-# tests taken), so simulate the denominator first and the numerator
-# conditionally on it. Two independent Poissons would not be a proportion.
+# The numerator is a SUBSET of the denominator: positive tests out of tests
+# taken. So simulate the denominator first, and the numerator from it.
 set.seed(1)
 denom <- matrix(rpois(3 * 100, 200), nrow = 3)
 numer <- matrix(rbinom(length(denom), size = denom, prob = 0.10), nrow = 3)

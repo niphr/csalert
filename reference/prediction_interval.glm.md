@@ -1,6 +1,7 @@
-# Prediction thresholds
+# Prediction interval for new data from a Poisson or quasi-Poisson glm
 
-Prediction thresholds
+Internal. It combines the dispersion of the fit with the standard error
+of the fitted mean, on the power scale that `skewness_transform` names.
 
 ## Usage
 
@@ -20,32 +21,30 @@ prediction_interval(
 
 - object:
 
-  Object.
+  A `glm` of family `poisson` or `quasipoisson`.
 
 - newdata:
 
-  New data.
+  A data.frame of covariates.
 
 - alpha:
 
-  Two-sided alpha (e.g 0.05).
+  The two-sided significance level.
 
 - z:
 
-  Similar to `alpha` (e.g. z=1.96 is the same as alpha=0.05).
+  The normal quantile. When given, it replaces `alpha`.
 
 - skewness_transform:
 
-  "none", "1/2", "2/3".
+  The power scale: `"none"`, `"1/2"` or `"2/3"`.
 
 - ...:
 
-  dots.
+  Not used, but the generic has it.
 
 ## Value
 
-A \`data.table\` with one row per row of \`newdata\` and the columns
-\`lower\`, \`point\` and \`upper\`. They give the two-sided prediction
-interval and the point estimate on the response scale. All three columns
-are \`NA_real\_\` if the underlying \`stats::predict\` call raises a
-warning or an error.
+A `data.table` with one row per row of `newdata`: `lower`, `point` and
+`upper`, on the response scale. All three are `NA_real_` when any step
+gives a warning or an error.

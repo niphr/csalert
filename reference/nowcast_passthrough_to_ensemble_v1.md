@@ -1,14 +1,8 @@
-# Build an ensemble from a reporting triangle WITHOUT nowcasting (passthrough)
+# Build an ensemble from a reporting triangle with no nowcast
 
-Collapse the triangle to the observed (reported-so-far) totals per
-reference week and wrap them as a degenerate single-draw ensemble. Some
-indicators SHOULD NOT be nowcast-completed, because reporting is
-effectively complete or the analyst chose not to model the delay. Such
-an indicator then flows through the SAME rate/trend/MEM/collapse
-pipeline, with its observed values unchanged. It emits the same
-\`\<measure\>\_nowcasted\` columns as the modelling engines, here equal
-to the observed value. All downstream code is therefore identical. The
-single draw makes every collapsed quantile equal the observed point.
+Returns the counts reported so far as an ensemble with one draw. Use it
+for an indicator that SHOULD NOT be nowcast, and the rest of the
+pipeline runs unchanged.
 
 ## Usage
 
@@ -20,31 +14,35 @@ nowcast_passthrough_to_ensemble_v1(x, max_delay_days, denominator_col = NULL)
 
 - x:
 
-  A \`csfmt_reporting_triangle_v3\`.
+  The `csfmt_reporting_triangle_v3` to pass through.
 
 - max_delay_days:
 
-  Delay horizon in DAYS: delay day 0 to \`max_delay_days - 1\`. It
-  defines the contiguous reference grid. \[qc_week_over_week_v1\] takes
-  \`max_delay_weeks\` instead, counted in WEEKS. The two names differ
-  because the two units differ.
+  The delay horizon in days. The totals do not depend on it, because a
+  later report counts in the last delay column.
 
 - denominator_col:
 
-  Optional denominator column, carried through the same way (its
-  observed total is also surfaced as \`\<denom\>\_observed\`).
+  A denominator column to pass through in the same way. Its total also
+  goes to `$data` as `<denominator_col>_observed`.
 
 ## Value
 
-A \`csfmt_ensemble_v3\` with single-column draw matrices.
+A `csfmt_ensemble_v3` with one draw. `$data` holds `original`, the
+observed total.
+
+## Details
+
+The draw matrix has the name `<measure>_nowcasted`, as from
+[`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md),
+and holds the observed total. So every collapsed quantile equals the
+observed total, also for the newest weeks.
 
 ## See also
 
-[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
-races this engine against
-[`nowcast_delay_ecdf_v1`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
-on the same triangle. That is the clearest way to see what completion
-buys you over the observed counts passed through unchanged.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 2, which scores it against
+[`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md).
 
 Other nowcast engines:
 [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
@@ -52,8 +50,8 @@ Other nowcast engines:
 ## Examples
 
 ``` r
-# 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
-# right-truncated so the newest weeks are still incomplete
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday. The
+# data stops at one as-of date, so the newest weeks are still incomplete.
 monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 set.seed(1)
 d <- data.table::data.table(
@@ -72,8 +70,8 @@ ens <- nowcast_passthrough_to_ensemble_v1(tri, max_delay_days = 21)
 ens
 #> <csfmt_ensemble_v3> 40 rows | 1 series | draws: numerator_nowcasted
 
-# one draw only, so every collapsed quantile equals the observed total --
-# including for the newest, still-incomplete weeks
+# one draw, so every quantile equals the observed total, also for the
+# newest weeks that are still incomplete
 r <- ens_collapse(ens, probs = c(0.05, 0.5, 0.95))
 tail(r[, .(
   isoyearweek, original,

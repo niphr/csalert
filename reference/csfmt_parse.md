@@ -1,8 +1,10 @@
-# Parse a csfmt measure column name into components
+# Split a measure column name into its parts
 
-Reads a column name written by \[csfmt_var\] back into its parts. It
-strips the trailing coordinates, then a role, then a \`\_vs\_\<denom\>\`
-segment, and whatever is left is the measure.
+Reads a name that
+[`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md)
+wrote back into its parts. From the right, it removes a `_n` suffix, a
+`_pr<per>` scale, a quantile label and a `_prob_<level>` level. It then
+removes a role and `_vs_<denom>`, and the rest is the measure.
 
 ## Usage
 
@@ -14,34 +16,36 @@ csfmt_parse(varname)
 
 - varname:
 
-  Character scalar column name.
+  The column name.
 
 ## Value
 
-Named list with the components that were present (e.g. \`measure\`,
-\`role\`, \`q\`, \`denom\`, \`per\`).
+A named list of the parts that are present: `measure`, `denom`, `role`,
+`q`, `level`, `per` and `suffix`, in that order.
+
+## Details
+
+The roles it knows are `observed`, `nowcasted`, `forecasted`, `trend`,
+`baseline`, `status` and `hlmstatus`.
 
 ## Where it does not invert csfmt_var
 
-The parse is a right-to-left strip against a fixed role vocabulary, so
-it cannot tell which of several role-looking segments was the role. On
-the package's own rate name it gets the denominator wrong:
+The parse cannot tell which of two role words was the role. On the rate
+name of the package, it gets the denominator wrong:
 
     csfmt_var("numerator_nowcasted", denom = "denominator_nowcasted", per = 100)
     #> "numerator_nowcasted_vs_denominator_nowcasted_pr100"
     csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")$denom
-    #> "denominator"          # the denominator's own "_nowcasted" was eaten as the role
+    #> "denominator"   # "_nowcasted" of the denominator was read as the role
 
-Treat it as reliable for a single-role name such as
-\`numerator_nowcasted_q50x0\`. Check the result whenever the measure or
-the denominator itself ends in a role word.
+The parse is reliable for a name with one role word, such as
+`numerator_nowcasted_q50x0`. Check the result when the measure or the
+denominator ends in a role word.
 
 ## See also
 
-\[csfmt_var\] writes these names.
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-whose closing section parses a collapsed median column with this
-function.
+whose naming-grammar section shows this limit.
 
 Other naming grammar functions:
 [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),
@@ -63,8 +67,8 @@ csfmt_parse("numerator_nowcasted_q50x0")
 #> [1] 0.5
 #> 
 
-# the documented limit: a denominator that itself ends in a role word is
-# truncated, because the role is stripped before the _vs_ segment is read
+# the limit: the role is removed before the _vs_ part is read, so a
+# denominator that ends in a role word loses that word
 csfmt_parse("numerator_nowcasted_vs_denominator_nowcasted_pr100")
 #> $measure
 #> [1] "numerator_nowcasted"

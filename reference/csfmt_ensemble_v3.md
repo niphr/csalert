@@ -1,6 +1,8 @@
-# Construct a csfmt_ensemble_v3
+# Build a csfmt_ensemble_v3
 
-Construct a csfmt_ensemble_v3
+Builds the working format of the pipeline. `$data` is a data.table with
+one row per series and week. `$draws` holds one matrix per measure, with
+one row per row of `$data` and one column per draw.
 
 ## Usage
 
@@ -12,34 +14,37 @@ csfmt_ensemble_v3(data, id_cols, time_col = "isoyearweek", draws = list())
 
 - data:
 
-  data.table with the identity columns and \`time_col\`.
+  A data.table with the identity columns and `time_col`.
 
 - id_cols:
 
-  Character vector of identity columns defining a series.
+  The identity columns that define one series.
 
 - time_col:
 
-  Time-ordering column (default "isoyearweek").
+  The column that orders time within a series.
 
 - draws:
 
-  Optional named list of \`\[nrow(data) x n_draws\]\` matrices, given in
-  \`data\`'s input row order (they are reordered to match the canonical
-  sort).
+  A named list of matrices, one per measure, with `nrow(data)` rows in
+  the row order of `data`.
 
 ## Value
 
-A \`csfmt_ensemble_v3\`.
+A `csfmt_ensemble_v3`.
+
+## Details
+
+The constructor copies `data`, adds the ids of
+[`set_time_series_id()`](https://niphr.github.io/csalert/reference/set_time_series_id.md),
+and sorts the rows by series and `time_col`. It adds
+`time_series_internal_id`, `1..n` within each series, and puts the draw
+rows in the same order. The nowcast engines call it for you.
 
 ## See also
 
-[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
-is built on this format: its nowcast engine produces one and
-[`ens_collapse`](https://niphr.github.io/csalert/reference/ens_collapse.md)
-reduces it. The vignette never calls this constructor directly, because
-the engines build the ensemble for you. Call it yourself only when you
-already hold draws from somewhere else.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+which builds an ensemble with a nowcast engine.
 
 Other ensemble format functions:
 [`print.csfmt_ensemble_v3()`](https://niphr.github.io/csalert/reference/print.csfmt_ensemble_v3.md),
@@ -63,9 +68,8 @@ ens <- csfmt_ensemble_v3(
 ens
 #> <csfmt_ensemble_v3> 3 rows | 1 series | draws: numerator_nowcasted
 
-# $data carries the identity + the canonical sort keys. The trailing []
-# forces the print: data.table suppresses the first auto-print of a table
-# that was last modified by reference, which the constructor does.
+# $data holds the identity columns and the sort keys. The trailing [] makes
+# data.table print a table that was last changed by reference.
 ens$data[]
 #> Key: <time_series_id, time_series_internal_id>
 #>    location_code    age isoyearweek   time_series_id time_series_label
@@ -79,7 +83,7 @@ ens$data[]
 #> 2:                       2
 #> 3:                       3
 
-# $draws holds one [weeks x draws] matrix per measure
+# $draws holds one matrix per measure, with rows = weeks, columns = draws
 dim(ens$draws$numerator_nowcasted)
 #> [1]   3 100
 ```

@@ -1,8 +1,8 @@
-# Rolling regression slope over a weeks x draws matrix
+# Rolling regression slope down every column of a matrix
 
-Fits \`y ~ 1 + t\` over each window (length \`width\`, local time index
-\`1..width\`) independently down every column. Returns matrices of the
-same shape; the leading \`width-1\` rows of each column are NA.
+Fits `y ~ 1 + t`, with `t` from 1 to `width`, to each window of `width`
+rows in every column. It is the kernel of the ensemble method of
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md).
 
 ## Usage
 
@@ -21,71 +21,67 @@ rolling_slope_matrix(
 
 - Y:
 
-  Numeric matrix, rows = time (ordered), columns = draws.
+  A numeric matrix, rows = weeks in time order, columns = draws.
 
 - width:
 
-  Window width (\>= 2).
+  The window width in rows, at least 2.
 
 - family:
 
-  Error family and link. \`"identity"\` is the default. It is the
-  closed-form ordinary least squares fit on \`Y\`. \`"quasipoisson"\` is
-  a log link and \`"binomial"\` is a logit link. Both of those run
-  iteratively reweighted least squares, so \`beta1\` is a slope on the
-  link scale.
+  `"identity"` is ordinary least squares. `"quasipoisson"` is a log link
+  and `"binomial"` a logit link, and for those `beta1` is on the link
+  scale.
 
 - prior_weights:
 
-  Numeric matrix of binomial denominators, shaped like \`Y\` or holding
-  one column that is recycled across the draws. \`family = "binomial"\`
-  needs it, and the other two families reject it.
+  The binomial denominators, a matrix the shape of `Y` or with one
+  column. Only `family = "binomial"` takes it, and it needs it.
 
 - tol:
 
-  Convergence tolerance. The iteration stops once no coefficient of any
-  window moves further than \`tol\`.
+  The iteration stops when no coefficient moves more than `tol`.
 
 - maxit:
 
-  Maximum number of iterations. A window whose coefficients still move
-  further than \`tol\` at iteration \`maxit\` did not converge.
+  The most iterations. A window that still moves more than `tol` did not
+  converge.
 
 ## Value
 
-List of matrices: \`beta0\`, \`beta1\`, \`se\`, \`converged\`. \`se\` is
-the standard error of \`beta1\`. Under the two GLM families it is a Wald
-standard error. \`converged\` is logical. It is \`NA\` on the leading
-\`width-1\` rows, which hold no window. \`beta0\`, \`beta1\` and \`se\`
-are \`NA_real\_\` wherever \`converged\` is \`FALSE\`. The closed-form
-identity family solves every complete window, so its \`converged\` is
-\`TRUE\` throughout.
+A list of four matrices, each the shape of `Y`: `beta0`, `beta1`, `se`
+and `converged`. `se` is the standard error of `beta1`, a Wald standard
+error under IRLS. The logical `converged` is `NA` on the first
+`width - 1` rows.
 
 ## Details
 
-A window with complete or quasi-complete separation drives the slope to
-infinity, so IRLS cannot converge. \`beta0\`, \`beta1\` and \`se\` are
-then \`NA_real\_\`, and the function warns once with the count.
+Row `i` holds the fit of the window that ends on row `i`, so the first
+`width - 1` rows are `NA`. The identity family has a closed form. The
+other two families run iteratively reweighted least squares (IRLS) on
+every window at once. A window with complete or quasi-complete
+separation cannot converge: its `beta0`, `beta1` and `se` are `NA`, and
+one warning gives the count.
 
-## A deliberate divergence from glm
+## One deliberate difference from glm
 
-An all-zero window returns \`NA\` here. \`stats::glm()\` returns a slope
-of 0 on the same window. The two use different convergence rules.
-\`stats::glm()\` stops on the relative change in the deviance, which is
-0 for an all-zero window from the first iteration. This kernel stops on
-the coefficient step, and that step never settles: the intercept marches
-to \`-Inf\` as the fitted mean goes to 0. Agreement with
-\`stats::glm()\` is the contract of this function, so the divergence is
-deliberate, and this is the one case of it. An all-zero window
-identifies no slope, and \`NA\` says so.
+The function agrees with
+[`stats::glm()`](https://rdrr.io/r/stats/glm.html) except on an all-zero
+window. There it returns `NA`, and
+[`stats::glm()`](https://rdrr.io/r/stats/glm.html) returns a slope of 0.
+[`stats::glm()`](https://rdrr.io/r/stats/glm.html) stops on the relative
+change in deviance, which is 0 from the first step. This function stops
+on the coefficient step, which never settles, because the intercept goes
+to `-Inf`. An all-zero window identifies no slope, and `NA` says so.
 
 ## See also
 
-Neither package vignette covers this function. It is the numeric kernel
-behind the ensemble method of
-[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md),
-which is the function you normally want. Use this one when you have a
-bare weeks x draws matrix and no ensemble.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 5.
+
+Other short-term trend functions:
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md),
+[`short_term_trend_sts_v1()`](https://niphr.github.io/csalert/reference/short_term_trend_sts_v1.md)
 
 ## Examples
 
@@ -103,18 +99,18 @@ head(rs$beta1, 3)
 #> [2,]   NA   NA   NA   NA
 #> [3,]   NA   NA   NA   NA
 
-# later rows recover the slope, one estimate per draw
+# the later rows find the slope, one estimate per draw
 round(rs$beta1[8:10, ], 2)
 #>      [,1] [,2] [,3] [,4]
 #> [1,] 2.25 1.95 1.36 2.40
 #> [2,] 2.44 2.36 1.74 2.49
 #> [3,] 1.75 2.17 2.27 2.46
 
-# `se` is the OLS standard error of that slope
+# `se` is the OLS standard error of the slope
 round(rs$se[10, ], 2)
 #> [1] 0.18 0.20 0.39 0.20
 
-# a log link instead: counts rising at 0.2 per week on the log scale
+# a log link: counts that rise by 0.2 per week on the log scale
 N <- matrix(rpois(40, rep(exp(1 + 0.2 * 1:10), 4)), nrow = 10)
 round(rolling_slope_matrix(N, width = 4, family = "quasipoisson")$beta1[10, ], 2)
 #> [1] 0.24 0.45 0.19 0.35

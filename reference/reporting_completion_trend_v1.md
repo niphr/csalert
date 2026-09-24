@@ -1,10 +1,9 @@
-# Reporting-completion trend: the delay curve by year and recent months
+# Reporting speed by year and by recent month, in one table
 
-Convenience over \[reporting_completion_v1\]: the completion curve
-sliced by calendar \`year\` (all years) and by \`month\` (the most
-recent \`n_months\`, per series), stacked with a \`scope\` column. One
-table that shows whether reporting is speeding up or slowing down over
-time.
+Stacks
+[`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+by year, and by month for the latest `n_months` months of each series,
+so one table shows reporting speed up or slow down.
 
 ## Usage
 
@@ -16,29 +15,27 @@ reporting_completion_trend_v1(triangle, max_delay_days, n_months = 12L)
 
 - triangle:
 
-  A \`csfmt_reporting_triangle_v3\`.
+  The `csfmt_reporting_triangle_v3` to measure.
 
 - max_delay_days:
 
-  Delay horizon in DAYS. Passed straight to \[reporting_completion_v1\].
+  The delay horizon in days.
 
 - n_months:
 
-  Keep this many most-recent months per series. Default 12.
+  The number of latest months to keep for each series.
 
 ## Value
 
-A data.table: the \[reporting_completion_v1\] columns plus a \`scope\`
-column ("year"/"month"), the year rows followed by the last-\`n_months\`
-month rows. Empty when no series has enough settled data.
+A data.table with the columns of
+[`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+and `scope`, `"year"` or `"month"`, with the year rows first. It is
+empty when no series has enough settled weeks.
 
 ## See also
 
-Neither package vignette covers this function;
-[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
-runs
-[`reporting_completion_v1`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md),
-which this one wraps.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 3.
 
 Other reporting completion functions:
 [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)

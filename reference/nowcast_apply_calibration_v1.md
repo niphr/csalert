@@ -1,11 +1,8 @@
-# Apply a nowcast calibration to quantile predictions
+# Rescale quantile nowcasts by a calibration factor
 
-Rescales each quantile by moving it away from (or toward) the median by
-the learned per-group \`factor\`. By construction the rescaled central
-interval covers \`level\` of the BACKTEST the factor was learned on;
-that is not a guarantee about future weeks, and the median is left
-unchanged. Groups with no learned factor (e.g. an unseen horizon) pass
-through unchanged.
+Moves every quantile away from the median, or toward it, by the factor
+of its group. The median does not move, and a group with no factor
+passes through.
 
 ## Usage
 
@@ -17,22 +14,30 @@ nowcast_apply_calibration_v1(x, calibration)
 
 - x:
 
-  Long quantile predictions (\`reference\`, the calibration's \`by\`
-  column(s), \`quantile_level\`, \`predicted\`) – e.g. a fresh
-  \[nowcast_backtest\] output or a melted collapse.
+  Long quantile nowcasts with `reference`, the `by` columns,
+  `quantile_level` and `predicted`, such as the output of
+  [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md).
 
 - calibration:
 
-  A \`nowcast_calibration\` from \[nowcast_estimate_calibration_v1\].
+  A `nowcast_calibration` from
+  [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md).
 
 ## Value
 
-\`x\` with \`predicted\` recalibrated.
+A copy of `x` with `predicted` rescaled.
+
+## Details
+
+The rescaled interval covers about `level` of the backtest that the
+factor came from, not exactly. The type-7 quantile interpolates, and
+each tail moves by its own distance from the median. On future weeks
+there is no guarantee.
 
 ## See also
 
-Neither package vignette covers calibration. The example below is its
-only worked demonstration.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 2.
 
 Other nowcast calibration functions:
 [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md),
@@ -67,8 +72,7 @@ cal <- nowcast_estimate_calibration_v1(bt, nowcast_truth(tri, max_delay_days = 2
 
 adj <- nowcast_apply_calibration_v1(bt, cal)
 
-# the median is untouched; the other two quantiles move toward or away from
-# it, so the interval width changes by the learned factor
+# the median stays, and the width of the interval changes by the factor
 width <- function(x) {
   x[horizon == 0, .(width = diff(range(predicted))), by = reference][1:3]
 }

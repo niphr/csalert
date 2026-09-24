@@ -2,135 +2,138 @@
 
 ## Ensemble format and naming grammar
 
-The draw-parallel ensemble container, the reporting-triangle input
-format, and the self-describing column-naming grammar they share.
+The ensemble of draws, the reporting-triangle input, and the grammar
+that names their columns.
 
 - [`csfmt_ensemble_v3()`](https://niphr.github.io/csalert/reference/csfmt_ensemble_v3.md)
-  : Construct a csfmt_ensemble_v3
+  : Build a csfmt_ensemble_v3
+
 - [`validate_ensemble()`](https://niphr.github.io/csalert/reference/validate_ensemble.md)
-  : Check a csfmt_ensemble_v3's structural shape
+  : Check the shape of a csfmt_ensemble_v3
+
 - [`print(`*`<csfmt_ensemble_v3>`*`)`](https://niphr.github.io/csalert/reference/print.csfmt_ensemble_v3.md)
-  : Print a \`csfmt_ensemble_v3\`
+  :
+
+  Print a `csfmt_ensemble_v3`
+
 - [`csfmt_reporting_triangle_v3()`](https://niphr.github.io/csalert/reference/csfmt_reporting_triangle_v3.md)
-  : Construct a csfmt_reporting_triangle_v3
+  : Build a csfmt_reporting_triangle_v3
+
 - [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
-  : Densify a reporting triangle into per-series reference x delay count
-  matrices
+  : Turn a reporting triangle into one count matrix per series
+
 - [`isoyearweek_week_start()`](https://niphr.github.io/csalert/reference/isoyearweek_week_start.md)
   : The Monday that starts an ISO week
+
 - [`set_time_series_id()`](https://niphr.github.io/csalert/reference/set_time_series_id.md)
-  : Assign content-hash time_series_id (+ readable label) by reference
+  : Add a content-hash series id to a data.table
+
 - [`csfmt_var()`](https://niphr.github.io/csalert/reference/csfmt_var.md)
-  : Construct a csfmt measure column name from components
+  : Build a measure column name from its parts
+
 - [`csfmt_parse()`](https://niphr.github.io/csalert/reference/csfmt_parse.md)
-  : Parse a csfmt measure column name into components
+  : Split a measure column name into its parts
+
 - [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md)
-  : Interpret a dataset's columns via the naming grammar
+  : Split every value column name of a table into its parts
+
 - [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md) :
-  Probability -\> controlled-vocabulary quantile label
+  Write a probability as a quantile label
+
 - [`q_value()`](https://niphr.github.io/csalert/reference/q_value.md) :
-  Quantile label -\> probability
+  Read the probability in a quantile label
 
-## Ensemble analysis pipeline
+## Nowcast engines
 
-Stages that add draw columns to an ensemble, then collapse it to a
-quantile summary (optionally healed into a cstidy csfmt_rts_data_v3).
-
-- [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md)
-  : Add a rate measure to an ensemble
-- [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
-  : Collapse a csfmt_ensemble_v3 to a quantile-summary
-- [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
-  : MEM intensity thresholds
-- [`rolling_slope_matrix()`](https://niphr.github.io/csalert/reference/rolling_slope_matrix.md)
-  : Rolling regression slope over a weeks x draws matrix
-
-## Nowcasting engines
-
-Complete a right-truncated reporting triangle into a csfmt_ensemble_v3.
+Complete the weeks of a reporting triangle that are still being
+reported.
 
 - [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
-  : Nowcast a reporting triangle into an ensemble (daily delay ECDF)
+  : Nowcast a reporting triangle from the delay pattern of settled weeks
 - [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
-  : Build an ensemble from a reporting triangle WITHOUT nowcasting
-  (passthrough)
+  : Build an ensemble from a reporting triangle with no nowcast
+
+## Ensemble stages
+
+Stages that take an ensemble and return it with new columns, and the
+collapse to quantiles that ends the pipeline.
+
+- [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md)
+  : Add a rate to an ensemble
+- [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  : Estimate the short-term trend of a series
+- [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  : Classify every draw into MEM intensity levels
+- [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  : Flag weeks above a historical limit
+- [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+  : Collapse the draws of an ensemble to quantiles
 
 ## Nowcast diagnostics
 
-Replay a method against what was known in the past and score it:
-interval coverage, point-estimate revision, and reporting completion.
+Replay a method on past dates and score it, and measure how fast counts
+arrive.
 
 - [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md)
-  : Censor a reporting triangle to what was known "as of" a past date
+  : Cut a reporting triangle back to what was known on a past date
 - [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
-  : The settled (eventually-observed) total per reference week
+  : The settled total of each reference week
 - [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
-  : Replay a nowcast method across as-of dates (backtest)
+  : Replay a nowcast method on past as-of dates
 - [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-  : Evaluate nowcast method(s): interval coverage + point-estimate
-  revision
+  : Score nowcast methods on interval coverage and revision
 - [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
-  : Empirical reporting-completion summary from a reporting triangle
+  : Measure how fast the counts of a reporting triangle arrive
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
-  : Reporting-completion trend: the delay curve by year and recent
-  months
-- [`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md)
-  : Compare two collapsed csfmt result sets
+  : Reporting speed by year and by recent month, in one table
 
 ## Nowcast calibration
 
-Measure how far an engine’s intervals are from nominal coverage, as a
-per-horizon scaling factor. A diagnostic to check an engine with; not
-applied to published numbers unless you choose to.
+Measure how far the intervals of an engine are from nominal coverage, as
+a factor per horizon. The package does not apply it unless you choose
+to.
 
 - [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
-  : Estimate a nowcast calibration from a backtest
+  : Estimate an interval scaling factor from a backtest
+
 - [`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md)
-  : Apply a nowcast calibration to quantile predictions
+  : Rescale quantile nowcasts by a calibration factor
+
 - [`print(`*`<nowcast_calibration>`*`)`](https://niphr.github.io/csalert/reference/print.nowcast_calibration.md)
-  : Print a \`nowcast_calibration\`
+  :
 
-## Input quality control
+  Print a `nowcast_calibration`
 
-Verdict-only checks on surveillance input and week-over-week revisions.
+## Quality control
+
+Check one input feed, and compare two runs of the pipeline.
 
 - [`qc_surveillance_data_v1()`](https://niphr.github.io/csalert/reference/qc_surveillance_data_v1.md)
-  : Quality-control checks on surveillance input data
+  : Check that a surveillance feed has data and is up to date
 - [`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
-  : Week-over-week QC: settled-data integrity (A) + frontier status
-  signal (B)
+  : Compare this week's run with last week's run
+- [`compare_results()`](https://niphr.github.io/csalert/reference/compare_results.md)
+  : Compare two collapsed result sets, column by column
 
-## Signal detection
+## Trend helpers
 
-Detect anomalies and compute prediction thresholds from historical
-surveillance data.
+The rolling-slope kernel, and the trend alarm for a surveillance sts
+object.
 
-- [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
-  : Detect signals using the historical limits method
-- [`prediction_interval()`](https://niphr.github.io/csalert/reference/prediction_interval.md)
-  : Prediction thresholds
-- [`prediction_interval(`*`<glm>`*`)`](https://niphr.github.io/csalert/reference/prediction_interval.glm.md)
-  : Prediction thresholds
-
-## Short-term trend estimation
-
-Estimate the direction and magnitude of recent trends in a time series.
-
-- [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
-  : Determine the short term trend of a timeseries
+- [`rolling_slope_matrix()`](https://niphr.github.io/csalert/reference/rolling_slope_matrix.md)
+  : Rolling regression slope down every column of a matrix
 - [`short_term_trend_sts_v1()`](https://niphr.github.io/csalert/reference/short_term_trend_sts_v1.md)
-  : Determine the short term trend of a surveillance time series
+  : Short-term trend alarms on a surveillance sts object
 
 ## Data simulation
 
-Generate synthetic baseline and outbreak data for testing and
-evaluation.
+Simulate daily counts with known outbreaks and holiday effects.
 
 - [`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md)
-  : Simulate baseline surveillance data
+  : Simulate daily counts with no outbreak
 - [`simulate_seasonal_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md)
-  : Add seasonal outbreaks to simulated data
+  : Add seasonal outbreaks to simulated daily counts
 - [`simulate_spike_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_spike_outbreak_data.md)
-  : Add spiked outbreaks to simulated data
+  : Add short outbreaks to the end of simulated daily counts
 - [`add_holiday_effect()`](https://niphr.github.io/csalert/reference/add_holiday_effect.md)
-  : Apply a public holiday effect to simulated data
+  : Multiply simulated counts on public holidays

@@ -52,7 +52,7 @@
     <div class="section level2">
       <h2 id="ensemble-format-and-naming-grammar">Ensemble format and naming grammar<a class="anchor" aria-label="anchor" href="#ensemble-format-and-naming-grammar"></a></h2>
 
-      <div class="section-desc"><p>The draw-parallel ensemble container, the reporting-triangle input format, and the self-describing column-naming grammar they share.</p></div>
+      <div class="section-desc"><p>The ensemble of draws, the reporting-triangle input, and the grammar that names their columns.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -64,35 +64,35 @@
           <code><a href="csfmt_ensemble_v3.html">csfmt_ensemble_v3()</a></code>
 
         </dt>
-        <dd>Construct a csfmt_ensemble_v3</dd>
+        <dd>Build a csfmt_ensemble_v3</dd>
 
         <dt>
 
           <code><a href="validate_ensemble.html">validate_ensemble()</a></code>
 
         </dt>
-        <dd>Check a csfmt_ensemble_v3's structural shape</dd>
+        <dd>Check the shape of a csfmt_ensemble_v3</dd>
 
         <dt>
 
           <code><a href="print.csfmt_ensemble_v3.html">print(<i>&lt;csfmt_ensemble_v3&gt;</i>)</a></code>
 
         </dt>
-        <dd>Print a `csfmt_ensemble_v3`</dd>
+        <dd>Print a <code>csfmt_ensemble_v3</code></dd>
 
         <dt>
 
           <code><a href="csfmt_reporting_triangle_v3.html">csfmt_reporting_triangle_v3()</a></code>
 
         </dt>
-        <dd>Construct a csfmt_reporting_triangle_v3</dd>
+        <dd>Build a csfmt_reporting_triangle_v3</dd>
 
         <dt>
 
           <code><a href="reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code>
 
         </dt>
-        <dd>Densify a reporting triangle into per-series reference x delay count matrices</dd>
+        <dd>Turn a reporting triangle into one count matrix per series</dd>
 
         <dt>
 
@@ -106,83 +106,46 @@
           <code><a href="set_time_series_id.html">set_time_series_id()</a></code>
 
         </dt>
-        <dd>Assign content-hash time_series_id (+ readable label) by reference</dd>
+        <dd>Add a content-hash series id to a data.table</dd>
 
         <dt>
 
           <code><a href="csfmt_var.html">csfmt_var()</a></code>
 
         </dt>
-        <dd>Construct a csfmt measure column name from components</dd>
+        <dd>Build a measure column name from its parts</dd>
 
         <dt>
 
           <code><a href="csfmt_parse.html">csfmt_parse()</a></code>
 
         </dt>
-        <dd>Parse a csfmt measure column name into components</dd>
+        <dd>Split a measure column name into its parts</dd>
 
         <dt>
 
           <code><a href="csfmt_interpret.html">csfmt_interpret()</a></code>
 
         </dt>
-        <dd>Interpret a dataset's columns via the naming grammar</dd>
+        <dd>Split every value column name of a table into its parts</dd>
 
         <dt>
 
           <code><a href="q_label.html">q_label()</a></code>
 
         </dt>
-        <dd>Probability -&gt; controlled-vocabulary quantile label</dd>
+        <dd>Write a probability as a quantile label</dd>
 
         <dt>
 
           <code><a href="q_value.html">q_value()</a></code>
 
         </dt>
-        <dd>Quantile label -&gt; probability</dd>
+        <dd>Read the probability in a quantile label</dd>
       </dl></div><div class="section level2">
-      <h2 id="ensemble-analysis-pipeline">Ensemble analysis pipeline<a class="anchor" aria-label="anchor" href="#ensemble-analysis-pipeline"></a></h2>
+      <h2 id="nowcast-engines">Nowcast engines<a class="anchor" aria-label="anchor" href="#nowcast-engines"></a></h2>
 
-      <div class="section-desc"><p>Stages that add draw columns to an ensemble, then collapse it to a quantile summary (optionally healed into a cstidy csfmt_rts_data_v3).</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="ens_add_rate.html">ens_add_rate()</a></code>
-
-        </dt>
-        <dd>Add a rate measure to an ensemble</dd>
-
-        <dt>
-
-          <code><a href="ens_collapse.html">ens_collapse()</a></code>
-
-        </dt>
-        <dd>Collapse a csfmt_ensemble_v3 to a quantile-summary</dd>
-
-        <dt>
-
-          <code><a href="mem_thresholds_v1.html">mem_thresholds_v1()</a></code>
-
-        </dt>
-        <dd>MEM intensity thresholds</dd>
-
-        <dt>
-
-          <code><a href="rolling_slope_matrix.html">rolling_slope_matrix()</a></code>
-
-        </dt>
-        <dd>Rolling regression slope over a weeks x draws matrix</dd>
-      </dl></div><div class="section level2">
-      <h2 id="nowcasting-engines">Nowcasting engines<a class="anchor" aria-label="anchor" href="#nowcasting-engines"></a></h2>
-
-      <div class="section-desc"><p>Complete a right-truncated reporting triangle into a csfmt_ensemble_v3.</p></div>
+      <div class="section-desc"><p>Complete the weeks of a reporting triangle that are still being reported.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -194,18 +157,62 @@
           <code><a href="nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code>
 
         </dt>
-        <dd>Nowcast a reporting triangle into an ensemble (daily delay ECDF)</dd>
+        <dd>Nowcast a reporting triangle from the delay pattern of settled weeks</dd>
 
         <dt>
 
           <code><a href="nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1()</a></code>
 
         </dt>
-        <dd>Build an ensemble from a reporting triangle WITHOUT nowcasting (passthrough)</dd>
+        <dd>Build an ensemble from a reporting triangle with no nowcast</dd>
+      </dl></div><div class="section level2">
+      <h2 id="ensemble-stages">Ensemble stages<a class="anchor" aria-label="anchor" href="#ensemble-stages"></a></h2>
+
+      <div class="section-desc"><p>Stages that take an ensemble and return it with new columns, and the collapse to quantiles that ends the pipeline.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="ens_add_rate.html">ens_add_rate()</a></code>
+
+        </dt>
+        <dd>Add a rate to an ensemble</dd>
+
+        <dt>
+
+          <code><a href="short_term_trend.html">short_term_trend()</a></code>
+
+        </dt>
+        <dd>Estimate the short-term trend of a series</dd>
+
+        <dt>
+
+          <code><a href="mem_thresholds_v1.html">mem_thresholds_v1()</a></code>
+
+        </dt>
+        <dd>Classify every draw into MEM intensity levels</dd>
+
+        <dt>
+
+          <code><a href="signal_detection_hlm.html">signal_detection_hlm()</a></code>
+
+        </dt>
+        <dd>Flag weeks above a historical limit</dd>
+
+        <dt>
+
+          <code><a href="ens_collapse.html">ens_collapse()</a></code>
+
+        </dt>
+        <dd>Collapse the draws of an ensemble to quantiles</dd>
       </dl></div><div class="section level2">
       <h2 id="nowcast-diagnostics">Nowcast diagnostics<a class="anchor" aria-label="anchor" href="#nowcast-diagnostics"></a></h2>
 
-      <div class="section-desc"><p>Replay a method against what was known in the past and score it: interval coverage, point-estimate revision, and reporting completion.</p></div>
+      <div class="section-desc"><p>Replay a method on past dates and score it, and measure how fast counts arrive.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -217,53 +224,46 @@
           <code><a href="nowcast_censor.html">nowcast_censor()</a></code>
 
         </dt>
-        <dd>Censor a reporting triangle to what was known "as of" a past date</dd>
+        <dd>Cut a reporting triangle back to what was known on a past date</dd>
 
         <dt>
 
           <code><a href="nowcast_truth.html">nowcast_truth()</a></code>
 
         </dt>
-        <dd>The settled (eventually-observed) total per reference week</dd>
+        <dd>The settled total of each reference week</dd>
 
         <dt>
 
           <code><a href="nowcast_backtest.html">nowcast_backtest()</a></code>
 
         </dt>
-        <dd>Replay a nowcast method across as-of dates (backtest)</dd>
+        <dd>Replay a nowcast method on past as-of dates</dd>
 
         <dt>
 
           <code><a href="nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code>
 
         </dt>
-        <dd>Evaluate nowcast method(s): interval coverage + point-estimate revision</dd>
+        <dd>Score nowcast methods on interval coverage and revision</dd>
 
         <dt>
 
           <code><a href="reporting_completion_v1.html">reporting_completion_v1()</a></code>
 
         </dt>
-        <dd>Empirical reporting-completion summary from a reporting triangle</dd>
+        <dd>Measure how fast the counts of a reporting triangle arrive</dd>
 
         <dt>
 
           <code><a href="reporting_completion_trend_v1.html">reporting_completion_trend_v1()</a></code>
 
         </dt>
-        <dd>Reporting-completion trend: the delay curve by year and recent months</dd>
-
-        <dt>
-
-          <code><a href="compare_results.html">compare_results()</a></code>
-
-        </dt>
-        <dd>Compare two collapsed csfmt result sets</dd>
+        <dd>Reporting speed by year and by recent month, in one table</dd>
       </dl></div><div class="section level2">
       <h2 id="nowcast-calibration">Nowcast calibration<a class="anchor" aria-label="anchor" href="#nowcast-calibration"></a></h2>
 
-      <div class="section-desc"><p>Measure how far an engine’s intervals are from nominal coverage, as a per-horizon scaling factor. A diagnostic to check an engine with; not applied to published numbers unless you choose to.</p></div>
+      <div class="section-desc"><p>Measure how far the intervals of an engine are from nominal coverage, as a factor per horizon. The package does not apply it unless you choose to.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -275,25 +275,25 @@
           <code><a href="nowcast_estimate_calibration_v1.html">nowcast_estimate_calibration_v1()</a></code>
 
         </dt>
-        <dd>Estimate a nowcast calibration from a backtest</dd>
+        <dd>Estimate an interval scaling factor from a backtest</dd>
 
         <dt>
 
           <code><a href="nowcast_apply_calibration_v1.html">nowcast_apply_calibration_v1()</a></code>
 
         </dt>
-        <dd>Apply a nowcast calibration to quantile predictions</dd>
+        <dd>Rescale quantile nowcasts by a calibration factor</dd>
 
         <dt>
 
           <code><a href="print.nowcast_calibration.html">print(<i>&lt;nowcast_calibration&gt;</i>)</a></code>
 
         </dt>
-        <dd>Print a `nowcast_calibration`</dd>
+        <dd>Print a <code>nowcast_calibration</code></dd>
       </dl></div><div class="section level2">
-      <h2 id="input-quality-control">Input quality control<a class="anchor" aria-label="anchor" href="#input-quality-control"></a></h2>
+      <h2 id="quality-control">Quality control<a class="anchor" aria-label="anchor" href="#quality-control"></a></h2>
 
-      <div class="section-desc"><p>Verdict-only checks on surveillance input and week-over-week revisions.</p></div>
+      <div class="section-desc"><p>Check one input feed, and compare two runs of the pipeline.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -305,18 +305,25 @@
           <code><a href="qc_surveillance_data_v1.html">qc_surveillance_data_v1()</a></code>
 
         </dt>
-        <dd>Quality-control checks on surveillance input data</dd>
+        <dd>Check that a surveillance feed has data and is up to date</dd>
 
         <dt>
 
           <code><a href="qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code>
 
         </dt>
-        <dd>Week-over-week QC: settled-data integrity (A) + frontier status signal (B)</dd>
-      </dl></div><div class="section level2">
-      <h2 id="signal-detection">Signal detection<a class="anchor" aria-label="anchor" href="#signal-detection"></a></h2>
+        <dd>Compare this week's run with last week's run</dd>
 
-      <div class="section-desc"><p>Detect anomalies and compute prediction thresholds from historical surveillance data.</p></div>
+        <dt>
+
+          <code><a href="compare_results.html">compare_results()</a></code>
+
+        </dt>
+        <dd>Compare two collapsed result sets, column by column</dd>
+      </dl></div><div class="section level2">
+      <h2 id="trend-helpers">Trend helpers<a class="anchor" aria-label="anchor" href="#trend-helpers"></a></h2>
+
+      <div class="section-desc"><p>The rolling-slope kernel, and the trend alarm for a surveillance sts object.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -325,51 +332,21 @@
 
       <dl><dt>
 
-          <code><a href="signal_detection_hlm.html">signal_detection_hlm()</a></code>
+          <code><a href="rolling_slope_matrix.html">rolling_slope_matrix()</a></code>
 
         </dt>
-        <dd>Detect signals using the historical limits method</dd>
-
-        <dt>
-
-          <code><a href="prediction_interval.html">prediction_interval()</a></code>
-
-        </dt>
-        <dd>Prediction thresholds</dd>
-
-        <dt>
-
-          <code><a href="prediction_interval.glm.html">prediction_interval(<i>&lt;glm&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Prediction thresholds</dd>
-      </dl></div><div class="section level2">
-      <h2 id="short-term-trend-estimation">Short-term trend estimation<a class="anchor" aria-label="anchor" href="#short-term-trend-estimation"></a></h2>
-
-      <div class="section-desc"><p>Estimate the direction and magnitude of recent trends in a time series.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="short_term_trend.html">short_term_trend()</a></code>
-
-        </dt>
-        <dd>Determine the short term trend of a timeseries</dd>
+        <dd>Rolling regression slope down every column of a matrix</dd>
 
         <dt>
 
           <code><a href="short_term_trend_sts_v1.html">short_term_trend_sts_v1()</a></code>
 
         </dt>
-        <dd>Determine the short term trend of a surveillance time series</dd>
+        <dd>Short-term trend alarms on a surveillance sts object</dd>
       </dl></div><div class="section level2">
       <h2 id="data-simulation">Data simulation<a class="anchor" aria-label="anchor" href="#data-simulation"></a></h2>
 
-      <div class="section-desc"><p>Generate synthetic baseline and outbreak data for testing and evaluation.</p></div>
+      <div class="section-desc"><p>Simulate daily counts with known outbreaks and holiday effects.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -381,28 +358,28 @@
           <code><a href="simulate_baseline_data.html">simulate_baseline_data()</a></code>
 
         </dt>
-        <dd>Simulate baseline surveillance data</dd>
+        <dd>Simulate daily counts with no outbreak</dd>
 
         <dt>
 
           <code><a href="simulate_seasonal_outbreak_data.html">simulate_seasonal_outbreak_data()</a></code>
 
         </dt>
-        <dd>Add seasonal outbreaks to simulated data</dd>
+        <dd>Add seasonal outbreaks to simulated daily counts</dd>
 
         <dt>
 
           <code><a href="simulate_spike_outbreak_data.html">simulate_spike_outbreak_data()</a></code>
 
         </dt>
-        <dd>Add spiked outbreaks to simulated data</dd>
+        <dd>Add short outbreaks to the end of simulated daily counts</dd>
 
         <dt>
 
           <code><a href="add_holiday_effect.html">add_holiday_effect()</a></code>
 
         </dt>
-        <dd>Apply a public holiday effect to simulated data</dd>
+        <dd>Multiply simulated counts on public holidays</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

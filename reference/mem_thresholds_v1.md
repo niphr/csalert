@@ -1,6 +1,10 @@
-# MEM intensity thresholds
+# Classify every draw into MEM intensity levels
 
-MEM intensity thresholds
+Fits Moving Epidemic Method (MEM) thresholds for each season from the
+earlier seasons of the same series, and classifies every draw against
+them. After
+[`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md),
+each week has the share of its draws at each of five levels.
 
 ## Usage
 
@@ -24,58 +28,96 @@ mem_thresholds_v1(
 
 - x:
 
-  Data object.
+  The `csfmt_ensemble_v3` that holds `measure`.
 
 - ...:
 
-  Passed to methods.
+  Passed to the method.
 
 - measure:
 
-  The \`\$draws\` measure to threshold on (a rate or count).
+  The draw matrix to classify, a count or a rate.
 
 - min_seasons:
 
-  Hard floor of complete prior seasons needed to fit.
+  The fewest training seasons for a fit.
 
 - prefer_seasons:
 
-  Preferred training depth (provisional below this).
+  A fit on fewer training seasons is provisional.
 
 - i.seasons:
 
-  Max seasons passed to mem::memmodel.
+  The most training seasons in one fit, passed to
+  [`mem::memmodel()`](https://rdrr.io/pkg/mem/man/memmodel.html).
 
 - min_weeks_per_season:
 
-  Weeks needed for a season to count as training.
+  The fewest weeks that a training season needs.
 
 - exclude_seasons:
 
-  Optional character vector of seasons (e.g. \`c("2009/2010",
-  "2019/2020")\`, the \`isoyearweek_to_season_c\` form) to drop from the
-  MEM training baseline – anomalous seasons (pandemic years, data gaps)
-  that would distort the thresholds. Thresholds are still ESTIMATED for
-  every season (including excluded ones) from its remaining non-excluded
-  prior seasons; only the baseline they are fit on changes.
+  Seasons to leave out of every training set, written as
+  [`cstime::isoyearweek_to_season_c()`](https://rdrr.io/pkg/cstime/man/isoyearweek_to_season_c.html)
+  writes them, such as `"2019/2020"`. Use it for a pandemic year or a
+  season with a data gap. An excluded season still gets thresholds, and
+  a message names the excluded seasons in the data.
 
 ## Value
 
-The \`csfmt_ensemble_v3\` with per-draw MEM intensity columns added to
-\`\$draws\`. The added columns are the ordinal 1..5 status for
-\`measure\` and its threshold levels, so the intensity level propagates
-through the later quantile collapse.
+`x` with a new draw matrix, `<measure>_status`, of level codes with a
+`levels` attribute. It also adds `mem_preepidemic`, `mem_medium`,
+`mem_high`, `mem_veryhigh` and `mem_n_seasons`, the number of training
+seasons, to `$data`. It adds them by reference, so the input ensemble
+gets them too.
+
+## Details
+
+The fit uses the median of the draws of each week. A season is fit only
+on earlier seasons: those with at least `min_weeks_per_season` weeks,
+minus `exclude_seasons`, and at most the latest `i.seasons`.
+
+A season gets no thresholds, and `NA` in every draw, in three cases:
+
+- it has fewer than `min_seasons` training seasons,
+
+- fewer than 2 of them hold a non-zero week,
+
+- [`mem::memmodel()`](https://rdrr.io/pkg/mem/man/memmodel.html) fails
+  with its default method and with `i.method = 3`.
+
+A fit on fewer than `prefer_seasons` seasons is provisional, and a
+message counts those seasons.
+
+The levels, coded 1 to 5, are:
+
+1.  `preepidemic`: below `mem_preepidemic`, the MEM epidemic threshold,
+
+2.  `low`: below `mem_medium`, the 40% intensity threshold,
+
+3.  `medium`: below `mem_high`, the 90% intensity threshold,
+
+4.  `high`: below `mem_veryhigh`, the 97.5% intensity threshold,
+
+5.  `veryhigh`: at or above `mem_veryhigh`.
+
+It needs the mem package.
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-which runs this function as stage 6 of its pipeline, on a five-season
-synthetic series.
+stage 6.
+
+Other ensemble operations:
+[`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md),
+[`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md),
+[`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md),
+[`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
 
 ## Examples
 
 ``` r
-# MEM needs several complete prior seasons, so this fixture spans four:
+# MEM needs several earlier seasons, so this series spans four:
 # 212 weeks with a winter peak in each.
 if (requireNamespace("mem", quietly = TRUE)) {
   w <- cstime::dates_by_isoyearweek$isoyearweek
@@ -94,7 +136,7 @@ if (requireNamespace("mem", quietly = TRUE)) {
 
   ens <- mem_thresholds_v1(ens, measure = "numerator_nowcasted")
 
-  # thresholds are estimated leave-future-out, so the early seasons get none
+  # each season is fit on earlier seasons only, so the first seasons get none
   print(unique(ens$data[
     !is.na(mem_high),
     .(
@@ -103,16 +145,14 @@ if (requireNamespace("mem", quietly = TRUE)) {
     )
   ]))
 
-  # A week whose season has no thresholds gets NA for every draw, so it is not
-  # classified at all. On this fixture that is the first two seasons:
+  # every draw of a week in the first two seasons is NA
   status <- ens$draws$numerator_nowcasted_status
   print(c(
     weeks = nrow(status),
     weeks_with_no_threshold = sum(apply(status, 1, function(r) all(is.na(r))))
   ))
 
-  # For a week that DOES have thresholds, every draw is classified, so the
-  # alert level arrives as a distribution rather than as a single label.
+  # a week with thresholds gets a share of draws at each level
   r <- ens_collapse(ens, probs = 0.5)
   pcols <- grep("_status_prob_", names(r), value = TRUE)
   print(r[

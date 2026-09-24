@@ -1,6 +1,9 @@
-# Compare two collapsed csfmt result sets
+# Compare two collapsed result sets, column by column
 
-Compare two collapsed csfmt result sets
+Joins two runs on `time_series_id` and `isoyearweek`, and returns one
+row per series, week and value column.
+[`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md)
+finds the value columns of `current`, and the parts of each name.
 
 ## Usage
 
@@ -12,41 +15,47 @@ compare_results(current, previous)
 
 - current, previous:
 
-  data.tables (or csfmt_rts_data_v3) from two runs.
+  The output of
+  [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md)
+  for two runs.
 
 ## Value
 
-A long data.table: identity + isoyearweek + column + role/q/level +
-\`cur\`/\`prv\`.
+A long data.table with `time_series_id`, `isoyearweek`, the columns
+among `indicator_tag`, `location_code`, `age` and `sex` that exist, and:
+
+- `column`: the name of the value column,
+
+- `cur`, `prv`: its value in `current` and in `previous`,
+
+- `role`, `q`, `level`: the parts of its name.
+
+## Details
+
+`time_series_id` is a hash of the identity columns, so a series has the
+same id in both runs. A week in only one run gets `NA` for the other
+run.
 
 ## Identity columns MUST use the csfmt schema names
 
-The value columns are found with
-[`csfmt_interpret`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),
-which treats anything outside the csfmt structural schema as a value
-column. Key the two runs on schema names such as \`location_code\` and
-\`indicator_tag\`.
+[`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md)
+reads every column outside the csfmt schema as a value column.
+`location_code` and `indicator_tag` are schema names, but `location` and
+`indicator` are not. So with `location` or `indicator`, `cur` and `prv`
+become character.
 
-A non-schema identity column is a silent trap. \`location\` and
-\`indicator\` are NOT in the schema, but \`location_code\` and
-\`indicator_tag\` are. So \`location\` and \`indicator\` are read as
-value columns. Their character values are then stacked with the numeric
-measures, and \`cur\`/\`prv\` come back as character for every row. This
-function still returns a table, so the damage is easy to miss. But
-[`qc_week_over_week_v1`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
-then evaluates \`abs(cur - prv)\` on that character column and FAILS
-with \`Error in cur - prv : non-numeric argument to binary operator\`.
-
-Note that \`vignette("pipeline", package = "csalert")\` builds its
-triangle with \`id_cols = c("indicator", "location", "age", "sex")\`.
-Those names work for the nowcast pipeline itself, but a run-over-run
-comparison of the result needs \`indicator_tag\` and \`location_code\`.
+This function still returns a table.
+[`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
+then stops with `non-numeric argument to binary operator`.
 
 ## See also
 
-Neither package vignette covers run-over-run comparison.
-[`qc_week_over_week_v1`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
-is the usual entry point; it splits this diff at the nowcast horizon.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+section 9.
+
+Other quality control functions:
+[`qc_surveillance_data_v1()`](https://niphr.github.io/csalert/reference/qc_surveillance_data_v1.md),
+[`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
 
 ## Examples
 
@@ -64,9 +73,8 @@ d <- d[reporting_date <= mondays[40] + 6]
 
 id <- c("indicator_tag", "location_code", "age", "sex")
 
-# The engine is stochastic, so reset the seed inside `run()`. Without that,
-# the two runs would also differ by their Monte-Carlo draws and the diff would
-# confound sampling noise with the actual data revision.
+# Set the seed inside `run()`. Then the two runs differ only by the data
+# revision, and not by their Monte-Carlo draws.
 run <- function(x) {
   set.seed(2)
   ens_collapse(nowcast_delay_ecdf_v1(
@@ -75,7 +83,7 @@ run <- function(x) {
   ))
 }
 
-# last week's run saw one reference week before it was corrected upward
+# last week's run saw one reference week before a correction raised it
 cur <- run(d)
 d_prv <- data.table::copy(d)
 d_prv[
@@ -111,8 +119,7 @@ d_prv[
 #> 117:  total  total
 prv <- run(d_prv)
 
-# one row per (series, week, value column). With the seed held fixed, the only
-# week that moves is the corrected one.
+# with the seed held fixed, only the corrected week moves
 compare_results(cur, prv)[q == 0.5 & abs(cur - prv) > 0]
 #>      time_series_id isoyearweek indicator_tag location_code    age    sex
 #>              <char>      <char>        <char>        <char> <char> <char>

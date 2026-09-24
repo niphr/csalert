@@ -1,8 +1,7 @@
-# Apply a public holiday effect to simulated data
+# Multiply simulated counts on public holidays
 
-Multiplies the daily counts on public holidays by a fixed factor.
-Simulated data can then reflect the effect of holidays on a time series
-of daily counts.
+Multiplies the count `n` by `holiday_effect` on each date that
+`holiday_data` marks as a holiday.
 
 ## Usage
 
@@ -14,32 +13,37 @@ add_holiday_effect(data, holiday_data, holiday_effect = 2)
 
 - data:
 
-  A `csfmt_rts_data_v1` data object, typically the output of
-  [`simulate_baseline_data`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md).
+  A `csfmt_rts_data_v1` with `date` and `n`.
 
 - holiday_data:
 
-  A `data.table` with a `date` column and a logical `is_holiday` column,
-  used to flag which dates are public holidays.
+  A data.table with `date` and a logical `is_holiday`.
 
 - holiday_effect:
 
-  Multiplicative factor applied to the count `n` on holidays.
+  The factor for a holiday.
 
 ## Value
 
-A `csfmt_rts_data_v1` (`data.table`) equal to `data` with the count `n`
-multiplied by `holiday_effect` on flagged holidays, and a `holiday`
-column indicating those dates.
+A copy of `data` with `n` changed, and a `holiday` column: the value of
+`is_holiday` on the dates in `holiday_data`, and `NA` on other dates.
+
+## Details
+
+An integer `n`, as from
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md),
+stays an integer. So a factor that gives a fraction truncates the count,
+with a warning.
 
 ## See also
 
-Neither package vignette covers the data simulators. Use them to
-generate a series whose truth you already know, then run
-[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
-or
-[`signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
-on it.
+[`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
+which runs it.
+
+Other data simulation functions:
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md),
+[`simulate_seasonal_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md),
+[`simulate_spike_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_spike_outbreak_data.md)
 
 ## Examples
 

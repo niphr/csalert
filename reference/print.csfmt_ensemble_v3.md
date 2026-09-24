@@ -1,7 +1,7 @@
-# Print a \`csfmt_ensemble_v3\`
+# Print a `csfmt_ensemble_v3`
 
-Compact one-line summary: number of rows, number of time series, and the
-names of the per-measure draw matrices.
+Prints one line: the number of rows and of series, and the names of the
+draw matrices.
 
 ## Usage
 
@@ -14,20 +14,21 @@ print(x, ...)
 
 - x:
 
-  A \`csfmt_ensemble_v3\`.
+  The `csfmt_ensemble_v3` to print.
 
 - ...:
 
-  Ignored (for S3 consistency).
+  Not used, but the [`print()`](https://rdrr.io/r/base/print.html)
+  generic has it.
 
 ## Value
 
-\`x\`, invisibly.
+`x`, invisibly.
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-which prints an ensemble with this method right after the nowcast step.
+stage 1.
 
 Other ensemble format functions:
 [`csfmt_ensemble_v3()`](https://niphr.github.io/csalert/reference/csfmt_ensemble_v3.md),

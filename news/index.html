@@ -61,6 +61,16 @@
 <li>Documentation only: each <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> draw is the observed count times a quantile of the pool ratio <code>T_s / O_s</code>. The help page and the pipeline vignette said observed / <code>p(d)</code>, but <code>p(d)</code> cancels out.</li>
 <li>Documentation only: the pipeline vignette no longer says every older settled week finished reporting before the extract day. That holds only because <code>sim_reports()</code> emits no delay beyond day 34.</li>
 <li>Documentation only: the <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> help page says that a settled pool week can still receive late reports, so a long backlog makes the nowcast run low, and that a pool week with no early reports cannot enter the pool.</li>
+<li>Documentation only: the help pages render as markdown, so their links, code and lists no longer show as raw text.</li>
+<li>Documentation only: every public help page has a description, a family and a vignette link.</li>
+<li>Documentation only: the <code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> help page says it adds the five threshold columns to <code>$data</code>, by reference, and not to <code>$draws</code>.</li>
+<li>Documentation only: the <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> help page says the ensemble method codes a draw 1 for <code>null</code> and 2 for <code>high</code>, not 0 and 1.</li>
+<li>Documentation only: the <code><a href="../reference/simulate_baseline_data.html">simulate_baseline_data()</a></code> help page says <code>phi = 1</code> gives Poisson counts. It said <code>phi = 0</code>, which gives <code>NA</code>.</li>
+<li>Documentation only: the help pages state that <code>remove_last_isoyearweeks</code> of the deprecated <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> method has no effect.</li>
+<li>Documentation only: <code><a href="../reference/prediction_interval.html">prediction_interval()</a></code> and its glm method are internal, and left the reference index. The generic was never exported.</li>
+<li>Documentation only: the pipeline vignette has a quality-control section, and the Get started vignette has a simulation section.</li>
+<li>Documentation only: the vignettes say that csdb cannot validate a v3 table. They said that a v3 table cannot be stored.</li>
+<li>Documentation only: the README no longer says that <code>denominator</code> belongs only to the deprecated trend method.</li>
 </ul><div class="section level3">
 <h3 id="version-2026-9-24">Version<a class="anchor" aria-label="anchor" href="#version-2026-9-24"></a></h3>
 <ul><li>r-universe publishes 2026.9.23 from commit <code>75c0751</code>, so this tree needs a higher number.</li>

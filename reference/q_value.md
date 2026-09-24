@@ -1,8 +1,8 @@
-# Quantile label -\> probability
+# Read the probability in a quantile label
 
-Reads back a label written by \[q_label\]. The pattern accepted is
-exactly two integer-percent digits, \`x\`, then one decimal digit. Any
-string that does not match returns \`NA\` rather than erroring.
+Reads a label that
+[`q_label()`](https://niphr.github.io/csalert/reference/q_label.md)
+wrote: `q`, two digits, `x` and one digit. Any other string gives `NA`.
 
 ## Usage
 
@@ -14,27 +14,21 @@ q_value(label)
 
 - label:
 
-  Character vector of quantile labels, e.g. "q02x5".
+  A character vector of labels, for example `"q02x5"`.
 
 ## Value
 
-Numeric vector of probabilities; \`NA\` for an unparseable label.
+A numeric vector of probabilities.
 
 ## Details
 
-The round trip \`q_value(q_label(p))\` returns \`p\` only when \`p\` is
-expressible in that format, i.e. a probability on the 0.001 grid
-below 1. \`q_label()\` rounds anything finer (\`0.0125\` becomes
-\`"q01x2"\`, which reads back as \`0.012\`), and \`q_label(1)\` gives
-the three-digit \`"q100x0"\`, which returns \`NA\`. Every probability
-the package itself uses is on the grid.
+`q_value(q_label(p))` returns `p` only for a `p` on the 0.001 grid and
+below 1. Every probability that the package uses is on that grid.
 
 ## See also
 
-\[q_label\] writes these labels.
-[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
-calls this function in its naming-grammar section. It is how generic
-tooling recovers the probability behind a \`\_qNNxN\` column.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+whose naming-grammar section shows the round trip.
 
 Other naming grammar functions:
 [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),
@@ -48,7 +42,7 @@ Other naming grammar functions:
 q_value(c("q02x5", "q50x0", "q97x5"))
 #> [1] 0.025 0.500 0.975
 
-# unparseable labels come back NA, including the three-digit q100x0
+# a string that is not a label gives NA, and so does the three-digit q100x0
 q_value(c("q100x0", "not_a_label"))
 #> [1] NA NA
 ```

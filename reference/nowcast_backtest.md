@@ -1,11 +1,9 @@
-# Replay a nowcast method across as-of dates (backtest)
+# Replay a nowcast method on past as-of dates
 
-For each \`as_of\` date, censor the triangle to what was known then, run
-the method, collapse to quantiles, and collect the nowcast for the
-reference weeks at the requested horizons (horizon = whole weeks between
-the reference week and the as-of date). An as-of date whose method call
-errors (e.g. too little history) is skipped with a warning rather than
-aborting the sweep.
+For each as-of date, cuts the triangle back with
+[`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),
+runs the method and collapses the result to quantiles. When the method
+fails on a date, the function warns and goes on.
 
 ## Usage
 
@@ -26,58 +24,59 @@ nowcast_backtest(
 
 - triangle:
 
-  A \`csfmt_reporting_triangle_v3\` (single series).
+  A `csfmt_reporting_triangle_v3` with one series.
 
 - method:
 
-  A function \`f(triangle) -\> csfmt_ensemble_v3\` (params baked in).
+  A function that takes a triangle and returns a `csfmt_ensemble_v3`,
+  with its other arguments fixed.
 
 - as_of_weeks:
 
-  A \`Date\` vector of as-of dates to replay. Default: the last day of
-  each reference week, after a burn-in of \`max_delay_days\` rounded up
-  to whole weeks. The weeks run from the first to the last week with a
-  report at delay day 0 to \`max_delay_days - 1\`. A week whose only
-  reports are later does not extend that range. With no report inside
-  the horizon the default set is empty, and the function returns an
-  empty data.table. The name says weeks because the replay cadence is
-  weekly. The values are dates.
+  A `Date` vector of as-of dates. `NULL` uses the last day of each
+  reference week after a burn-in of `max_delay_days`, rounded up to
+  whole weeks. That range covers the weeks with a report at delay day 0
+  to `max_delay_days - 1`. With no such week, the result is empty.
 
 - max_delay_days:
 
-  Delay horizon in DAYS. Sets the default as-of set and the burn-in.
+  The delay horizon in days. It sets the default as-of dates and the
+  burn-in.
 
 - horizons:
 
-  Integer weeks-back to keep (0 = the as-of week itself).
+  The horizons to keep, in weeks.
 
 - probs:
 
-  Quantile probabilities to extract.
+  The probabilities of the quantiles to keep.
 
 - measure:
 
-  Ensemble measure to score; default the numerator's nowcast.
+  The draw matrix to score. `NULL` is `<value_col>_nowcasted`.
 
 - seed:
 
-  Optional integer base seed. Each as-of is seeded as \`seed +
-  as.integer(as_of)\`, the as-of date's day number, so a given cell is
-  reproducible regardless of the as-of list order. The nowcast draws for
-  date D depend only on \`seed\` and \`D\`.
+  A base seed, or `NULL`. The seed for a date is
+  `seed + as.integer(as_of)`, so its draws do not depend on the order of
+  the dates.
 
 ## Value
 
-A long data.table: \`reference\`, \`as_of\`, \`horizon\`,
-\`quantile_level\`, \`predicted\`. \`as_of\` is a \`Date\`.
+A long data.table with `reference`, `as_of`, a `Date`, `horizon`,
+`quantile_level` and `predicted`.
+
+## Details
+
+The horizon of a reference week is the number of whole weeks from its
+Monday to the as-of date. Horizon 0 is the week of the as-of date.
 
 ## See also
 
-[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
-runs this function in its validation stage.
-[`nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-wraps it and scores the result; use this one directly when you want the
-raw replayed quantiles.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 2.
+[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
+runs this function and scores the result.
 
 Other nowcast diagnostics:
 [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),
@@ -101,14 +100,13 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# a method is f(triangle) -> ensemble, with its own parameters baked in
+# a method takes a triangle and returns an ensemble
 method <- function(x) nowcast_delay_ecdf_v1(x, max_delay_days = 21, n_sim = 200)
 
-# Replay 19 as-of dates, each the Sunday that ends a reference week. This
-# window is a runtime choice, not a fitting boundary: the engine needs only
-# three settled training rows, and with fewer it returns the observed totals
-# rather than failing. Leaving `as_of_weeks` NULL replays every week after the
-# burn-in, which is slower.
+# Replay 19 as-of dates, each the Sunday that ends a reference week. Fewer
+# dates only save time: with fewer than 3 settled weeks the engine returns
+# the observed totals and does not fail. `as_of_weeks = NULL` replays every
+# week after the burn-in.
 bt <- nowcast_backtest(
   tri, method,
   max_delay_days = 21,

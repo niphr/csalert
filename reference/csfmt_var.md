@@ -1,6 +1,9 @@
-# Construct a csfmt measure column name from components
+# Build a measure column name from its parts
 
-Construct a csfmt measure column name from components
+Joins the parts in the order
+`<measure>[_vs_<denom>][_<role>][_<q-label> | _prob_<level>][_pr<per>][<suffix>]`.
+The pipeline names its draw matrices and quantile columns with it, so
+build a name with it before you look a column up.
 
 ## Usage
 
@@ -20,44 +23,43 @@ csfmt_var(
 
 - measure:
 
-  Character scalar, the measure identity (e.g. "consults_r80").
+  The name of the measure, for example `"consults_r80"`.
 
 - denom:
 
-  Optional denominator name; inserts \`\_vs\_\<denom\>\`.
+  A denominator. It adds `_vs_<denom>`.
 
 - role:
 
-  Optional statistic role:
-  observed/nowcasted/forecasted/trend/baseline/status.
+  A role, for example `"nowcasted"`, `"trend"` or `"status"`. It adds
+  `_<role>`.
 
 - q:
 
-  Optional probability for a quantile coordinate (mutually exclusive
-  with \`level\`).
+  A probability. It adds the label from
+  [`q_label()`](https://niphr.github.io/csalert/reference/q_label.md).
+  Give `q` or `level`, not both.
 
 - level:
 
-  Optional status level for a \`prob\_\<level\>\` coordinate.
+  A status level. It adds `_prob_<level>`.
 
 - per:
 
-  Optional rate scaling (e.g. 100 -\> \`\_pr100\`).
+  A rate scale. `100` adds `_pr100`.
 
 - suffix:
 
-  Optional unit suffix (e.g. "\_n").
+  A unit suffix, added as written, for example `"_n"`.
 
 ## Value
 
-Character scalar column name.
+The column name.
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-whose closing section builds a column name with this function and takes
-it apart again with
-[`csfmt_parse`](https://niphr.github.io/csalert/reference/csfmt_parse.md).
+whose naming-grammar section builds and parses a name.
 
 Other naming grammar functions:
 [`csfmt_interpret()`](https://niphr.github.io/csalert/reference/csfmt_interpret.md),

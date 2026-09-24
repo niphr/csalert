@@ -1,11 +1,9 @@
-# Add spiked outbreaks to simulated data
+# Add short outbreaks to the end of simulated daily counts
 
-Adds spiked outbreaks to a simulated baseline time series, following
-Noufaily et al. (2019). The method is similar to
-[`simulate_seasonal_outbreak_data`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md).
-The outbreaks are shorter in duration, and are added only within the
-last year of data (the prediction period). A spiked outbreak can start
-at any week during that period.
+Adds `n_sp_outbreak` short outbreaks to the output of
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md),
+after Noufaily et al. (2019). Each starts on a random day in the last
+344 days, 49 weeks, of the data.
 
 ## Usage
 
@@ -17,24 +15,35 @@ simulate_spike_outbreak_data(data, n_sp_outbreak = 1, m)
 
 - data:
 
-  A `csfmt_rts_data_v1` data object, typically the output of
-  [`simulate_baseline_data`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md).
+  The output of
+  [`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md).
 
 - n_sp_outbreak:
 
-  Number of spiked outbreaks to be simulated.
+  The number of outbreaks.
 
 - m:
 
-  Parameter to determine the size of the outbreak (m times the standard
-  deviation of the baseline count at the starting day of the spiked
-  outbreak).
+  The size factor of an outbreak: the mean size is `10 * m * sd`.
 
 ## Value
 
-A `csfmt_rts_data_v1` (`data.table`) equal to `data` with the simulated
-spiked outbreak counts added to column `n` and additional columns
-describing the outbreaks (e.g. `sp_outbreak`, `sp_outbreak_n`).
+A copy of `data` with the cases added to `n`, and these columns:
+
+- `sd` and `weight`,
+
+- `sp_outbreak`: 2 on an outbreak day and 0 on other days,
+
+- `sp_outbreak_n`: the cases, which are added to `n`,
+
+- `sp_outbreak_n_rw`: the weighted cases, which `n` does not use.
+
+## Details
+
+The size and the spread are as in
+[`simulate_seasonal_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md),
+over about half as many days, and with no day-of-week weight on `n`. The
+size draw also calls [`set.seed()`](https://rdrr.io/r/base/Random.html).
 
 ## References
 
@@ -44,12 +53,13 @@ systems. Statistics in Medicine. 2013.
 
 ## See also
 
-Neither package vignette covers the data simulators. Use them to
-generate a series whose truth you already know, then run
-[`short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
-or
-[`signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
-on it.
+[`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
+which runs it.
+
+Other data simulation functions:
+[`add_holiday_effect()`](https://niphr.github.io/csalert/reference/add_holiday_effect.md),
+[`simulate_baseline_data()`](https://niphr.github.io/csalert/reference/simulate_baseline_data.md),
+[`simulate_seasonal_outbreak_data()`](https://niphr.github.io/csalert/reference/simulate_seasonal_outbreak_data.md)
 
 ## Examples
 

@@ -1,8 +1,7 @@
-# Print a \`nowcast_calibration\`
+# Print a `nowcast_calibration`
 
-Shows the nominal interval level, the grouping, and the per-group
-calibration factor table (factor \> 1 widens an under-dispersed engine;
-\< 1 narrows).
+Prints the interval level, the grouping columns and the table of
+factors.
 
 ## Usage
 
@@ -15,21 +14,21 @@ print(x, ...)
 
 - x:
 
-  A \`nowcast_calibration\` from \[nowcast_estimate_calibration_v1\].
+  The `nowcast_calibration` to print.
 
 - ...:
 
-  Ignored (for S3 consistency).
+  Not used, but the [`print()`](https://rdrr.io/r/base/print.html)
+  generic has it.
 
 ## Value
 
-\`x\`, invisibly.
+`x`, invisibly.
 
 ## See also
 
-Neither package vignette covers calibration; see the example on
-[`nowcast_estimate_calibration_v1`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md),
-which prints its result with this method.
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 2.
 
 Other nowcast calibration functions:
 [`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md),

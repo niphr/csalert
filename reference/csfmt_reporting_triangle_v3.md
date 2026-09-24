@@ -1,6 +1,8 @@
-# Construct a csfmt_reporting_triangle_v3
+# Build a csfmt_reporting_triangle_v3
 
-Construct a csfmt_reporting_triangle_v3
+Builds the input of the nowcast engines: counts by reference ISO week
+and by the date each count was reported. The newest reporting date is
+the as-of boundary.
 
 ## Usage
 
@@ -18,41 +20,47 @@ csfmt_reporting_triangle_v3(
 
 - data:
 
-  data.table with identity columns, a reference ISO-week column, a
-  reporting date column, and a value column.
+  A data.table with the identity, reference, reporting and count
+  columns.
 
 - id_cols:
 
-  Identity columns defining a series.
+  The identity columns that define one series.
 
 - reference_col:
 
-  ISO-week column name.
+  The reference ISO-week column, written `"YYYY-WW"`.
 
 - reporting_col:
 
-  Column name holding the calendar date the count was reported. The
-  column MUST be a \`Date\`. A character, a number, a factor and an
-  \`IDate\` each error. It MUST NOT hold \`NA\`, and a missing value
-  errors with its count. One \`NA\` makes \`max()\` return \`NA\`, so
-  the as-of boundary would be \`NA\`, no reference week would settle,
-  and every nowcast engine would quietly return the observed totals.
+  The column with the date each count was reported. Its class MUST be
+  exactly `Date`, so an `IDate` is an error. It MUST NOT hold `NA`. One
+  `NA` would make the as-of boundary `NA`. Every nowcast engine would
+  then return the observed totals with no warning.
 
 - value_col:
 
-  Count column name.
+  The count column.
 
 ## Value
 
-A validated \`csfmt_reporting_triangle_v3\` (a data.table with the as-of
-boundary and column roles stored as attributes). The as-of boundary is a
-\`Date\`.
+A `csfmt_reporting_triangle_v3`: a data.table with the attributes
+`as_of`, a `Date`, and `id_cols`, `reference_col`, `reporting_col` and
+`value_col`.
+
+## Details
+
+The triangle is sparse. An absent cell on or before the as-of date is a
+zero, and a cell after it is not reported yet. The constructor copies
+`data` and adds the ids of
+[`set_time_series_id()`](https://niphr.github.io/csalert/reference/set_time_series_id.md).
+It stops with an error when a reporting date comes before its reference
+Monday, or a count is negative.
 
 ## See also
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
-which builds a triangle with this constructor and takes it through the
-whole pipeline.
+which takes a triangle through the whole pipeline.
 
 Other reporting triangle functions:
 [`isoyearweek_week_start()`](https://niphr.github.io/csalert/reference/isoyearweek_week_start.md),
@@ -61,8 +69,8 @@ Other reporting triangle functions:
 ## Examples
 
 ``` r
-# 40 reference weeks, each reported 3, 10 and 17 days after its Monday, then
-# right-truncated at one as-of date so the newest weeks are still incomplete
+# 40 reference weeks, each reported 3, 10 and 17 days after its Monday. The
+# data stops at one as-of date, so the newest weeks are still incomplete.
 cal <- cstime::dates_by_isoyearweek
 i <- match("2023-01", cal$isoyearweek)
 set.seed(1)
@@ -80,7 +88,7 @@ tri <- csfmt_reporting_triangle_v3(
   id_cols = c("indicator_tag", "location_code", "age", "sex")
 )
 
-# the as-of boundary is the newest reporting date seen
+# the as-of boundary is the newest reporting date in the data
 attr(tri, "as_of")
 #> [1] "2023-10-05"
 head(tri, 3)
