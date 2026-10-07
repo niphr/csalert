@@ -265,31 +265,120 @@
       pool$age_days < (max_delay_days - 1L)
   )
   for (i in incomplete) {
-    d <- pool$age_days[i]
-    pd <- pool$p[d + 1L]
-    cols <- seq_len(d + 1L)
-    obs <- sum(mat[i, cols])
-    if (!is.finite(pd) || pd <= 0 || obs <= 0) {
-      next
-    }
-    train <- .outage_pool(pool$train, i, mon, d, delivery, outage_gap_days)
-    rat <- .completion_ratio(mat, train, pd, cols)
-    if (is.null(rat)) {
-      next
-    }
-    if (identical(interval, "log_robust")) {
-      lr <- log(rat)
-      z <- stats::rnorm(n_sim)
-      v <- pmax(
-        obs / pd * exp(stats::median(lr) + stats::mad(lr) * z),
-        obs_total[i]
-      )
-      draws[i, ] <- v[sample.int(length(v))]
-    } else {
-      draws[i, ] <- .completion_draws(obs / pd, obs_total[i], rat, n_sim)
+    v <- .option_week(
+      mat,
+      pool,
+      i,
+      mon,
+      obs_total[i],
+      n_sim,
+      interval,
+      outage_gap_days,
+      delivery
+    )
+    if (!is.null(v)) {
+      draws[i, ] <- v
     }
   }
   return(draws)
+}
+
+# The n_sim draws of incomplete week `i` in .ecdf_complete_options(), or NULL
+# when the week keeps its observed count.
+.option_week <- function(
+  mat,
+  pool,
+  i,
+  mon,
+  floor_at,
+  n_sim,
+  interval,
+  outage_gap_days,
+  delivery
+) {
+  d <- pool$age_days[i]
+  pd <- pool$p[d + 1L]
+  cols <- seq_len(d + 1L)
+  obs <- sum(mat[i, cols])
+  if (!is.finite(pd) || pd <= 0 || obs <= 0) {
+    return(NULL)
+  }
+  train <- .outage_pool(pool$train, i, mon, d, delivery, outage_gap_days)
+  rat <- .completion_ratio(mat, train, pd, cols)
+  if (is.null(rat)) {
+    return(NULL)
+  }
+  return(.option_draws(obs / pd, floor_at, rat, n_sim, interval))
+}
+
+# The n_sim draws of one incomplete week. `pred` is observed_so_far / p(d) and
+# `rat` holds the pool ratios.
+.option_draws <- function(pred, floor_at, rat, n_sim, interval) {
+  if (identical(interval, "log_robust")) {
+    lr <- log(rat)
+    z <- stats::rnorm(n_sim)
+    v <- pmax(
+      pred * exp(stats::median(lr) + stats::mad(lr) * z),
+      floor_at
+    )
+    return(v[sample.int(length(v))])
+  }
+  return(.completion_draws(pred, floor_at, rat, n_sim))
+}
+
+# Stops unless `outage_gap_days` is NULL or one whole number of 1 or more.
+.check_outage_gap_days <- function(outage_gap_days) {
+  if (is.null(outage_gap_days)) {
+    return(invisible(NULL))
+  }
+  ok <- length(outage_gap_days) == 1L &&
+    is.numeric(outage_gap_days) &&
+    is.finite(outage_gap_days) &&
+    outage_gap_days >= 1 &&
+    outage_gap_days == round(outage_gap_days)
+  if (!ok) {
+    stop(
+      "`outage_gap_days` must be NULL or one whole number of 1 or more.",
+      call. = FALSE
+    )
+  }
+  return(invisible(NULL))
+}
+
+# The draw matrix of one series in nowcast_delay_ecdf_v1(). The default path
+# goes to .ecdf_complete() and every option goes to .ecdf_complete_options().
+.ecdf_series_draws <- function(
+  rt,
+  as_of,
+  max_delay_days,
+  n_sim,
+  delay_window,
+  interval,
+  outage_gap_days,
+  delivery
+) {
+  use_options <- !identical(interval, "empirical") || !is.null(outage_gap_days)
+  if (use_options) {
+    return(.ecdf_complete_options(
+      rt$mat,
+      rt$reference,
+      as_of,
+      max_delay_days,
+      n_sim,
+      delay_window,
+      interval,
+      outage_gap_days,
+      delivery
+    ))
+  }
+  return(.ecdf_complete(
+    rt$mat,
+    rt$reference,
+    as_of,
+    max_delay_days,
+    n_sim,
+    delay_window
+  ))
 }
 
 #' Nowcast a reporting triangle from the delay pattern of settled weeks
@@ -411,17 +500,7 @@ nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
   ...
 ) {
   interval <- match.arg(interval)
-  if (
-    !is.null(outage_gap_days) &&
-      (length(outage_gap_days) != 1L ||
-        !is.numeric(outage_gap_days) ||
-        !is.finite(outage_gap_days) ||
-        outage_gap_days < 1 ||
-        outage_gap_days != round(outage_gap_days))
-  ) {
-    stop("`outage_gap_days` must be NULL or one whole number of 1 or more.")
-  }
-  use_options <- !identical(interval, "empirical") || !is.null(outage_gap_days)
+  .check_outage_gap_days(outage_gap_days)
   # NSE column names, declared so R CMD check does not read them as undefined globals
   isoyearweek <- original <- time_series_id <- NULL
   id_cols <- attr(x, "id_cols")
@@ -455,26 +534,15 @@ nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
   for (vc in value_cols) {
     rts <- reporting_triangle_matrix(x, max_delay_days, value_col = vc)
     chunks <- lapply(series_ids, function(tsid) {
-      if (use_options) {
-        return(.ecdf_complete_options(
-          rts[[tsid]]$mat,
-          rts[[tsid]]$reference,
-          as_of,
-          max_delay_days,
-          n_sim,
-          delay_window,
-          interval,
-          outage_gap_days,
-          delivery
-        ))
-      }
-      return(.ecdf_complete(
-        rts[[tsid]]$mat,
-        rts[[tsid]]$reference,
+      return(.ecdf_series_draws(
+        rts[[tsid]],
         as_of,
         max_delay_days,
         n_sim,
-        delay_window
+        delay_window,
+        interval,
+        outage_gap_days,
+        delivery
       ))
     })
     draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)
