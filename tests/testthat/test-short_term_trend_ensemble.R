@@ -279,13 +279,15 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
     c(NaN, NaN, 1, 1, 0.5, 1, 1, 1)
   )
 
+  # expect_equal at 1e-12, not expect_identical: macOS arm64 fuses multiply-add
+  # and its draws differ from x86_64 in the last bits (r-universe, 2026-10-07).
   set.seed(42)
   b <- short_term_trend(
     ens_2draw(),
     measure = "cases",
     trend_isoyearweeks = 4
   )
-  expect_identical(
+  expect_equal(
     b$draws[["cases_trend_beta1"]],
     structure(
       c(
@@ -307,9 +309,10 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
         0.42313321191191688
       ),
       dim = c(8L, 2L)
-    )
+    ),
+    tolerance = 1e-12
   )
-  expect_identical(
+  expect_equal(
     b$draws[["cases_trend_gr"]],
     structure(
       c(
@@ -331,7 +334,8 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
         4.2313321191191688
       ),
       dim = c(8L, 2L)
-    )
+    ),
+    tolerance = 1e-12
   )
   expect_identical(
     b$data[["cases_trend_increasing_pr"]],
