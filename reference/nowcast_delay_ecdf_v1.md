@@ -17,6 +17,8 @@ nowcast_delay_ecdf_v1(
   n_sim = 1000,
   denominator_col = NULL,
   delay_window = 26,
+  interval = c("empirical", "log_robust"),
+  outage_gap_days = NULL,
   ...
 )
 ```
@@ -50,6 +52,24 @@ nowcast_delay_ecdf_v1(
   The span, in weeks, of the settled weeks in the pool, so that the pool
   follows a reporting pattern that changes. `NULL` uses every settled
   week.
+
+- interval:
+
+  How the draws use the pool ratios `T_s / O_s`. `"empirical"` takes
+  their quantiles. `"log_robust"` draws
+  `observed_so_far * exp(median(log r) + mad(log r) * z)`, with `z`
+  standard normal, floored at the observed count. The median and the MAD
+  change little when a few pool weeks have extreme ratios.
+
+- outage_gap_days:
+
+  `NULL`, or the number of consecutive dates with no delivery that make
+  a delivery outage. A delivery date is a date on which the value column
+  of `x` has a count above 0. For a reference week of age `d` days, the
+  pool drops each pool week with an outage in its delay days 0 to `d`.
+  The full pool stays when the reference week has its own outage in
+  delay days 0 to `d`. It also stays when fewer than 3 pool weeks
+  remain.
 
 ## Value
 

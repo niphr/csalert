@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,19 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.7" id="version-2026107">Version 2026.10.7<a class="anchor" aria-label="anchor" href="#version-2026107"></a></h2>
+<ul><li>
+<code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> has two new options, <code>outage_gap_days</code> and <code>interval = "log_robust"</code>. A few pool weeks with a delivery outage have extreme pool ratios <code>T_s / O_s</code>, and these set the upper limit of the interval. The defaults are unchanged and give output identical to 2026.9.24 for the same seed.</li>
+<li>
+<code>outage_gap_days</code> removes a pool week from the pool when its delay days 0 to <code>d</code> hold that many or more consecutive dates with no delivery. Here <code>d</code> is the age in days of the reference week to nowcast. The full pool stays when that week has its own outage, or when fewer than 3 pool weeks would remain.</li>
+<li>
+<code>interval = "log_robust"</code> draws the log pool ratio from a normal distribution with the median and the MAD of the log pool ratios. The median and the MAD change little when a few pool weeks have extreme ratios.</li>
+<li>
+<code><a href="../reference/nowcast_score_v1.html">nowcast_score_v1()</a></code> is new and exported. It scores replayed nowcast quantiles against the settled truth. The scores are the weighted interval score (WIS), the WIS after <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log1p()</a></code>, the 95% coverage and the 95% interval width relative to the truth. Coverage alone rewards an interval that is too wide, and WIS penalises both a miss and the width.</li>
+<li>
+<code><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code> calls <code><a href="../reference/nowcast_score_v1.html">nowcast_score_v1()</a></code> and gains the columns <code>wis</code>, <code>wis_log</code>, <code>coverage_95</code> and <code>width_95_rel_median</code>. The earlier columns keep their values.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.9.24" id="version-2026924">Version 2026.9.24<a class="anchor" aria-label="anchor" href="#version-2026924"></a></h2>
 <ul><li>

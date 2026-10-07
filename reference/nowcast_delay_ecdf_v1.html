@@ -11,7 +11,7 @@ completion ratios that the pool shows at the same delay day."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.9.24</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,6 +72,8 @@ completion ratios that the pool shows at the same delay day.</p>
 <span>  n_sim <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  denominator_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  delay_window <span class="op">=</span> <span class="fl">26</span>,</span>
+<span>  interval <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"empirical"</span>, <span class="st">"log_robust"</span><span class="op">)</span>,</span>
+<span>  outage_gap_days <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -106,6 +108,23 @@ observed total goes to <code>$data</code> as <code>&lt;denominator_col&gt;_obser
 <dd><p>The span, in weeks, of the settled weeks in the pool, so
 that the pool follows a reporting pattern that changes. <code>NULL</code> uses every
 settled week.</p></dd>
+
+
+<dt id="arg-interval">interval<a class="anchor" aria-label="anchor" href="#arg-interval"></a></dt>
+<dd><p>How the draws use the pool ratios <code>T_s / O_s</code>.
+<code>"empirical"</code> takes their quantiles. <code>"log_robust"</code> draws
+<code>observed_so_far * exp(median(log r) + mad(log r) * z)</code>, with <code>z</code> standard
+normal, floored at the observed count. The median and the MAD change
+little when a few pool weeks have extreme ratios.</p></dd>
+
+
+<dt id="arg-outage-gap-days">outage_gap_days<a class="anchor" aria-label="anchor" href="#arg-outage-gap-days"></a></dt>
+<dd><p><code>NULL</code>, or the number of consecutive dates with no
+delivery that make a delivery outage. A delivery date is a date on which
+the value column of <code>x</code> has a count above 0. For a reference week of age
+<code>d</code> days, the pool drops each pool week with an outage in its delay days 0
+to <code>d</code>. The full pool stays when the reference week has its own outage in
+delay days 0 to <code>d</code>. It also stays when fewer than 3 pool weeks remain.</p></dd>
 
 </dl></div>
     <div class="section level2">

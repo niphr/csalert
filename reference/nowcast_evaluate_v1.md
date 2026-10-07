@@ -67,6 +67,10 @@ A data.table with one row per group and method:
 - `p_gt_<t>`: the share of absolute revisions above each threshold, such
   as `p_gt_25` for 0.25,
 
+- `wis`, `wis_log`, `coverage_95`, `width_95_rel_median`: the weighted
+  interval score and the 95% interval summary from
+  [`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md),
+
 - `method`.
 
 A method with no nowcast gives a warning and no rows.
@@ -110,11 +114,16 @@ nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_d
 #> 1:       2    27           1           1        0.0000     0.0000  0.0000
 #> 2:       1    27           0           0       -0.3333     0.3333 -0.3333
 #> 3:       0    26           0           0       -0.6667     0.6667 -0.6667
-#>        q95 p_gt_25 p_gt_50 method
-#>      <num>   <num>   <num> <char>
-#> 1:  0.0000       0       0 method
-#> 2: -0.3333       1       0 method
-#> 3: -0.6667       1       1 method
+#>        q95 p_gt_25 p_gt_50   wis   wis_log coverage_95 width_95_rel_median
+#>      <num>   <num>   <num> <num>     <num>       <num>               <num>
+#> 1:  0.0000       0       0     0 0.0000000           1                   0
+#> 2: -0.3333       1       0    10 0.3894648           0                   0
+#> 3: -0.6667       1       1    20 1.0360919           0                   0
+#>    method
+#>    <char>
+#> 1: method
+#> 2: method
+#> 3: method
 # a named list of methods, with a `method` column in the result
 nowcast_evaluate_v1(tri, max_delay_days = 21, horizons = 0:2, seed = 1, methods = list(
   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21)))
@@ -123,9 +132,14 @@ nowcast_evaluate_v1(tri, max_delay_days = 21, horizons = 0:2, seed = 1, methods 
 #> 1:       2    27           1           1        0.0000     0.0000  0.0000
 #> 2:       1    27           0           0       -0.3333     0.3333 -0.3333
 #> 3:       0    26           0           0       -0.6667     0.6667 -0.6667
-#>        q95 p_gt_25 p_gt_50      method
-#>      <num>   <num>   <num>      <char>
-#> 1:  0.0000       0       0 passthrough
-#> 2: -0.3333       1       0 passthrough
-#> 3: -0.6667       1       1 passthrough
+#>        q95 p_gt_25 p_gt_50   wis   wis_log coverage_95 width_95_rel_median
+#>      <num>   <num>   <num> <num>     <num>       <num>               <num>
+#> 1:  0.0000       0       0     0 0.0000000           1                   0
+#> 2: -0.3333       1       0    10 0.3894648           0                   0
+#> 3: -0.6667       1       1    20 1.0360919           0                   0
+#>         method
+#>         <char>
+#> 1: passthrough
+#> 2: passthrough
+#> 3: passthrough
 ```
