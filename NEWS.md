@@ -1,3 +1,26 @@
+# Version 2026.10.7
+
+- `nowcast_delay_ecdf_v1()` has two new options, `outage_gap_days` and
+  `interval = "log_robust"`. A few pool weeks with a delivery outage have
+  extreme pool ratios `T_s / O_s`, and these set the upper limit of the
+  interval. The defaults are unchanged and give output identical to 2026.9.24
+  for the same seed.
+- `outage_gap_days` removes a pool week from the pool when its delay days 0 to
+  `d` hold that many or more consecutive dates with no delivery. Here `d` is
+  the age in days of the reference week to nowcast. The full pool stays when
+  that week has its own outage, or when fewer than 3 pool weeks would remain.
+- `interval = "log_robust"` draws the log pool ratio from a normal distribution
+  with the median and the MAD of the log pool ratios. The median and the MAD
+  change little when a few pool weeks have extreme ratios.
+- `nowcast_score_v1()` is new and exported. It scores replayed nowcast
+  quantiles against the settled truth. The scores are the weighted interval
+  score (WIS), the WIS after `log1p()`, the 95% coverage and the 95% interval
+  width relative to the truth. Coverage alone rewards an interval that is too
+  wide, and WIS penalises both a miss and the width.
+- `nowcast_evaluate_v1()` calls `nowcast_score_v1()` and gains the columns
+  `wis`, `wis_log`, `coverage_95` and `width_95_rel_median`. The earlier
+  columns keep their values.
+
 # Version 2026.9.24
 
 - `reporting_triangle_matrix()` sums the counts in a cell with `na.rm = TRUE`.
