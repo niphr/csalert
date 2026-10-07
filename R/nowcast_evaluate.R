@@ -106,6 +106,133 @@
   ])
 }
 
+# The weighted interval score of one forecast unit (Bracher et al. 2021). The
+# central intervals are the quantile pairs present at levels p and 1 - p, p < 0.5.
+.wis_unit <- function(level, predicted, y) {
+  lev <- round(level, 8)
+  m <- predicted[lev == 0.5]
+  if (length(m) != 1L) {
+    return(NA_real_)
+  }
+  p <- lev[lev < 0.5 & round(1 - lev, 8) %in% lev]
+  l <- predicted[match(p, lev)]
+  u <- predicted[match(round(1 - p, 8), lev)]
+  alpha <- 2 * p
+  is_alpha <- (u - l) +
+    (2 / alpha) * (l - y) * (y < l) +
+    (2 / alpha) * (y - u) * (y > u)
+  return((0.5 * abs(y - m) + sum(alpha / 2 * is_alpha)) / (length(p) + 0.5))
+}
+
+#' Score replayed nowcast quantiles against the settled truth
+#'
+#' Scores a backtest from [nowcast_backtest()] against the truth from
+#' [nowcast_truth()]. It adds the weighted interval score and a 95% interval
+#' summary to the coverage and revision columns of [nowcast_evaluate_v1()].
+#'
+#' A forecast unit is one reference week at one as-of date and horizon. The
+#' function scores only the units that have a finite truth and the 0.05, 0.25,
+#' 0.5, 0.75 and 0.95 quantiles.
+#'
+#' The weighted interval score (WIS) follows Bracher et al. (2021). For a unit
+#' with truth `y` and median `m`:
+#'
+#' ```
+#' WIS  = (0.5 * |y - m| + sum_k (alpha_k / 2) * IS_k) / (K + 0.5)
+#' IS_k = (u - l) + (2 / alpha_k) * (l - y) * 1{y < l} + (2 / alpha_k) * (y - u) * 1{y > u}
+#' ```
+#'
+#' The sum is over the `K` central intervals from the quantile pairs at levels
+#' `p` and `1 - p`, with `p < 0.5`. Interval `k` is from `l` to `u`, and
+#' `alpha_k = 2 * p`.
+#' @param backtest A data.table from [nowcast_backtest()], with the columns
+#'   `reference`, `quantile_level` and `predicted`, and optionally `as_of` and
+#'   `horizon`.
+#' @param truth A data.table from [nowcast_truth()], with the columns
+#'   `reference` and `truth`.
+#' @param by The columns to group the scores by.
+#' @param thresholds The absolute revisions for the `p_gt_<t>` columns.
+#' @returns A data.table with one row per group. It has the columns of
+#'   [nowcast_evaluate_v1()] except `method`, and these columns:
+#' * `wis`: the mean WIS over the units,
+#' * `wis_log`: the mean WIS after `log1p()` of each quantile and of the truth,
+#' * `coverage_95`: the share of truths from the 0.025 to the 0.975 quantile,
+#' * `width_95_rel_median`: the median over the units of
+#'   `(q0.975 - q0.025) / max(truth, 1)`.
+#'
+#' `coverage_95` and `width_95_rel_median` are `NA` for a group where a unit has
+#' no 0.025 or no 0.975 quantile.
+#' @references Bracher J, Ray EL, Gneiting T, Reich NG (2021). Evaluating
+#'   epidemic forecasts in an interval format. PLOS Computational Biology 17(2):
+#'   e1008618. \doi{10.1371/journal.pcbi.1008618}
+#' @examples
+#' truth <- data.table::data.table(reference = "2024-01", truth = 100)
+#' backtest <- data.table::data.table(
+#'   reference = "2024-01", horizon = 0L,
+#'   quantile_level = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975),
+#'   predicted = c(60, 70, 85, 95, 105, 120, 130))
+#' nowcast_score_v1(backtest, truth)
+#' @export
+nowcast_score_v1 <- function(
+  backtest,
+  truth,
+  by = "horizon",
+  thresholds = c(0.25, 0.5)
+) {
+  # NSE column names, declared so R CMD check does not read them as undefined globals
+  quantile_level <- predicted <- lo95 <- hi95 <- wis <- wis_log <- NULL
+  coverage_95 <- width_95_rel_median <- i.wis <- i.wis_log <- NULL
+  i.coverage_95 <- i.width_95_rel_median <- NULL
+  ev <- .evaluate_backtest(backtest, truth, by = by, thresholds = thresholds)
+
+  # The same units that .evaluate_backtest scores: a finite truth and the five
+  # quantiles it needs.
+  d <- merge(
+    data.table::as.data.table(backtest),
+    data.table::as.data.table(truth),
+    by = "reference"
+  )
+  d <- d[is.finite(truth)]
+  unit <- intersect(c("reference", "as_of", "horizon"), names(d))
+  need <- c(0.05, 0.25, 0.5, 0.75, 0.95)
+  u <- d[,
+    {
+      lev <- round(quantile_level, 8)
+      y <- truth[1L]
+      list(
+        truth = y,
+        ok = all(need %in% lev),
+        wis = .wis_unit(quantile_level, predicted, y),
+        wis_log = .wis_unit(quantile_level, log1p(predicted), log1p(y)),
+        lo95 = if (0.025 %in% lev) predicted[lev == 0.025][1L] else NA_real_,
+        hi95 = if (0.975 %in% lev) predicted[lev == 0.975][1L] else NA_real_
+      )
+    },
+    by = unit
+  ]
+  u <- u[u$ok]
+  s <- u[,
+    list(
+      wis = mean(wis),
+      wis_log = mean(wis_log),
+      coverage_95 = round(mean(truth >= lo95 & truth <= hi95), 3),
+      width_95_rel_median = stats::median((hi95 - lo95) / pmax(truth, 1))
+    ),
+    by = by
+  ]
+  ev[
+    s,
+    on = by,
+    `:=`(
+      wis = i.wis,
+      wis_log = i.wis_log,
+      coverage_95 = i.coverage_95,
+      width_95_rel_median = i.width_95_rel_median
+    )
+  ]
+  return(ev[])
+}
+
 #' Score nowcast methods on interval coverage and revision
 #'
 #' Replays each method with [nowcast_backtest()], and scores every nowcast against
@@ -134,6 +261,8 @@
 #'   absolute revision, and the 5% and 95% quantiles of the revision,
 #' * `p_gt_<t>`: the share of absolute revisions above each threshold, such as
 #'   `p_gt_25` for 0.25,
+#' * `wis`, `wis_log`, `coverage_95`, `width_95_rel_median`: the weighted
+#'   interval score and the 95% interval summary from [nowcast_score_v1()],
 #' * `method`.
 #'
 #' A method with no nowcast gives a warning and no rows.
@@ -190,7 +319,7 @@ nowcast_evaluate_v1 <- function(
       warning("method '", nm, "' produced no nowcasts", call. = FALSE)
       next
     }
-    ev <- .evaluate_backtest(bt, truth, by = by, thresholds = thresholds)
+    ev <- nowcast_score_v1(bt, truth, by = by, thresholds = thresholds)
     ev[, method := nm]
     out[[nm]] <- ev
   }

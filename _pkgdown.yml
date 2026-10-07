@@ -62,6 +62,7 @@ reference:
       - nowcast_truth
       - nowcast_backtest
       - nowcast_evaluate_v1
+      - nowcast_score_v1
       - reporting_completion_v1
       - reporting_completion_trend_v1
 

@@ -42,6 +42,8 @@ quantile, and from the 0.05 to the 0.95 quantile,
 absolute revision, and the 5\% and 95\% quantiles of the revision,
 \item \verb{p_gt_<t>}: the share of absolute revisions above each threshold, such as
 \code{p_gt_25} for 0.25,
+\item \code{wis}, \code{wis_log}, \code{coverage_95}, \code{width_95_rel_median}: the weighted
+interval score and the 95\% interval summary from \code{\link[=nowcast_score_v1]{nowcast_score_v1()}},
 \item \code{method}.
 }
 
