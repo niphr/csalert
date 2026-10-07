@@ -128,8 +128,9 @@ compare_results <- function(current, previous) {
 #' A week is settled when it is at least `max_delay_weeks` ISO weeks older than the
 #' newest week of `previous`. A row in `$integrity` means that a published number
 #' for a settled week changed, so ideally that table is empty. It compares finite
-#' values only. `$signal` counts a new week as a change. Both tables use the
-#' median, `q = 0.5`.
+#' values only, and leaves out the columns that `model_pattern` matches.
+#' `$signal` counts a new week as a change. Both tables use the median,
+#' `q = 0.5`.
 #' @param current,previous The output of [ens_collapse()] for this run and for the
 #'   previous run. Their identity columns MUST have the names that
 #'   [compare_results()] needs.
@@ -140,6 +141,12 @@ compare_results <- function(current, previous) {
 #'   these roles, and `$integrity` leaves them out. The default holds `"status"`
 #'   from [mem_thresholds_v1()] and `"hlmstatus"` from [signal_detection_hlm()].
 #' @param tol The largest change in a settled median that counts as no change.
+#' @param model_pattern A regular expression for the names of model-output
+#'   columns that `$integrity` leaves out. The default matches the trend columns
+#'   that [short_term_trend()] writes for an ensemble,
+#'   `<measure>_trend_gr_q50x0` and `<measure>_trend_beta1_q50x0`. A trend
+#'   estimate has Monte-Carlo noise, so its change in a settled week is not a
+#'   data revision.
 #' @returns A list of two data.tables:
 #' * `integrity`, with `indicator_tag`, `isoyearweek`, `column`, `prv`, `cur`
 #'   and `abs_diff`,
@@ -196,7 +203,8 @@ qc_week_over_week_v1 <- function(
   previous,
   max_delay_weeks,
   tol = 1e-6,
-  status_roles = c("status", "hlmstatus")
+  status_roles = c("status", "hlmstatus"),
+  model_pattern = "_trend_(gr|beta1)_"
 ) {
   # NSE column names, declared so R CMD check does not read them as undefined globals
   abs_diff <- change <- cur <- from <- isoyearweek <- level <- prv <- role <- NULL
@@ -205,13 +213,16 @@ qc_week_over_week_v1 <- function(
   latest_prev <- max(data.table::as.data.table(previous)$isoyearweek)
   cutoff <- weeks[match(latest_prev, weeks) - max_delay_weeks] # weeks <= this are settled
 
-  # A) integrity: settled weeks, continuous medians, changed beyond tol -> flag
+  # A) integrity: settled weeks, continuous medians, changed beyond tol -> flag.
+  # Trend estimates are model output with Monte-Carlo noise, not published data,
+  # so model_pattern leaves them out by name.
   A <- long[
     isoyearweek <= cutoff &
       !is.na(q) &
       q == 0.5 &
       is.na(level) &
       (is.na(role) | !(role %in% status_roles)) &
+      !grepl(model_pattern, column) &
       is.finite(cur) &
       is.finite(prv) &
       abs(cur - prv) > tol

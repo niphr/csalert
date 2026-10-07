@@ -1,3 +1,7 @@
+# Version 2026.10.8
+
+- `qc_week_over_week_v1()` has a new argument, `model_pattern`, default `"_trend_(gr|beta1)_"`. `$integrity` leaves out the columns whose names match it. Before, the Monte-Carlo noise of trend estimates in settled weeks filled `$integrity`: 2314 growth-rate and 217 slope rows of 2599 in one weekly run, which hid the real data revisions. Roleless published medians, such as `cases_q50x0`, are still compared.
+
 # Version 2026.10.7
 
 - `nowcast_delay_ecdf_v1()` has two new options, `outage_gap_days` and

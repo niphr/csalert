@@ -41,6 +41,30 @@ test_that("A flags an unexpected revision to a settled week", {
   expect_equal(qc$integrity$prv, 11); expect_equal(qc$integrity$cur, 99)
 })
 
+# Trend columns parse with role NA. They used to pass the integrity filter, so
+# Monte-Carlo noise in settled growth rates filled $integrity (2314 of 2599 rows
+# in the luftveis run of 2026-10-07) and hid the real revisions.
+test_that("A ignores trend estimates in settled weeks but keeps data revisions", {
+  weeks <- cstime::dates_by_isoyearweek$isoyearweek
+  i0 <- which(weeks == "2024-10"); w <- weeks[i0:(i0 + 5)]
+  gr <- "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_gr_q50x0"
+  prev <- mk_run(w[1:5], vals = c(10, 11, 12, 13, 14), status = c(1, 1, 2, 2, 3))
+  curr <- mk_run(w[1:6], vals = c(10, 99, 12, 13, 15, 16), status = c(1, 1, 2, 2, 2, 3))
+  prev[, (gr) := c(5, 6, 7, 8, 9)]
+  curr[, (gr) := c(50, 60, 70, 8, 9, 10)] # settled growth rates moved by noise
+  # a roleless published median: its settled revision MUST still be flagged
+  prev[, cases_q50x0 := c(1, 2, 3, 4, 5)]
+  curr[, cases_q50x0 := c(1, 2, 30, 4, 5, 6)]
+  expect_true(is.na(csfmt_interpret(curr)[column == gr]$role))
+  expect_true(is.na(csfmt_interpret(curr)[column == "cases_q50x0"]$role))
+
+  qc <- qc_week_over_week_v1(curr, prev, max_delay_weeks = 2)
+  expect_setequal(
+    paste(qc$integrity$column, qc$integrity$isoyearweek),
+    c(paste("numerator_nowcasted_q50x0", w[2]), paste("cases_q50x0", w[3]))
+  )
+})
+
 # signal_detection_hlm() writes role "hlmstatus", not "status". qc_week_over_week_v1()
 # used to select only role == "status", so a genuine HLM alert escalation never
 # reached $signal -- and, because the integrity filter was the complement, HLM

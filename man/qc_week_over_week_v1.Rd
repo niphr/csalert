@@ -9,7 +9,8 @@ qc_week_over_week_v1(
   previous,
   max_delay_weeks,
   tol = 1e-06,
-  status_roles = c("status", "hlmstatus")
+  status_roles = c("status", "hlmstatus"),
+  model_pattern = "_trend_(gr|beta1)_"
 )
 }
 \arguments{
@@ -26,6 +27,13 @@ units.}
 \item{status_roles}{The roles that hold an ordinal status. \verb{$signal} holds only
 these roles, and \verb{$integrity} leaves them out. The default holds \code{"status"}
 from \code{\link[=mem_thresholds_v1]{mem_thresholds_v1()}} and \code{"hlmstatus"} from \code{\link[=signal_detection_hlm]{signal_detection_hlm()}}.}
+
+\item{model_pattern}{A regular expression for the names of model-output
+columns that \verb{$integrity} leaves out. The default matches the trend columns
+that \code{\link[=short_term_trend]{short_term_trend()}} writes for an ensemble,
+\verb{<measure>_trend_gr_q50x0} and \verb{<measure>_trend_beta1_q50x0}. A trend
+estimate has Monte-Carlo noise, so its change in a settled week is not a
+data revision.}
 }
 \value{
 A list of two data.tables:
@@ -48,7 +56,8 @@ changes in the newer weeks.
 A week is settled when it is at least \code{max_delay_weeks} ISO weeks older than the
 newest week of \code{previous}. A row in \verb{$integrity} means that a published number
 for a settled week changed, so ideally that table is empty. It compares finite
-values only. \verb{$signal} counts a new week as a change. Both tables use the
+values only, and leaves out the columns that \code{model_pattern} matches.
+\verb{$signal} counts a new week as a change. Both tables use the
 median, \code{q = 0.5}.
 }
 \examples{
