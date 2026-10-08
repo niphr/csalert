@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,20 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.10" id="version-20261010">Version 2026.10.10<a class="anchor" aria-label="anchor" href="#version-20261010"></a></h2>
+<ul><li>
+<code>R CMD check</code> no longer gives a NOTE for <code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code>: the <code>column</code> it filters on in 2026.10.8 is declared as a data.table column.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.9" id="version-2026109">Version 2026.10.9<a class="anchor" aria-label="anchor" href="#version-2026109"></a></h2>
+<ul><li>Tests only: the <code>family = "identity"</code> kernel test of <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> compares the draws with <code>expect_equal(tolerance = 1e-12)</code> instead of <code>expect_identical()</code>. On macOS arm64 the draws differed from x86_64 in the last bits, so the r-universe macOS checks failed since at least 2026.10.7. A change of 1e-8 still fails the test.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.8" id="version-2026108">Version 2026.10.8<a class="anchor" aria-label="anchor" href="#version-2026108"></a></h2>
+<ul><li>
+<code><a href="../reference/qc_week_over_week_v1.html">qc_week_over_week_v1()</a></code> has a new argument, <code>model_pattern</code>, default <code>"_trend_(gr|beta1)_"</code>. <code>$integrity</code> leaves out the columns whose names match it. Before, the Monte-Carlo noise of trend estimates in settled weeks filled <code>$integrity</code>: 2314 growth-rate and 217 slope rows of 2599 in one weekly run, which hid the real data revisions. Roleless published medians, such as <code>cases_q50x0</code>, are still compared.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.7" id="version-2026107">Version 2026.10.7<a class="anchor" aria-label="anchor" href="#version-2026107"></a></h2>
 <ul><li>

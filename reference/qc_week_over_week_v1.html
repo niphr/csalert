@@ -11,7 +11,7 @@ changes in the newer weeks."><meta property="og:image" content="https://niphr.gi
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.7</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,8 @@ changes in the newer weeks.</p>
 <span>  <span class="va">previous</span>,</span>
 <span>  <span class="va">max_delay_weeks</span>,</span>
 <span>  tol <span class="op">=</span> <span class="fl">1e-06</span>,</span>
-<span>  status_roles <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"status"</span>, <span class="st">"hlmstatus"</span><span class="op">)</span></span>
+<span>  status_roles <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"status"</span>, <span class="st">"hlmstatus"</span><span class="op">)</span>,</span>
+<span>  model_pattern <span class="op">=</span> <span class="st">"_trend_(gr|beta1)_"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -97,6 +98,15 @@ units.</p></dd>
 these roles, and <code>$integrity</code> leaves them out. The default holds <code>"status"</code>
 from <code><a href="mem_thresholds_v1.html">mem_thresholds_v1()</a></code> and <code>"hlmstatus"</code> from <code><a href="signal_detection_hlm.html">signal_detection_hlm()</a></code>.</p></dd>
 
+
+<dt id="arg-model-pattern">model_pattern<a class="anchor" aria-label="anchor" href="#arg-model-pattern"></a></dt>
+<dd><p>A regular expression for the names of model-output
+columns that <code>$integrity</code> leaves out. The default matches the trend columns
+that <code><a href="short_term_trend.html">short_term_trend()</a></code> writes for an ensemble,
+<code>&lt;measure&gt;_trend_gr_q50x0</code> and <code>&lt;measure&gt;_trend_beta1_q50x0</code>. A trend
+estimate has Monte-Carlo noise, so its change in a settled week is not a
+data revision.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -112,7 +122,8 @@ and <code>abs_diff</code>,</p></li>
     <p>A week is settled when it is at least <code>max_delay_weeks</code> ISO weeks older than the
 newest week of <code>previous</code>. A row in <code>$integrity</code> means that a published number
 for a settled week changed, so ideally that table is empty. It compares finite
-values only. <code>$signal</code> counts a new week as a change. Both tables use the
+values only, and leaves out the columns that <code>model_pattern</code> matches.
+<code>$signal</code> counts a new week as a change. Both tables use the
 median, <code>q = 0.5</code>.</p>
     </div>
     <div class="section level2">

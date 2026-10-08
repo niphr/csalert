@@ -14,7 +14,8 @@ qc_week_over_week_v1(
   previous,
   max_delay_weeks,
   tol = 1e-06,
-  status_roles = c("status", "hlmstatus")
+  status_roles = c("status", "hlmstatus"),
+  model_pattern = "_trend_(gr|beta1)_"
 )
 ```
 
@@ -47,6 +48,15 @@ qc_week_over_week_v1(
   and `"hlmstatus"` from
   [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md).
 
+- model_pattern:
+
+  A regular expression for the names of model-output columns that
+  `$integrity` leaves out. The default matches the trend columns that
+  [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  writes for an ensemble, `<measure>_trend_gr_q50x0` and
+  `<measure>_trend_beta1_q50x0`. A trend estimate has Monte-Carlo noise,
+  so its change in a settled week is not a data revision.
+
 ## Value
 
 A list of two data.tables:
@@ -65,8 +75,9 @@ A table with no rows keeps `prv` and `cur`, and has no added column.
 A week is settled when it is at least `max_delay_weeks` ISO weeks older
 than the newest week of `previous`. A row in `$integrity` means that a
 published number for a settled week changed, so ideally that table is
-empty. It compares finite values only. `$signal` counts a new week as a
-change. Both tables use the median, `q = 0.5`.
+empty. It compares finite values only, and leaves out the columns that
+`model_pattern` matches. `$signal` counts a new week as a change. Both
+tables use the median, `q = 0.5`.
 
 ## See also
 

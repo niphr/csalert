@@ -1,5 +1,31 @@
 # Changelog
 
+## Version 2026.10.10
+
+- `R CMD check` no longer gives a NOTE for
+  [`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md):
+  the `column` it filters on in 2026.10.8 is declared as a data.table
+  column.
+
+## Version 2026.10.9
+
+- Tests only: the `family = "identity"` kernel test of
+  [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  compares the draws with `expect_equal(tolerance = 1e-12)` instead of
+  `expect_identical()`. On macOS arm64 the draws differed from x86_64 in
+  the last bits, so the r-universe macOS checks failed since at least
+  2026.10.7. A change of 1e-8 still fails the test.
+
+## Version 2026.10.8
+
+- [`qc_week_over_week_v1()`](https://niphr.github.io/csalert/reference/qc_week_over_week_v1.md)
+  has a new argument, `model_pattern`, default `"_trend_(gr|beta1)_"`.
+  `$integrity` leaves out the columns whose names match it. Before, the
+  Monte-Carlo noise of trend estimates in settled weeks filled
+  `$integrity`: 2314 growth-rate and 217 slope rows of 2599 in one
+  weekly run, which hid the real data revisions. Roleless published
+  medians, such as `cases_q50x0`, are still compared.
+
 ## Version 2026.10.7
 
 - [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
