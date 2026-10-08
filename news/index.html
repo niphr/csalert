@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,17 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.11" id="version-20261011">Version 2026.10.11<a class="anchor" aria-label="anchor" href="#version-20261011"></a></h2>
+<ul><li>
+<code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> returns a new element, <code>late</code>: the count of each reference week reported at delay <code>max_delay_days</code> or later. These reports no longer count in the last delay column of <code>mat</code>.</li>
+<li>
+<code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> estimates the count reported within <code>max_delay_days</code> days, and <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code> returns that count. Before, the last delay column also held every later report, so a backtest scored the nowcast against everything ever reported.</li>
+<li>The published observed count keeps the late reports. <code>original</code>, <code>&lt;denominator_col&gt;_observed</code> and the draws of a week that is not nowcast are <code>rowSums(mat) + late</code>. So <code><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1()</a></code> and <code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> give the same output as in 2026.10.10.</li>
+<li>
+<code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> leaves a week out of the pool when all its reports are past the horizon, as in a bulk load of old weeks. The week stays in the output with its observed count.</li>
+<li>On a triangle with no report at delay <code>max_delay_days</code> or later, the nowcast engines, <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code>, <code><a href="../reference/nowcast_backtest.html">nowcast_backtest()</a></code> and <code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> give output identical to 2026.10.10.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.10" id="version-20261010">Version 2026.10.10<a class="anchor" aria-label="anchor" href="#version-20261010"></a></h2>
 <ul><li>

@@ -9,7 +9,7 @@ and one column per delay day. Every nowcast engine calls it first."><meta proper
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,7 @@ and one column per delay day. Every nowcast engine calls it first.</p>
 <dt id="arg-max-delay-days">max_delay_days<a class="anchor" aria-label="anchor" href="#arg-max-delay-days"></a></dt>
 <dd><p>The number of delay columns, in days. With 35, the
 columns are delay days 0 to 34, and a report at delay 35 or 400 counts in
-column <code>"34"</code>.</p></dd>
+<code>late</code>.</p></dd>
 
 
 <dt id="arg-value-col">value_col<a class="anchor" aria-label="anchor" href="#arg-value-col"></a></dt>
@@ -89,15 +89,18 @@ triangle. Give a denominator column to get its matrix.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list named by <code>time_series_id</code>. Each element holds <code>reference</code>, the
-ISO weeks of the rows, and <code>mat</code>, the matrix. A cell sums its counts with
-<code>na.rm = TRUE</code>, so a cell with only <code>NA</code> counts is 0.</p>
+ISO weeks of the rows, <code>mat</code>, the matrix, and <code>late</code>. <code>late</code> is a numeric
+vector with one value per row: the count reported at delay <code>max_delay_days</code>
+or later. The observed total of a week is <code>rowSums(mat) + late</code>. A cell
+sums its counts with <code>na.rm = TRUE</code>, so a cell with only <code>NA</code> counts is 0.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The rows run over every ISO week from the first to the last reference week.
-A week with no report is a row of zeros. The last column also holds every
-later delay, so a late report adds to <code>rowSums(mat)</code>. A report before its
-reference Monday has a negative delay, and is dropped.</p>
+A week with no report is a row of zeros. A report at delay <code>max_delay_days</code>
+or later goes to <code>late</code>, not to <code>mat</code>. A week whose only reports are late
+still has a row, and that row is zeros. A report before its reference Monday
+has a negative delay, and is dropped.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

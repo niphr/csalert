@@ -11,7 +11,7 @@ unchanged."><meta property="og:image" content="https://niphr.github.io/csalert/l
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +76,8 @@ unchanged.</p>
 
 <dt id="arg-max-delay-days">max_delay_days<a class="anchor" aria-label="anchor" href="#arg-max-delay-days"></a></dt>
 <dd><p>The delay horizon in days. The totals do not depend on
-it, because a later report counts in the last delay column.</p></dd>
+it, because a report at delay <code>max_delay_days</code> or later is in the total
+too.</p></dd>
 
 
 <dt id="arg-denominator-col">denominator_col<a class="anchor" aria-label="anchor" href="#arg-denominator-col"></a></dt>
@@ -87,7 +88,8 @@ Its total also goes to <code>$data</code> as <code>&lt;denominator_col&gt;_obser
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>csfmt_ensemble_v3</code> with one draw. <code>$data</code> holds <code>original</code>, the
-observed total.</p>
+observed total, which includes the reports at delay <code>max_delay_days</code> or
+later.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

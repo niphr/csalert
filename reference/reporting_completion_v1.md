@@ -66,7 +66,7 @@ warning.
 for every series and period, and `pct_delay<max_delay_days - 1>` is 100.
 It does NOT show whether reporting continues after `max_delay_days`.
 
-The last column also holds every later delay. So
+This function adds the reports past the horizon to the last column, so
 `100 - pct_delay<max_delay_days - 2>` is the share reported on the last
 day or later. To see the tail, run it again with a larger
 `max_delay_days`, and compare `mean_delay` and the `pct_delayD` curve.

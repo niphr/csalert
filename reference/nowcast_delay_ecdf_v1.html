@@ -11,7 +11,7 @@ completion ratios that the pool shows at the same delay day."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,7 +92,7 @@ completion ratios that the pool shows at the same delay day.</p>
 
 <dt id="arg-max-delay-days">max_delay_days<a class="anchor" aria-label="anchor" href="#arg-max-delay-days"></a></dt>
 <dd><p>The delay horizon in days, delay day 0 to
-<code>max_delay_days - 1</code>. Day <code>max_delay_days - 1</code> also holds every later delay.</p></dd>
+<code>max_delay_days - 1</code>. The nowcast estimates the count reported within it.</p></dd>
 
 
 <dt id="arg-n-sim">n_sim<a class="anchor" aria-label="anchor" href="#arg-n-sim"></a></dt>
@@ -131,7 +131,8 @@ delay days 0 to <code>d</code>. It also stays when fewer than 3 pool weeks remai
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>csfmt_ensemble_v3</code> with one row per reference week and a draw
 matrix <code>&lt;value_col&gt;_nowcasted</code> with <code>n_sim</code> columns. A settled week has its
-observed total in every draw. <code>$data</code> holds <code>original</code>, the observed total.</p>
+observed total in every draw. <code>$data</code> holds <code>original</code>, the observed total.
+The observed total includes every report at delay <code>max_delay_days</code> or later.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -149,10 +150,12 @@ not started, and a reference week with no observed count stays at 0.</p>
 Nothing parametric is added, because the spread of the pool ratios already
 carries the estimation error and the reporting noise. A nowcast never falls
 below the observed count.</p>
-<p>A pool week is settled once it is <code>max_delay_days - 1</code> days old. Its
-correction then stops, but its reporting can continue: a later report adds
-to its last delay column. So when a long reporting backlog reaches most of
-the pool, the pool ratios are too small and the nowcast runs low.</p>
+<p>A pool week is settled once it is <code>max_delay_days - 1</code> days old. The
+nowcast estimates the count reported within <code>max_delay_days</code> days, so
+<code>T_s</code> holds no report at delay <code>max_delay_days</code> or later. A late report is
+still in <code>original</code>, and in the draws of a settled week. A settled week whose
+only reports are late has no delay information. Such a week, as in a bulk
+load of old weeks, does not enter the pool.</p>
 <p>The engine also forms <code>p(d)</code>, the pooled share of the counts of a week that
 arrive by delay day <code>d</code>. <code>p(d)</code> cancels out of every draw. It only decides
 whether delay day <code>d</code> is completed: when <code>p(d)</code> is 0, the reference week

@@ -11,7 +11,7 @@ max_delay_days, and with period to see reporting speed up or slow down."><meta p
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -120,7 +120,7 @@ A period with fewer than 3 weeks left gets no row, and no warning.</p>
 <p><code>complete_by_md</code> is the last cumulative share of the total. So it is 1 for
 every series and period, and <code>pct_delay&lt;max_delay_days - 1&gt;</code> is 100. It does
 NOT show whether reporting continues after <code>max_delay_days</code>.</p>
-<p>The last column also holds every later delay. So
+<p>This function adds the reports past the horizon to the last column, so
 <code>100 - pct_delay&lt;max_delay_days - 2&gt;</code> is the share reported on the last day or
 later. To see the tail, run it again with a larger <code>max_delay_days</code>, and
 compare <code>mean_delay</code> and the <code>pct_delayD</code> curve.</p>

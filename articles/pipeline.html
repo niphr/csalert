@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.10</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -178,7 +178,7 @@ use.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.10.10</span></span>
+<span><span class="co">#&gt; csalert 2026.10.11</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -283,16 +283,17 @@ week.</p>
 <div class="section level2">
 <h2 id="nowcast">1. Nowcast<a class="anchor" aria-label="anchor" href="#nowcast"></a>
 </h2>
-<p><strong>Estimand.</strong> For each reference week, the total
-reported at any delay day from 0 on. A report at delay day
-<code>max_delay_days - 1</code> or later counts in the last delay
-column, so it stays in the total. The horizon sets how many delay
-columns the nowcast models, not which reports count. For a settled week
-the total is observed, except for reports that still arrive after delay
-day <code>max_delay_days - 1</code>. For the most recent weeks it is not
-observed, and the nowcast is a predictive distribution of it. Stage 3
-shows how much arrives in that last column, which is how you check that
-the horizon is wide enough.</p>
+<p><strong>Estimand.</strong> For each reference week, the count
+reported within the horizon, at delay days 0 to
+<code>max_delay_days - 1</code>. A report at delay
+<code>max_delay_days</code> or later is past the horizon.
+<code><a href="../reference/reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> keeps it apart, in
+<code>late</code>. The observed count, <code>original</code>, still
+includes it. The nowcast does not estimate it, and the backtest does not
+score it. For a settled week the estimand is observed. For the most
+recent weeks it is not observed, and the nowcast is a predictive
+distribution of it. Stage 3 shows how much arrives on the last delay day
+or later, which is how you check that the horizon is wide enough.</p>
 <p><code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> completes each incomplete week
 from a pool of settled reference weeks. Take a reference week of age
 <code>d</code> days, so delay days 0 to <code>d</code> are observed. For
@@ -750,12 +751,11 @@ it.</p>
 too low: the newest settled one. Its age is exactly
 <code>max_delay_days - 1</code>, so its last delay cell falls on the
 extract day and is still filling. Every newer week is not settled. Every
-older week finished reporting earlier, but only because
-<code>sim_reports()</code> emits no delay beyond day 34. A report at
-delay <code>max_delay_days</code> or later counts in the last delay
-column. So on real data, an older settled week can also still be filling
-on the extract day. Count the weeks that moved, and do not assume it is
-one:</p>
+older week has its last delay day before the extract day. A report at
+delay <code>max_delay_days</code> or later goes to <code>late</code>,
+and <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code> does not count <code>late</code>. So a
+late report does not move the settled total of an older week, also on
+real data. Count the weeks that moved:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">truth_sun</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">max_delay_days</span><span class="op">)</span></span>
 <span><span class="va">truth_mon</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_truth.html">nowcast_truth</a></span><span class="op">(</span><span class="va">tri_mon</span>, <span class="va">max_delay_days</span><span class="op">)</span></span>
@@ -786,12 +786,12 @@ pooled with hundreds of settled weeks. A shorter series, a shorter
 horizon or a heavier reporting tail makes the same mechanism material. A
 period with the minimum of three weeks gives that one cell a third of
 the weight.</p>
-<p>The general statement is conditional. A mid-week extract undercounts
-the newest settled week by the part of its last delay cell that has not
-arrived yet. It also undercounts an older settled week by every late
-report that has not arrived yet. <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code> scores a
-backtest against that total. So run the backtest on an end-of-day
-extract, and record which day it was.</p>
+<p>In general, a mid-week extract undercounts the newest settled week by
+the part of its last delay cell that has not arrived yet.
+<code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code> scores a backtest against that total. A
+report past the horizon is not in it, so a late report does not change
+the score. Run the backtest on an end-of-day extract, and record which
+day it was.</p>
 </div>
 <div class="section level3">
 <h3 id="as-of-today-for-the-weeks-on-screen">“As of today”, for the weeks on screen<a class="anchor" aria-label="anchor" href="#as-of-today-for-the-weeks-on-screen"></a>
@@ -889,11 +889,13 @@ is noisy. Read the sequence, not one row.</p>
 <div class="section level3">
 <h3 id="every-number-here-depends-on-max_delay_days">Every number here depends on <code>max_delay_days</code><a class="anchor" aria-label="anchor" href="#every-number-here-depends-on-max_delay_days"></a>
 </h3>
-<p><code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> works from a triangle whose
-last delay column, <code>max_delay_days - 1</code>, also holds every
-report at a later delay. So its denominator is the total reported by
-<code>as_of</code>, late reports included. Two results follow, whatever
-the real reporting tail looks like:</p>
+<p><code><a href="../reference/reporting_completion_v1.html">reporting_completion_v1()</a></code> adds <code>late</code> to the
+last delay column, <code>max_delay_days - 1</code>, before it computes
+the shares. So its denominator is the total reported by
+<code>as_of</code>, late reports included. The nowcast estimand leaves
+<code>late</code> out, so this denominator is larger whenever a late
+report exists. Two results follow, whatever the real reporting tail
+looks like:</p>
 <ul>
 <li>
 <code>complete_by_md</code> is the last cumulative share of that
@@ -984,11 +986,11 @@ little, on composition alone. Compare rows with equal
 call a small drift a tail.</li>
 </ul>
 <p><code>sim_reports()</code> emits no delay beyond day 34. So on
-<em>this</em> triangle, a horizon of 35 days puts no later report in the
-last column, and the flat end is exact. We know that only because we can
-read the generator. On a real series you cannot check it. Widen the
-horizon until <code>mean_delay</code> stops moving. The share reported
-on the last delay day or later is then
+<em>this</em> triangle, a horizon of 35 days gives a <code>late</code>
+of 0 for every week, and the flat end is exact. We know that only
+because we can read the generator. On a real series you cannot check it.
+Widen the horizon until <code>mean_delay</code> stops moving. The share
+reported on the last delay day or later is then
 <code>100 - pct_delay&lt;max_delay_days - 2&gt;</code>. Only a still
 wider horizon shows how that share spreads over the later days.</p>
 </div>

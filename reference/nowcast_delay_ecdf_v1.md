@@ -35,8 +35,8 @@ nowcast_delay_ecdf_v1(
 
 - max_delay_days:
 
-  The delay horizon in days, delay day 0 to `max_delay_days - 1`. Day
-  `max_delay_days - 1` also holds every later delay.
+  The delay horizon in days, delay day 0 to `max_delay_days - 1`. The
+  nowcast estimates the count reported within it.
 
 - n_sim:
 
@@ -76,7 +76,8 @@ nowcast_delay_ecdf_v1(
 A `csfmt_ensemble_v3` with one row per reference week and a draw matrix
 `<value_col>_nowcasted` with `n_sim` columns. A settled week has its
 observed total in every draw. `$data` holds `original`, the observed
-total.
+total. The observed total includes every report at delay
+`max_delay_days` or later.
 
 ## Details
 
@@ -98,11 +99,12 @@ Nothing parametric is added, because the spread of the pool ratios
 already carries the estimation error and the reporting noise. A nowcast
 never falls below the observed count.
 
-A pool week is settled once it is `max_delay_days - 1` days old. Its
-correction then stops, but its reporting can continue: a later report
-adds to its last delay column. So when a long reporting backlog reaches
-most of the pool, the pool ratios are too small and the nowcast runs
-low.
+A pool week is settled once it is `max_delay_days - 1` days old. The
+nowcast estimates the count reported within `max_delay_days` days, so
+`T_s` holds no report at delay `max_delay_days` or later. A late report
+is still in `original`, and in the draws of a settled week. A settled
+week whose only reports are late has no delay information. Such a week,
+as in a bulk load of old weeks, does not enter the pool.
 
 The engine also forms `p(d)`, the pooled share of the counts of a week
 that arrive by delay day `d`. `p(d)` cancels out of every draw. It only

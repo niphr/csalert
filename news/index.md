@@ -1,5 +1,36 @@
 # Changelog
 
+## Version 2026.10.11
+
+- [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
+  returns a new element, `late`: the count of each reference week
+  reported at delay `max_delay_days` or later. These reports no longer
+  count in the last delay column of `mat`.
+- [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
+  estimates the count reported within `max_delay_days` days, and
+  [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+  returns that count. Before, the last delay column also held every
+  later report, so a backtest scored the nowcast against everything ever
+  reported.
+- The published observed count keeps the late reports. `original`,
+  `<denominator_col>_observed` and the draws of a week that is not
+  nowcast are `rowSums(mat) + late`. So
+  [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
+  and
+  [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+  give the same output as in 2026.10.10.
+- [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
+  leaves a week out of the pool when all its reports are past the
+  horizon, as in a bulk load of old weeks. The week stays in the output
+  with its observed count.
+- On a triangle with no report at delay `max_delay_days` or later, the
+  nowcast engines,
+  [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md),
+  [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
+  and
+  [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
+  give output identical to 2026.10.10.
+
 ## Version 2026.10.10
 
 - `R CMD check` no longer gives a NOTE for

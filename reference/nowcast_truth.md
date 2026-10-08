@@ -1,8 +1,9 @@
 # The settled total of each reference week
 
-Sums the counts of each settled reference week, the truth that a
-backtest scores a nowcast against. A report at delay `max_delay_days` or
-later counts in the last delay day, so it is in the total.
+Sums the counts of each settled reference week within the delay horizon,
+the truth that a backtest scores a nowcast against. A report at delay
+`max_delay_days` or later is not in the total, because a nowcast
+estimates the count within the horizon.
 
 ## Usage
 
@@ -31,8 +32,8 @@ settled week.
 
 A week is settled when its Monday is at least `max_delay_days - 1` days
 before the as-of date. With `max_delay_days = 21`, the newest settled
-week starts 20 days before the as-of date, not 21. A settled week is not
-final: a later report still adds to its total.
+week starts 20 days before the as-of date, not 21. A report at delay
+`max_delay_days` or later does not change the total of a settled week.
 
 ## See also
 

@@ -22,7 +22,7 @@ reporting_triangle_matrix(
 - max_delay_days:
 
   The number of delay columns, in days. With 35, the columns are delay
-  days 0 to 34, and a report at delay 35 or 400 counts in column `"34"`.
+  days 0 to 34, and a report at delay 35 or 400 counts in `late`.
 
 - value_col:
 
@@ -32,15 +32,19 @@ reporting_triangle_matrix(
 ## Value
 
 A list named by `time_series_id`. Each element holds `reference`, the
-ISO weeks of the rows, and `mat`, the matrix. A cell sums its counts
-with `na.rm = TRUE`, so a cell with only `NA` counts is 0.
+ISO weeks of the rows, `mat`, the matrix, and `late`. `late` is a
+numeric vector with one value per row: the count reported at delay
+`max_delay_days` or later. The observed total of a week is
+`rowSums(mat) + late`. A cell sums its counts with `na.rm = TRUE`, so a
+cell with only `NA` counts is 0.
 
 ## Details
 
 The rows run over every ISO week from the first to the last reference
-week. A week with no report is a row of zeros. The last column also
-holds every later delay, so a late report adds to `rowSums(mat)`. A
-report before its reference Monday has a negative delay, and is dropped.
+week. A week with no report is a row of zeros. A report at delay
+`max_delay_days` or later goes to `late`, not to `mat`. A week whose
+only reports are late still has a row, and that row is zeros. A report
+before its reference Monday has a negative delay, and is dropped.
 
 ## See also
 

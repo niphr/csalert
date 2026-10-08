@@ -19,7 +19,7 @@ nowcast_passthrough_to_ensemble_v1(x, max_delay_days, denominator_col = NULL)
 - max_delay_days:
 
   The delay horizon in days. The totals do not depend on it, because a
-  later report counts in the last delay column.
+  report at delay `max_delay_days` or later is in the total too.
 
 - denominator_col:
 
@@ -29,7 +29,8 @@ nowcast_passthrough_to_ensemble_v1(x, max_delay_days, denominator_col = NULL)
 ## Value
 
 A `csfmt_ensemble_v3` with one draw. `$data` holds `original`, the
-observed total.
+observed total, which includes the reports at delay `max_delay_days` or
+later.
 
 ## Details
 

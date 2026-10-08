@@ -78,7 +78,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.10.10
+#> csalert 2026.10.11
 #> https://niphr.github.io/csalert/
 ```
 
@@ -192,15 +192,16 @@ max_delay_days <- 35L
 
 ## 1. Nowcast
 
-**Estimand.** For each reference week, the total reported at any delay
-day from 0 on. A report at delay day `max_delay_days - 1` or later
-counts in the last delay column, so it stays in the total. The horizon
-sets how many delay columns the nowcast models, not which reports count.
-For a settled week the total is observed, except for reports that still
-arrive after delay day `max_delay_days - 1`. For the most recent weeks
-it is not observed, and the nowcast is a predictive distribution of it.
-Stage 3 shows how much arrives in that last column, which is how you
-check that the horizon is wide enough.
+**Estimand.** For each reference week, the count reported within the
+horizon, at delay days 0 to `max_delay_days - 1`. A report at delay
+`max_delay_days` or later is past the horizon.
+[`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
+keeps it apart, in `late`. The observed count, `original`, still
+includes it. The nowcast does not estimate it, and the backtest does not
+score it. For a settled week the estimand is observed. For the most
+recent weeks it is not observed, and the nowcast is a predictive
+distribution of it. Stage 3 shows how much arrives on the last delay day
+or later, which is how you check that the horizon is wide enough.
 
 [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md)
 completes each incomplete week from a pool of settled reference weeks.
@@ -675,11 +676,12 @@ earlier moves the settled boundary back with it.
 On this triangle, one reference week is at risk of a total that is too
 low: the newest settled one. Its age is exactly `max_delay_days - 1`, so
 its last delay cell falls on the extract day and is still filling. Every
-newer week is not settled. Every older week finished reporting earlier,
-but only because `sim_reports()` emits no delay beyond day 34. A report
-at delay `max_delay_days` or later counts in the last delay column. So
-on real data, an older settled week can also still be filling on the
-extract day. Count the weeks that moved, and do not assume it is one:
+newer week is not settled. Every older week has its last delay day
+before the extract day. A report at delay `max_delay_days` or later goes
+to `late`, and
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+does not count `late`. So a late report does not move the settled total
+of an older week, also on real data. Count the weeks that moved:
 
 ``` r
 truth_sun <- nowcast_truth(tri, max_delay_days)
@@ -716,13 +718,12 @@ hundreds of settled weeks. A shorter series, a shorter horizon or a
 heavier reporting tail makes the same mechanism material. A period with
 the minimum of three weeks gives that one cell a third of the weight.
 
-The general statement is conditional. A mid-week extract undercounts the
-newest settled week by the part of its last delay cell that has not
-arrived yet. It also undercounts an older settled week by every late
-report that has not arrived yet.
+In general, a mid-week extract undercounts the newest settled week by
+the part of its last delay cell that has not arrived yet.
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
-scores a backtest against that total. So run the backtest on an
-end-of-day extract, and record which day it was.
+scores a backtest against that total. A report past the horizon is not
+in it, so a late report does not change the score. Run the backtest on
+an end-of-day extract, and record which day it was.
 
 ### “As of today”, for the weeks on screen
 
@@ -833,10 +834,11 @@ sequence, not one row.
 ### Every number here depends on `max_delay_days`
 
 [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
-works from a triangle whose last delay column, `max_delay_days - 1`,
-also holds every report at a later delay. So its denominator is the
-total reported by `as_of`, late reports included. Two results follow,
-whatever the real reporting tail looks like:
+adds `late` to the last delay column, `max_delay_days - 1`, before it
+computes the shares. So its denominator is the total reported by
+`as_of`, late reports included. The nowcast estimand leaves `late` out,
+so this denominator is larger whenever a late report exists. Two results
+follow, whatever the real reporting tail looks like:
 
 - `complete_by_md` is the last cumulative share of that total, so it is
   1.
@@ -930,10 +932,10 @@ Two cautions on the sweep:
   call a small drift a tail.
 
 `sim_reports()` emits no delay beyond day 34. So on *this* triangle, a
-horizon of 35 days puts no later report in the last column, and the flat
-end is exact. We know that only because we can read the generator. On a
-real series you cannot check it. Widen the horizon until `mean_delay`
-stops moving. The share reported on the last delay day or later is then
+horizon of 35 days gives a `late` of 0 for every week, and the flat end
+is exact. We know that only because we can read the generator. On a real
+series you cannot check it. Widen the horizon until `mean_delay` stops
+moving. The share reported on the last delay day or later is then
 `100 - pct_delay<max_delay_days - 2>`. Only a still wider horizon shows
 how that share spreads over the later days.
 
