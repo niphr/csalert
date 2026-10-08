@@ -207,7 +207,7 @@ qc_week_over_week_v1 <- function(
   model_pattern = "_trend_(gr|beta1)_"
 ) {
   # NSE column names, declared so R CMD check does not read them as undefined globals
-  abs_diff <- change <- cur <- from <- isoyearweek <- level <- prv <- role <- NULL
+  abs_diff <- change <- column <- cur <- from <- isoyearweek <- level <- prv <- role <- NULL
   long <- compare_results(current, previous)
   weeks <- cstime::dates_by_isoyearweek$isoyearweek
   latest_prev <- max(data.table::as.data.table(previous)$isoyearweek)

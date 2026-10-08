@@ -1,6 +1,6 @@
 Package: csalert
 Title: Alerts from Public Health Surveillance Data
-Version: 2026.10.9
+Version: 2026.10.10
 Authors@R:
     c(
       person(

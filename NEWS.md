@@ -1,3 +1,7 @@
+# Version 2026.10.10
+
+- `R CMD check` no longer gives a NOTE for `qc_week_over_week_v1()`: the `column` it filters on in 2026.10.8 is declared as a data.table column.
+
 # Version 2026.10.9
 
 - Tests only: the `family = "identity"` kernel test of `short_term_trend()` compares the draws with `expect_equal(tolerance = 1e-12)` instead of `expect_identical()`. On macOS arm64 the draws differed from x86_64 in the last bits, so the r-universe macOS checks failed since at least 2026.10.7. A change of 1e-8 still fails the test.
