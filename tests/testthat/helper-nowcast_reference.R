@@ -6,7 +6,9 @@
 # Changes from the source, and nothing else:
 # - every name has a `ref_` prefix, so it cannot mask a csalert internal such as
 #   .gap_len() inside the test environment;
-# - isoyearweek_week_start() is called as csalert:::isoyearweek_week_start().
+# - isoyearweek_week_start() is called as csalert:::isoyearweek_week_start();
+# - the observed total is rowSums(m$mat) + m$late, as in the engine. A report
+#   past the horizon stays in `original` and in the draws of a settled week.
 #
 # Mapping: robust = TRUE is interval = "log_robust", and
 # drop_outages = TRUE, gap_days = g is outage_gap_days = g.
@@ -27,7 +29,7 @@
   id_cols <- attr(x, "id_cols")
   dt <- data.table::as.data.table(x)
   data <- unique(dt[, id_cols, with = FALSE])[rep(1L, length(m$reference))]
-  data[, `:=`(isoyearweek = m$reference, original = rowSums(m$mat))]
+  data[, `:=`(isoyearweek = m$reference, original = rowSums(m$mat) + m$late)]
   csalert::csfmt_ensemble_v3(
     data,
     id_cols = id_cols,
@@ -66,7 +68,7 @@ ref_nowcast_ecdf_variant <- function(
 ) {
   m <- .ref_series(x, max_delay_days)
   md <- max_delay_days
-  obs_total <- rowSums(m$mat)
+  obs_total <- rowSums(m$mat) + m$late
   draws <- matrix(obs_total, length(m$reference), n_sim)
   settled <- m$age_days >= md - 1L
   pool <- which(settled & m$age_days < delay_window * 7L + md)

@@ -73,7 +73,19 @@
 # under `max_delay_days = 35`, the first says "settled after 34 WEEKS" and the
 # pool collapses to nothing. The second doubles the training window. Neither
 # errors.
-.delay_pool <- function(mat, refs, as_of, max_delay_days, delay_window) {
+#
+# `late` is the count past the horizon of each row. A week with no count inside
+# the horizon and a count past it, such as a bulk load of old weeks, holds no
+# delay information. It stays out of the pool. A week with no count at all
+# stays in, as before.
+.delay_pool <- function(
+  mat,
+  refs,
+  as_of,
+  max_delay_days,
+  delay_window,
+  late = numeric(nrow(mat))
+) {
   age_days <- as.integer(as_of - isoyearweek_week_start(refs))
   known <- !is.na(age_days)
   settled <- known & age_days >= (max_delay_days - 1L)
@@ -81,7 +93,8 @@
   if (!is.null(delay_window)) {
     within <- known & age_days < (delay_window * 7L + max_delay_days)
   }
-  train <- which(settled & within)
+  no_info <- rowSums(mat) == 0 & late > 0
+  train <- which(settled & within & !no_info)
   p <- NULL
   if (length(train) > 0L) {
     p <- .delay_ecdf(mat, train)
@@ -91,7 +104,8 @@
 
 # The completion ratio at one delay day, measured on the settled pool. Each
 # settled week is re-completed from its own first `d + 1` delay days, then
-# compared with its settled total. The 5% and 95% quantiles of this vector are
+# compared with its settled total within the horizon. `mat` holds no report
+# past the horizon, so neither does that total. The 5% and 95% quantiles of this vector are
 # the interval, so it must hold at least 3 weeks to be worth quoting.
 .completion_ratio <- function(mat, train, pd, cols) {
   pool_truth <- rowSums(mat[train, , drop = FALSE])
@@ -163,19 +177,21 @@
 }
 
 # Complete a reference x delay-day matrix into n_sim totals per reference week.
-# Settled weeks keep their observed total, and so does any week the pool cannot
-# price.
+# Settled weeks keep their observed total, rowSums(mat) + late, and so does any
+# week the pool cannot price. A priced week gets the estimate within the
+# horizon plus its own `late`, which is 0 for a week younger than the horizon.
 .ecdf_complete <- function(
   mat,
   refs,
   as_of,
   max_delay_days,
   n_sim,
-  delay_window
+  delay_window,
+  late
 ) {
-  obs_total <- rowSums(mat)
+  obs_total <- rowSums(mat) + late
   draws <- matrix(obs_total, length(refs), n_sim)
-  pool <- .delay_pool(mat, refs, as_of, max_delay_days, delay_window)
+  pool <- .delay_pool(mat, refs, as_of, max_delay_days, delay_window, late)
   if (length(pool$train) < 3L || is.null(pool$p)) {
     return(draws)
   }
@@ -188,7 +204,7 @@
     if (is.null(hz)) {
       next
     }
-    draws[hz$tgt, ] <- hz$draws
+    draws[hz$tgt, ] <- hz$draws + late[hz$tgt]
   }
   return(draws)
 }
@@ -249,11 +265,12 @@
   delay_window,
   interval,
   outage_gap_days,
-  delivery
+  delivery,
+  late
 ) {
-  obs_total <- rowSums(mat)
-  draws <- matrix(obs_total, length(refs), n_sim)
-  pool <- .delay_pool(mat, refs, as_of, max_delay_days, delay_window)
+  within_total <- rowSums(mat)
+  draws <- matrix(within_total + late, length(refs), n_sim)
+  pool <- .delay_pool(mat, refs, as_of, max_delay_days, delay_window, late)
   if (length(pool$train) < 3L || is.null(pool$p)) {
     return(draws)
   }
@@ -270,14 +287,14 @@
       pool,
       i,
       mon,
-      obs_total[i],
+      within_total[i],
       n_sim,
       interval,
       outage_gap_days,
       delivery
     )
     if (!is.null(v)) {
-      draws[i, ] <- v
+      draws[i, ] <- v + late[i]
     }
   }
   return(draws)
@@ -368,7 +385,8 @@
       delay_window,
       interval,
       outage_gap_days,
-      delivery
+      delivery,
+      rt$late
     ))
   }
   return(.ecdf_complete(
@@ -377,7 +395,8 @@
     as_of,
     max_delay_days,
     n_sim,
-    delay_window
+    delay_window,
+    rt$late
   ))
 }
 
@@ -404,10 +423,12 @@
 #' carries the estimation error and the reporting noise. A nowcast never falls
 #' below the observed count.
 #'
-#' A pool week is settled once it is `max_delay_days - 1` days old. Its
-#' correction then stops, but its reporting can continue: a later report adds
-#' to its last delay column. So when a long reporting backlog reaches most of
-#' the pool, the pool ratios are too small and the nowcast runs low.
+#' A pool week is settled once it is `max_delay_days - 1` days old. The
+#' nowcast estimates the count reported within `max_delay_days` days, so
+#' `T_s` holds no report at delay `max_delay_days` or later. A late report is
+#' still in `original`, and in the draws of a settled week. A settled week whose
+#' only reports are late has no delay information. Such a week, as in a bulk
+#' load of old weeks, does not enter the pool.
 #'
 #' The engine also forms `p(d)`, the pooled share of the counts of a week that
 #' arrive by delay day `d`. `p(d)` cancels out of every draw. It only decides
@@ -467,7 +488,7 @@ nowcast_delay_ecdf_v1 <- function(x, ...) UseMethod("nowcast_delay_ecdf_v1")
 #' @method nowcast_delay_ecdf_v1 csfmt_reporting_triangle_v3
 #' @rdname nowcast_delay_ecdf_v1
 #' @param max_delay_days The delay horizon in days, delay day 0 to
-#'   `max_delay_days - 1`. Day `max_delay_days - 1` also holds every later delay.
+#'   `max_delay_days - 1`. The nowcast estimates the count reported within it.
 #' @param n_sim The number of draws.
 #' @param denominator_col A denominator column to nowcast on the same draws. Its
 #'   observed total goes to `$data` as `<denominator_col>_observed`.
@@ -488,6 +509,7 @@ nowcast_delay_ecdf_v1 <- function(x, ...) UseMethod("nowcast_delay_ecdf_v1")
 #' @returns A `csfmt_ensemble_v3` with one row per reference week and a draw
 #'   matrix `<value_col>_nowcasted` with `n_sim` columns. A settled week has its
 #'   observed total in every draw. `$data` holds `original`, the observed total.
+#'   The observed total includes every report at delay `max_delay_days` or later.
 #' @export
 nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
   x,
@@ -519,7 +541,8 @@ nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
       length(refs)
     )]
     idvals[, isoyearweek := refs]
-    idvals[, original := rowSums(rts_num[[tsid]]$mat)]
+    # the published observed count keeps the reports past the horizon
+    idvals[, original := rowSums(rts_num[[tsid]]$mat) + rts_num[[tsid]]$late]
     data_rows[[tsid]] <- idvals
   }
   data <- data.table::rbindlist(data_rows)
@@ -547,7 +570,9 @@ nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
     })
     draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)
     if (!identical(vc, val_col)) {
-      obs <- unlist(lapply(series_ids, function(tsid) rowSums(rts[[tsid]]$mat)))
+      obs <- unlist(lapply(series_ids, function(tsid) {
+        return(rowSums(rts[[tsid]]$mat) + rts[[tsid]]$late)
+      }))
       data[, (csfmt_var(vc, role = "observed")) := obs]
     }
   }

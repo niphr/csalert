@@ -1,3 +1,11 @@
+# Version 2026.10.11
+
+- `reporting_triangle_matrix()` returns a new element, `late`: the count of each reference week reported at delay `max_delay_days` or later. These reports no longer count in the last delay column of `mat`.
+- `nowcast_delay_ecdf_v1()` estimates the count reported within `max_delay_days` days, and `nowcast_truth()` returns that count. Before, the last delay column also held every later report, so a backtest scored the nowcast against everything ever reported.
+- The published observed count keeps the late reports. `original`, `<denominator_col>_observed` and the draws of a week that is not nowcast are `rowSums(mat) + late`. So `nowcast_passthrough_to_ensemble_v1()` and `reporting_completion_v1()` give the same output as in 2026.10.10.
+- `nowcast_delay_ecdf_v1()` leaves a week out of the pool when all its reports are past the horizon, as in a bulk load of old weeks. The week stays in the output with its observed count.
+- On a triangle with no report at delay `max_delay_days` or later, the nowcast engines, `nowcast_truth()`, `nowcast_backtest()` and `reporting_completion_v1()` give output identical to 2026.10.10.
+
 # Version 2026.10.10
 
 - `R CMD check` no longer gives a NOTE for `qc_week_over_week_v1()`: the `column` it filters on in 2026.10.8 is declared as a data.table column.

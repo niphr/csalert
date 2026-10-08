@@ -65,3 +65,28 @@ test_that("passthrough passes the triangle through without nowcasting", {
   expect_equal(out$numerator_nowcasted_q02x5, out$original)
   expect_equal(out$numerator_nowcasted_q97x5, out$original)
 })
+
+test_that("passthrough original is the count within the horizon plus late", {
+  # Week 2020-02 starts Monday 2020-01-06. Its extra report of 9 cases is at
+  # delay 42 days, past the horizon of 28 days.
+  sim <- simulate_triangle(n_weeks = 12, lambda = 40, max_delay_weeks = 4, seed = 5)
+  extra <- data.table::copy(sim$tri[1L])
+  extra[, `:=`(
+    isoyearweek_reference = "2020-02",
+    reporting_date = as.Date("2020-01-06") + 42L,
+    numerator = 9L
+  )]
+  ids <- c("indicator", "location", "age", "sex")
+  tri0 <- csfmt_reporting_triangle_v3(sim$tri, id_cols = ids)
+  tri1 <- csfmt_reporting_triangle_v3(rbind(sim$tri, extra), id_cols = ids)
+  rt <- reporting_triangle_matrix(tri1, 28)[[1]]
+  w02 <- rt$reference == "2020-02"
+  expect_equal(rt$late[w02], 9)
+
+  e0 <- nowcast_passthrough_to_ensemble_v1(tri0, max_delay_days = 28)
+  e1 <- nowcast_passthrough_to_ensemble_v1(tri1, max_delay_days = 28)
+  expect_equal(e1$data$original[w02], sum(rt$mat[w02, ]) + 9)
+  expect_equal(e1$data$original - e0$data$original, 9 * w02)
+  # the one draw is the published observed total, late report included
+  expect_equal(as.numeric(e1$draws$numerator_nowcasted[, 1]), e1$data$original)
+})

@@ -10,14 +10,16 @@ nowcast_passthrough_to_ensemble_v1(x, max_delay_days, denominator_col = NULL)
 \item{x}{The \code{csfmt_reporting_triangle_v3} to pass through.}
 
 \item{max_delay_days}{The delay horizon in days. The totals do not depend on
-it, because a later report counts in the last delay column.}
+it, because a report at delay \code{max_delay_days} or later is in the total
+too.}
 
 \item{denominator_col}{A denominator column to pass through in the same way.
 Its total also goes to \verb{$data} as \verb{<denominator_col>_observed}.}
 }
 \value{
 A \code{csfmt_ensemble_v3} with one draw. \verb{$data} holds \code{original}, the
-observed total.
+observed total, which includes the reports at delay \code{max_delay_days} or
+later.
 }
 \description{
 Returns the counts reported so far as an ensemble with one draw. Use it for an

@@ -320,3 +320,35 @@ test_that("nowcast_evaluate_v1 races several methods (paired) for the recommenda
   w <- dcast(ev[horizon == 1], horizon ~ method, value.var = "median_abs")
   expect_lt(w$simple, w$passthrough)
 })
+
+test_that("nowcast_truth leaves out the reports past the horizon", {
+  # Week 3 is settled. Its extra report of 50 cases is at delay 50 days, past
+  # the horizon of 28 days, and before the as-of date.
+  s <- sim_backtest_triangle()
+  cols <- c(
+    "isoyearweek_reference",
+    "reporting_date",
+    "numerator",
+    "indicator",
+    "location",
+    "age",
+    "sex"
+  )
+  raw <- data.table::as.data.table(s$tri)[, cols, with = FALSE]
+  extra <- data.table::copy(raw[1L])
+  extra[, `:=`(
+    isoyearweek_reference = format(s$mondays[3], "%G-%V"),
+    reporting_date = s$mondays[3] + 50L,
+    numerator = 50L
+  )]
+  tri1 <- csfmt_reporting_triangle_v3(
+    rbind(raw, extra),
+    id_cols = c("indicator", "location", "age", "sex")
+  )
+  expect_equal(attr(tri1, "as_of"), attr(s$tri, "as_of"))
+  tr0 <- nowcast_truth(s$tri, max_delay_days = s$max_delay_days)
+  tr1 <- nowcast_truth(tri1, max_delay_days = s$max_delay_days)
+  expect_equal(tr1, tr0)
+  w3 <- tr1$reference == format(s$mondays[3], "%G-%V")
+  expect_equal(tr1$truth[w3], s$truth$truth[3])
+})

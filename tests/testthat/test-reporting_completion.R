@@ -145,3 +145,44 @@ test_that("reporting_completion_v1 handles a single delay column", {
   expect_equal(rc35$pct_delay7, 100)
   expect_equal(rc35$mean_delay, 2.8) # 0*.6 + 7*.4
 })
+
+# The share is of the total reported by as_of, so a report past the horizon
+# counts on the last delay day. The values below are the output of 2026.10.10,
+# measured before reporting_triangle_matrix() moved such reports to `late`.
+test_that("reporting_completion_v1 is unchanged by reports past the horizon", {
+  # Weeks 1 to 4: 6 cases at delay 0, 2 at delay 3 and 2 at delay 40. Week 5
+  # has only 10 cases at delay 400, as in a bulk load. max_delay_days is 7.
+  mondays <- as.Date("2025-01-06") + 7L * 0:4
+  ref <- format(mondays, "%G-%V")
+  d <- data.table::data.table(
+    isoyearweek_reference = c(rep(ref[1:4], each = 3), ref[5]),
+    reporting_date = c(
+      rep(mondays[1:4], each = 3) + rep(c(0L, 3L, 40L), 4),
+      mondays[5] + 400L
+    ),
+    numerator = c(rep(c(6, 2, 2), 4), 10),
+    indicator = "test",
+    location = "nation",
+    age = "total",
+    sex = "total"
+  )
+  tri <- csfmt_reporting_triangle_v3(
+    d,
+    id_cols = c("indicator", "location", "age", "sex")
+  )
+  rc <- reporting_completion_v1(tri, max_delay_days = 7)
+  expect_equal(rc$n_settled, 5L)
+  expect_equal(rc$mean_delay, 2.64)
+  expect_equal(rc$complete_by_md, 1)
+  expect_equal(
+    unlist(rc[, paste0("pct_delay", 0:6), with = FALSE], use.names = FALSE),
+    c(48, 48, 48, 64, 64, 64, 100)
+  )
+
+  tr <- reporting_completion_trend_v1(tri, max_delay_days = 7)
+  expect_equal(tr$scope, c("year", "month"))
+  expect_equal(tr$period, c("2025", "2025-01"))
+  expect_equal(tr$n_settled, c(5L, 4L))
+  expect_equal(tr$mean_delay, c(2.64, 1.8))
+  expect_equal(tr$pct_delay0, c(48, 60))
+})

@@ -161,18 +161,21 @@ csfmt_reporting_triangle_v3 <- function(
 #' and one column per delay day. Every nowcast engine calls it first.
 #'
 #' The rows run over every ISO week from the first to the last reference week.
-#' A week with no report is a row of zeros. The last column also holds every
-#' later delay, so a late report adds to `rowSums(mat)`. A report before its
-#' reference Monday has a negative delay, and is dropped.
+#' A week with no report is a row of zeros. A report at delay `max_delay_days`
+#' or later goes to `late`, not to `mat`. A week whose only reports are late
+#' still has a row, and that row is zeros. A report before its reference Monday
+#' has a negative delay, and is dropped.
 #' @param triangle The `csfmt_reporting_triangle_v3` to turn into matrices.
 #' @param max_delay_days The number of delay columns, in days. With 35, the
 #'   columns are delay days 0 to 34, and a report at delay 35 or 400 counts in
-#'   column `"34"`.
+#'   `late`.
 #' @param value_col The count column. The default is the `value_col` of the
 #'   triangle. Give a denominator column to get its matrix.
 #' @returns A list named by `time_series_id`. Each element holds `reference`, the
-#'   ISO weeks of the rows, and `mat`, the matrix. A cell sums its counts with
-#'   `na.rm = TRUE`, so a cell with only `NA` counts is 0.
+#'   ISO weeks of the rows, `mat`, the matrix, and `late`. `late` is a numeric
+#'   vector with one value per row: the count reported at delay `max_delay_days`
+#'   or later. The observed total of a week is `rowSums(mat) + late`. A cell
+#'   sums its counts with `na.rm = TRUE`, so a cell with only `NA` counts is 0.
 #' @family reporting triangle functions
 #' @seealso `vignette("pipeline", package = "csalert")`, stage 3, which reads the
 #'   delay distribution from these counts.
@@ -227,17 +230,21 @@ reporting_triangle_matrix <- function(
       get(rep_col) - isoyearweek_week_start(get(ref_col))
     )
   ]
-  # A report at delay max_delay_days or later counts in the LAST delay column,
-  # max_delay_days - 1. It is not dropped. The observed count is rowSums() of
-  # this matrix, so a drop removed every late report from it. Measured
-  # 2026-09-23 in luftveisovervaking_trend, the drop removed the whole SARI
-  # history 2020-01 to 2025-26, which was bulk-loaded on 2025-07-30. The cap
-  # runs before the filter, so a negative delay stays dropped.
-  d[.delay >= max_delay_days, .delay := max_delay_days - 1L]
+  # A report at delay max_delay_days or later is past the horizon. It goes to
+  # `late`, one value per reference week, and not into `mat`. So `mat` holds
+  # the count within the horizon, which is what a nowcast estimates and what a
+  # backtest scores. `late` keeps the report for the published observed count,
+  # rowSums(mat) + late. Measured 2026-09-23 in luftveisovervaking_trend, a drop
+  # of late reports removed the whole SARI history 2020-01 to 2025-26, which was
+  # bulk-loaded on 2025-07-30. Every late report goes to the extra delay column
+  # `late_col`, which is cut off from `mat` below. A negative delay is dropped.
   d <- d[.delay >= 0]
+  d[.delay > max_delay_days, .delay := as.integer(max_delay_days)]
 
   all_weeks <- cstime::dates_by_isoyearweek$isoyearweek
   delay_cols <- as.character(0:(max_delay_days - 1))
+  late_col <- as.character(max_delay_days)
+  fill_cols <- c(delay_cols, late_col)
 
   out <- list()
   for (tsid in unique(d$time_series_id)) {
@@ -253,7 +260,7 @@ reporting_triangle_matrix <- function(
       na.rm = TRUE,
       fill = 0
     )
-    for (k in delay_cols) {
+    for (k in fill_cols) {
       if (!k %in% names(m)) m[, (k) := 0]
     } # complete delay axis
 
@@ -263,14 +270,15 @@ reporting_triangle_matrix <- function(
     i2 <- match(max(m$.ref), all_weeks)
     full <- data.table::data.table(.ref = all_weeks[i1:i2])
     m <- m[full, on = ".ref"]
-    for (k in delay_cols) {
+    for (k in fill_cols) {
       m[is.na(get(k)), (k) := 0]
     }
 
     data.table::setcolorder(m, c(".ref", delay_cols))
     out[[tsid]] <- list(
       reference = m$.ref,
-      mat = as.matrix(m[, delay_cols, with = FALSE])
+      mat = as.matrix(m[, delay_cols, with = FALSE]),
+      late = as.numeric(m[[late_col]])
     )
   }
   return(out)

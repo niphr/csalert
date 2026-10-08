@@ -18,15 +18,16 @@ A data.table with \code{reference}, the ISO week, and \code{truth}, one row per
 settled week.
 }
 \description{
-Sums the counts of each settled reference week, the truth that a backtest
-scores a nowcast against. A report at delay \code{max_delay_days} or later counts in
-the last delay day, so it is in the total.
+Sums the counts of each settled reference week within the delay horizon, the
+truth that a backtest scores a nowcast against. A report at delay
+\code{max_delay_days} or later is not in the total, because a nowcast estimates the
+count within the horizon.
 }
 \details{
 A week is settled when its Monday is at least \code{max_delay_days - 1} days before
 the as-of date. With \code{max_delay_days = 21}, the newest settled week starts 20
-days before the as-of date, not 21. A settled week is not final: a later report
-still adds to its total.
+days before the as-of date, not 21. A report at delay \code{max_delay_days} or later
+does not change the total of a settled week.
 }
 \examples{
 monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)

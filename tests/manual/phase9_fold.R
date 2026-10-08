@@ -1,5 +1,7 @@
-# Phase 9 discriminator: a report at delay >= max_delay_days is counted in the
-# last delay column, max_delay_days - 1. It is not dropped.
+# Phase 9 discriminator: a report at delay >= max_delay_days goes to `late`,
+# one value per reference week. It is not dropped, and it is not in `mat`.
+# rowSums(mat) is the count within the horizon, and rowSums(mat) + late is the
+# count of every report at a non-negative delay.
 #
 # Run it with:
 #   env NOT_CRAN=true Rscript --vanilla tests/manual/phase9_fold.R
@@ -23,7 +25,7 @@
 # CHECK 8 PINS THE REPLAY BOUNDARY. A fold must only see the reports that were
 # available on the replay's as-of date. nowcast_censor() drops every report
 # after that date before the matrix is built, so the delay-40 report must not
-# reach column "34" of a replay as of delay day 39.
+# reach `late` of a replay as of delay day 39.
 #
 # CHECK 9 PINS THE DEFAULT AS-OF SET of nowcast_backtest(). The fold puts a
 # week whose only reports are late on the matrix axis. The default as-of set
@@ -94,7 +96,9 @@ late <- data.table::data.table(
   n = c(1, 2, 4, 8, 16, 32)
 )
 FULL_TOTAL <- sum(late$n) # 63
-COL34_WANT <- sum(late$n[late$delay >= MAXD - 1L]) # 4 + 8 + 16 + 32 = 60
+WITHIN_TOTAL <- sum(late$n[late$delay < MAXD]) # 1 + 2 + 4 = 7
+COL34_WANT <- sum(late$n[late$delay == MAXD - 1L]) # 4
+LATE_WANT <- sum(late$n[late$delay >= MAXD]) # 8 + 16 + 32 = 56
 as_of_full <- target_monday + max(late$delay)
 
 # Background: every other reference week from 2022-45 up to the as-of week,
@@ -124,20 +128,27 @@ refs <- rt[[1]]$reference
 row_t <- match(TARGET, refs)
 
 # ---- CHECK 1: conservation -------------------------------------------------
-# Every reference week's row sum equals the sum of its reports at a
-# non-negative delay, and column "34" holds the delay-34, 35, 40 and 400 reports.
+# Every reference week's rowSums(mat) + late equals the sum of its reports at a
+# non-negative delay. rowSums(mat) of the target week holds the delay-0, 10 and
+# 34 reports, column "34" holds only the delay-34 report, and `late` holds the
+# delay-35, 40 and 400 reports.
+lt <- rt[[1]]$late
 week_total <- raw[, list(total = sum(numerator)), by = "isoyearweek_reference"]
-got <- unname(rowSums(m))[match(week_total$isoyearweek_reference, refs)]
+got <- unname(rowSums(m) + lt)[match(week_total$isoyearweek_reference, refs)]
 n_mismatch <- sum(is.na(got) | got != week_total$total)
 t_rowsum <- unname(rowSums(m)[row_t])
+t_late <- lt[row_t]
 t_col34 <- unname(m[row_t, "34"])
 check(
   "CHECK 1 conservation",
   length(rt) == 1L &&
     !is.na(row_t) &&
+    length(lt) == nrow(m) &&
     n_mismatch == 0L &&
-    sum(m) == sum(raw$numerator) &&
-    t_rowsum == FULL_TOTAL &&
+    sum(m) + sum(lt) == sum(raw$numerator) &&
+    t_rowsum == WITHIN_TOTAL &&
+    t_late == LATE_WANT &&
+    t_rowsum + t_late == FULL_TOTAL &&
     t_col34 == COL34_WANT &&
     unname(m[row_t, "0"]) == 1 &&
     unname(m[row_t, "10"]) == 2,
@@ -147,9 +158,13 @@ check(
     ": rowSums=",
     t_rowsum,
     " want=",
-    FULL_TOTAL,
+    WITHIN_TOTAL,
+    " late=",
+    t_late,
+    " want=",
+    LATE_WANT,
     " lost=",
-    FULL_TOTAL - t_rowsum,
+    FULL_TOTAL - t_rowsum - t_late,
     " col34=",
     t_col34,
     " want=",
@@ -158,8 +173,8 @@ check(
     nrow(week_total),
     " weeks_mismatched=",
     n_mismatch,
-    " | matrix_total=",
-    sum(m),
+    " | matrix_total+late=",
+    sum(m) + sum(lt),
     " nonneg_input_total=",
     sum(raw$numerator)
   )
@@ -203,6 +218,7 @@ check(
     !is.na(row_n) &&
     identical(rt_neg$reference, refs) &&
     identical(rt_neg$mat, m) &&
+    identical(rt_neg$late, lt) &&
     max(rt_neg$mat) < NEG_N,
   paste0(
     "fixture delay=",
@@ -283,9 +299,9 @@ news_1 <- readLines(file.path(pkg_root, "NEWS.md"), n = 1L, warn = FALSE)
 ns_ver <- as.character(getNamespaceVersion("csalert"))
 check(
   "CHECK 7 version",
-  identical(desc_ver, "2026.9.23") &&
-    identical(news_1, "# Version 2026.9.23") &&
-    identical(ns_ver, "2026.9.23"),
+  identical(desc_ver, "2026.10.11") &&
+    identical(news_1, "# Version 2026.10.11") &&
+    identical(ns_ver, "2026.10.11"),
   paste0(
     "DESCRIPTION=",
     desc_ver,
@@ -298,16 +314,19 @@ check(
 
 # ---- CHECK 8: no leakage into a replay -------------------------------------
 # As of delay day 39 the delay-34 and delay-35 reports are in, and the delay-40
-# and delay-400 reports are not. Column "34" must hold 4 + 8 = 12. Measured two
-# ways: the censor composed by hand, and the matrix a method actually receives
-# inside nowcast_backtest().
+# and delay-400 reports are not. Column "34" must hold 4, `late` must hold 8,
+# and rowSums(mat) must hold 1 + 2 + 4 = 7. Measured two ways: the censor
+# composed by hand, and the matrix a method actually receives inside
+# nowcast_backtest().
 as_of_c <- target_monday + 39L
-C34_WANT <- sum(late$n[late$delay >= MAXD - 1L & late$delay <= 39L])
-C_TOTAL <- sum(late$n[late$delay <= 39L])
+C34_WANT <- sum(late$n[late$delay == MAXD - 1L])
+C_LATE <- sum(late$n[late$delay >= MAXD & late$delay <= 39L])
+C_TOTAL <- sum(late$n[late$delay < MAXD])
 cens <- nowcast_censor(tri, as_of_c)
 rc <- reporting_triangle_matrix(cens, MAXD)[[1]]
 c34 <- unname(rc$mat[match(TARGET, rc$reference), "34"])
 c_row <- unname(rowSums(rc$mat)[match(TARGET, rc$reference)])
+c_late <- rc$late[match(TARGET, rc$reference)]
 seen <- NULL
 capture_method <- function(x) {
   seen <<- reporting_triangle_matrix(x, MAXD)[[1]]
@@ -326,12 +345,19 @@ bt34 <- if (is.null(seen)) {
 } else {
   unname(seen$mat[match(TARGET, seen$reference), "34"])
 }
+bt_late <- if (is.null(seen)) {
+  NA_real_
+} else {
+  seen$late[match(TARGET, seen$reference)]
+}
 check(
   "CHECK 8 no-replay-leakage",
   isTRUE(attr(cens, "as_of") <= as_of_c) &&
     isTRUE(c34 == C34_WANT) &&
     isTRUE(c_row == C_TOTAL) &&
-    isTRUE(bt34 == C34_WANT),
+    isTRUE(c_late == C_LATE) &&
+    isTRUE(bt34 == C34_WANT) &&
+    isTRUE(bt_late == C_LATE),
   paste0(
     "as_of=",
     format(as_of_c),
@@ -341,12 +367,18 @@ check(
     c34,
     " rowSums=",
     c_row,
+    " late=",
+    c_late,
     " | inside nowcast_backtest col34=",
     bt34,
+    " late=",
+    bt_late,
     " | want col34=",
     C34_WANT,
     " rowSums=",
-    C_TOTAL
+    C_TOTAL,
+    " late=",
+    C_LATE
   )
 )
 

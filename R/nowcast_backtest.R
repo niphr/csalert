@@ -88,14 +88,15 @@ nowcast_censor <- function(triangle, as_of) {
 
 #' The settled total of each reference week
 #'
-#' Sums the counts of each settled reference week, the truth that a backtest
-#' scores a nowcast against. A report at delay `max_delay_days` or later counts in
-#' the last delay day, so it is in the total.
+#' Sums the counts of each settled reference week within the delay horizon, the
+#' truth that a backtest scores a nowcast against. A report at delay
+#' `max_delay_days` or later is not in the total, because a nowcast estimates the
+#' count within the horizon.
 #'
 #' A week is settled when its Monday is at least `max_delay_days - 1` days before
 #' the as-of date. With `max_delay_days = 21`, the newest settled week starts 20
-#' days before the as-of date, not 21. A settled week is not final: a later report
-#' still adds to its total.
+#' days before the as-of date, not 21. A report at delay `max_delay_days` or later
+#' does not change the total of a settled week.
 #' @param triangle A `csfmt_reporting_triangle_v3` with one series.
 #' @param max_delay_days The delay horizon in days. 35 is the 35 days from the
 #'   reference Monday. The 5 weekly delay columns of the older format had the
@@ -135,6 +136,7 @@ nowcast_truth <- function(triangle, max_delay_days) {
     )
   }
   refs <- rts[[1]]$reference
+  # the count within the horizon: `late` stays out, as in the nowcast target
   total <- rowSums(rts[[1]]$mat)
   # Age in DAYS, from the reference week's Monday to the as-of date. A week is
   # settled once every delay day inside the horizon could have been reported,
@@ -147,9 +149,9 @@ nowcast_truth <- function(triangle, max_delay_days) {
 
 # The reference weeks behind the default as-of set. They run from the first to
 # the last week with a report at delay day 0 to max_delay_days - 1. This is the
-# reference axis reporting_triangle_matrix() built before a late report counted
-# in its last column. The matrix axis now also reaches a week whose only reports
-# are late. On a bulk load of old weeks that added one as-of date per old week,
+# reference axis reporting_triangle_matrix() built before it kept late reports.
+# The matrix axis now also reaches a week whose only reports are late, as a row
+# of zeros with its count in `late`. On a bulk load of old weeks that added one as-of date per old week,
 # on which nothing had been reported yet. Measured on a synthetic bulk load: 52
 # "nothing reported" warnings, where this set gives 0.
 .bt_default_refs <- function(triangle, max_delay_days) {

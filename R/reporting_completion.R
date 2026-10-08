@@ -14,10 +14,11 @@
 # The column count equals max_delay_days exactly.
 #
 # EVERY NUMBER HERE IS CONDITIONAL ON max_delay_days, INCLUDING complete_by_md.
-# reporting_triangle_matrix() counts every report at delay >= max_delay_days in
-# the last delay column, max_delay_days - 1. So `tot` is the row sum over every
-# non-negative delay, and complete_by_md is the last cumulative fraction of that
-# same total. It is identically 1, and pct_delay<max_delay_days-1> is
+# reporting_completion_v1() adds `late`, the count of every report at delay
+# >= max_delay_days, to the last delay column, max_delay_days - 1. The nowcast
+# engines keep `late` apart, and this summary does not. So `tot` is the row sum
+# over every non-negative delay, rowSums(mat) + late, and complete_by_md is the
+# last cumulative fraction of that same total. It is identically 1, and pct_delay<max_delay_days-1> is
 # identically 100, whatever the real tail is. The tail is in the last step:
 # 100 - pct_delay<max_delay_days-2> is the share reported on delay day
 # max_delay_days - 1 or later. mean_delay counts each of those reports at
@@ -98,7 +99,7 @@
 #' every series and period, and `pct_delay<max_delay_days - 1>` is 100. It does
 #' NOT show whether reporting continues after `max_delay_days`.
 #'
-#' The last column also holds every later delay. So
+#' This function adds the reports past the horizon to the last column, so
 #' `100 - pct_delay<max_delay_days - 2>` is the share reported on the last day or
 #' later. To see the tail, run it again with a larger `max_delay_days`, and
 #' compare `mean_delay` and the `pct_delayD` curve.
@@ -155,6 +156,9 @@ reporting_completion_v1 <- function(
   for (tsid in names(rts)) {
     refs <- rts[[tsid]]$reference
     mat <- rts[[tsid]]$mat
+    # The share is of the total reported by as_of, so a report past the horizon
+    # counts on the last delay day, as the header above explains.
+    mat[, ncol(mat)] <- mat[, ncol(mat)] + rts[[tsid]]$late
     week_start <- isoyearweek_week_start(refs)
     # Age in DAYS, from the reference week's Monday to the as-of date. Both
     # sides are Dates, so this is a date subtraction and not a calendar lookup.

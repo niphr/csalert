@@ -441,3 +441,175 @@ test_that("(f) the options match the reference implementation", {
     )
   }
 })
+
+test_that(".delay_pool leaves out a week with no delay information", {
+  cal <- cstime::dates_by_isoyearweek
+  i0 <- match("2022-01", cal$isoyearweek)
+  refs <- cal$isoyearweek[i0 + 0:39]
+  mondays <- as.Date(cal$mon[i0 + 0:39])
+  as_of <- mondays[40] + 2L
+  age <- as.integer(as_of - mondays)
+  # Row 5 has counts only past the horizon, as in a bulk load. Row 6 has no
+  # count at all. Both are settled.
+  mat <- matrix(1, 40, 35)
+  mat[5:6, ] <- 0
+  late <- numeric(40)
+  late[5] <- 10
+  pool <- csalert:::.delay_pool(mat, refs, as_of, 35L, NULL, late)
+  expect_false(5L %in% pool$train)
+  expect_true(6L %in% pool$train) # a week with no count stays, as before
+  expect_equal(pool$train, setdiff(which(age >= 34L), 5L))
+})
+
+# Reports past the horizon --------------------------------------------------
+
+# The raw rows of sim_ecdf_triangle() `s`, plus one report of `n` cases at
+# delay `delay` days for reference row `k`.
+add_late <- function(s, k, delay = 50L, n = 777L) {
+  extra <- data.table::copy(s$raw[1L])
+  extra[, `:=`(
+    isoyearweek_reference = s$refs[k],
+    reporting_date = s$mondays[k] + delay,
+    numerator = n,
+    denominator = 10L * n
+  )]
+  return(rbind(s$raw, extra))
+}
+
+test_that("original is the count within the horizon plus the late count", {
+  # Row 30 is settled and inside the pool. Its extra report at delay 50 is past
+  # the horizon of 35 days.
+  s <- sim_ecdf_triangle()
+  tri0 <- csfmt_reporting_triangle_v3(s$raw, id_cols = ID_COLS)
+  tri1 <- csfmt_reporting_triangle_v3(add_late(s, 30L), id_cols = ID_COLS)
+  rt <- reporting_triangle_matrix(tri1, 35L)[[1]]
+  expect_equal(rt$late[30], 777)
+  run <- function(tri) {
+    set.seed(1)
+    return(nowcast_delay_ecdf_v1(
+      tri,
+      max_delay_days = 35,
+      n_sim = 200,
+      denominator_col = "denominator"
+    ))
+  }
+  e0 <- run(tri0)
+  e1 <- run(tri1)
+  expect_equal(e1$data$original[30], sum(rt$mat[30, ]) + 777)
+  expect_equal(
+    e1$data$original - e0$data$original,
+    c(rep(0, 29), 777, rep(0, 15))
+  )
+  expect_equal(
+    e1$data$denominator_observed - e0$data$denominator_observed,
+    c(rep(0, 29), 7770, rep(0, 15))
+  )
+  # a settled week has its observed total, late report included, in every draw
+  expect_equal(unique(e1$draws$numerator_nowcasted[30, ]), e1$data$original[30])
+  expect_equal(
+    unique(e1$draws$denominator_nowcasted[30, ]),
+    e1$data$denominator_observed[30]
+  )
+})
+
+test_that("a late report in a pool week does not move the nowcast", {
+  # The pool ratios T_s / O_s use the count within the horizon, so the report
+  # at delay 50 in pool row 30 changes no draw of the newest week.
+  s <- sim_ecdf_triangle()
+  tri0 <- csfmt_reporting_triangle_v3(s$raw, id_cols = ID_COLS)
+  tri1 <- csfmt_reporting_triangle_v3(add_late(s, 30L), id_cols = ID_COLS)
+  for (iv in c("empirical", "log_robust")) {
+    d0 <- run_ecdf(tri0, interval = iv)$draws$numerator_nowcasted
+    d1 <- run_ecdf(tri1, interval = iv)$draws$numerator_nowcasted
+    expect_identical(d1[45, ], d0[45, ], label = iv)
+    expect_identical(d1[44, ], d0[44, ], label = iv)
+  }
+})
+
+test_that("the reference implementation matches the engine with a late report", {
+  # Pool row 30 has an extra report at delay 50, past the horizon of 35 days.
+  # Both implementations keep it in original and in the draws of row 30.
+  s <- sim_ecdf_triangle(lambda = 5000, observed_days = 3L)
+  tri <- csfmt_reporting_triangle_v3(add_late(s, 30L), id_cols = ID_COLS)
+  expect_equal(reporting_triangle_matrix(tri, 35L)[[1]]$late[30], 777)
+  set.seed(1L)
+  ref <- ref_nowcast_ecdf_variant(tri, 35L, robust = TRUE, n_sim = N_EXACT)
+  eng <- run_ecdf(tri, delay_window = 26L, interval = "log_robust")
+  expect_equal(eng$data$original, ref$data$original)
+  expect_equal(draw_q(eng)[30, ], draw_q(ref)[30, ])
+  expect_lte(max(abs(draw_q(eng) - draw_q(ref)) / abs(draw_q(ref))), 1e-8)
+})
+
+# Two series, nation and region, of 12 reference weeks each. The as-of date is
+# the Thursday of the newest week. Both series have a delivery outage on the
+# Tuesday to Thursday of weeks 5 and 6. In the nation series, weeks 1 to 3 have
+# one report each, on the as-of date. That is past the horizon, as in a bulk
+# load. `drop_bulk = TRUE` removes those 3 weeks from the triangle.
+sim_bulk_tri <- function(drop_bulk = FALSE) {
+  s <- sim_ecdf_triangle(n_weeks = 12L, lambda = 5000, observed_days = 3L)
+  raw <- rbind(
+    s$raw,
+    data.table::copy(s$raw)[, location := "region"]
+  )
+  for (k in 5:6) {
+    gap <- s$mondays[k] + 1:3
+    raw[reporting_date %in% gap, reporting_date := s$mondays[k] + 4L]
+  }
+  old <- raw$location == "nation" & raw$isoyearweek_reference %in% s$refs[1:3]
+  bulk <- raw[
+    old,
+    .(numerator = sum(numerator), denominator = sum(denominator)),
+    by = .(isoyearweek_reference, indicator, location, age, sex)
+  ]
+  bulk[, reporting_date := s$as_of]
+  raw <- raw[!old]
+  if (!drop_bulk) {
+    raw <- rbind(raw, bulk, use.names = TRUE)
+  }
+  raw <- raw[,
+    .(numerator = sum(numerator), denominator = sum(denominator)),
+    by = .(isoyearweek_reference, reporting_date, indicator, location, age, sex)
+  ]
+  return(list(
+    tri = csfmt_reporting_triangle_v3(raw, id_cols = ID_COLS),
+    bulk = bulk,
+    refs = s$refs
+  ))
+}
+
+test_that("a bulk-loaded week stays out of the pool, and in the output", {
+  with_bulk <- sim_bulk_tri()
+  without <- sim_bulk_tri(drop_bulk = TRUE)
+  rt <- reporting_triangle_matrix(with_bulk$tri, 35L)
+  tri <- with_bulk$tri
+  nat <- unique(tri$time_series_id[tri$location == "nation"])
+  expect_length(nat, 1L)
+  bulk_rows <- match(with_bulk$refs[1:3], rt[[nat]]$reference)
+  expect_equal(unname(rowSums(rt[[nat]]$mat[bulk_rows, ])), rep(0, 3))
+  expect_true(all(rt[[nat]]$late[bulk_rows] > 0))
+
+  # The sorted draws of the two newest nation weeks. Sorting makes the
+  # comparison independent of the order in which the weeks use random numbers.
+  newest <- function(ens) {
+    keep <- ens$data$location == "nation" &
+      ens$data$isoyearweek %in% with_bulk$refs[11:12]
+    m <- ens$draws$numerator_nowcasted[keep, , drop = FALSE]
+    return(t(apply(m, 1, sort)))
+  }
+  for (og in list(NULL, 3)) {
+    a <- run_ecdf(with_bulk$tri, outage_gap_days = og)
+    b <- run_ecdf(without$tri, outage_gap_days = og)
+    lab <- paste("outage_gap_days =", deparse(og))
+    expect_equal(newest(a), newest(b), tolerance = 1e-12, label = lab)
+    # the newest weeks are nowcast, not left at their observed count
+    expect_true(all(apply(newest(a), 1, function(r) diff(range(r)) > 0)))
+    # the bulk-loaded weeks keep their count in original and in every draw
+    keep <- a$data$location == "nation" &
+      a$data$isoyearweek %in% with_bulk$refs[1:3]
+    expect_equal(a$data$original[keep], with_bulk$bulk$numerator)
+    expect_equal(
+      unname(a$draws$numerator_nowcasted[keep, 1]),
+      with_bulk$bulk$numerator
+    )
+  }
+})

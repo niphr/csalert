@@ -20,11 +20,13 @@
 #' quantile equals the observed total, also for the newest weeks.
 #' @param x The `csfmt_reporting_triangle_v3` to pass through.
 #' @param max_delay_days The delay horizon in days. The totals do not depend on
-#'   it, because a later report counts in the last delay column.
+#'   it, because a report at delay `max_delay_days` or later is in the total
+#'   too.
 #' @param denominator_col A denominator column to pass through in the same way.
 #'   Its total also goes to `$data` as `<denominator_col>_observed`.
 #' @returns A `csfmt_ensemble_v3` with one draw. `$data` holds `original`, the
-#'   observed total.
+#'   observed total, which includes the reports at delay `max_delay_days` or
+#'   later.
 #' @family nowcast engines
 #' @seealso `vignette("pipeline", package = "csalert")`, stage 2, which scores it
 #'   against [nowcast_delay_ecdf_v1()].
@@ -82,7 +84,8 @@ nowcast_passthrough_to_ensemble_v1 <- function(
       length(refs)
     )]
     idvals[, isoyearweek := refs]
-    idvals[, original := rowSums(rts_num[[tsid]]$mat)]
+    # the published observed count keeps the reports past the horizon
+    idvals[, original := rowSums(rts_num[[tsid]]$mat) + rts_num[[tsid]]$late]
     data_rows[[tsid]] <- idvals
   }
   data <- data.table::rbindlist(data_rows)
@@ -90,7 +93,9 @@ nowcast_passthrough_to_ensemble_v1 <- function(
   draws <- list()
   for (vc in value_cols) {
     rts <- reporting_triangle_matrix(x, max_delay_days, value_col = vc)
-    obs <- unlist(lapply(series_ids, function(tsid) rowSums(rts[[tsid]]$mat)))
+    obs <- unlist(lapply(series_ids, function(tsid) {
+      return(rowSums(rts[[tsid]]$mat) + rts[[tsid]]$late)
+    }))
     draws[[csfmt_var(vc, role = "nowcasted")]] <- matrix(obs, ncol = 1)
     if (!identical(vc, val_col)) {
       data[, (csfmt_var(vc, role = "observed")) := obs]

@@ -15,15 +15,17 @@ reporting_triangle_matrix(
 
 \item{max_delay_days}{The number of delay columns, in days. With 35, the
 columns are delay days 0 to 34, and a report at delay 35 or 400 counts in
-column \code{"34"}.}
+\code{late}.}
 
 \item{value_col}{The count column. The default is the \code{value_col} of the
 triangle. Give a denominator column to get its matrix.}
 }
 \value{
 A list named by \code{time_series_id}. Each element holds \code{reference}, the
-ISO weeks of the rows, and \code{mat}, the matrix. A cell sums its counts with
-\code{na.rm = TRUE}, so a cell with only \code{NA} counts is 0.
+ISO weeks of the rows, \code{mat}, the matrix, and \code{late}. \code{late} is a numeric
+vector with one value per row: the count reported at delay \code{max_delay_days}
+or later. The observed total of a week is \code{rowSums(mat) + late}. A cell
+sums its counts with \code{na.rm = TRUE}, so a cell with only \code{NA} counts is 0.
 }
 \description{
 Returns, for each series, a matrix of counts with one row per reference week
@@ -31,9 +33,10 @@ and one column per delay day. Every nowcast engine calls it first.
 }
 \details{
 The rows run over every ISO week from the first to the last reference week.
-A week with no report is a row of zeros. The last column also holds every
-later delay, so a late report adds to \code{rowSums(mat)}. A report before its
-reference Monday has a negative delay, and is dropped.
+A week with no report is a row of zeros. A report at delay \code{max_delay_days}
+or later goes to \code{late}, not to \code{mat}. A week whose only reports are late
+still has a row, and that row is zeros. A report before its reference Monday
+has a negative delay, and is dropped.
 }
 \examples{
 cal <- cstime::dates_by_isoyearweek
