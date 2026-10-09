@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 2026.10.13
+
+- Removed the `interval` and `outage_gap_days` arguments of
+  [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md).
+  On 52 replayed weeks of Norwegian surveillance data, neither option
+  beat the default empirical interval by enough to matter. Output
+  without these arguments does not change. A call that still passes
+  either argument stops with an error, so it cannot silently get the
+  default.
+
 ## Version 2026.10.12
 
 - Removed `nowcast_estimate_calibration_v1()`,
