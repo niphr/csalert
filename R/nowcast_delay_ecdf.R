@@ -31,7 +31,7 @@
 # warning. The ECDF estimates each delay day from a count, so it does not
 # degrade with the column count.
 #
-# THE DEFAULT INTERVAL IS EMPIRICAL. Each settled week in the pool is re-completed from
+# THE INTERVAL IS EMPIRICAL. Each settled week in the pool is re-completed from
 # its own first d + 1 delay days, and compared with its settled total. The 5%
 # and 95% quantiles of that truth/estimate ratio, times the point estimate, are
 # the interval. That single spread already carries the estimation error and the
@@ -39,11 +39,6 @@
 # a dispersion-matched negbin for the observation ON TOP of it, which counted
 # the noise twice: measured coverage went to 0.97-1.00 against a nominal 0.90,
 # where the empirical endpoints give 0.80-0.87.
-#
-# TWO OPTIONS change this. `interval = "log_robust"` draws from the median and
-# MAD of the log pool ratios instead of their quantiles. `outage_gap_days` drops
-# a pool week with a delivery outage in its observed delay days. Either option
-# sends the series to .ecdf_complete_options(); the default path never uses it.
 #
 # UNITS. `max_delay_days`, `age_days` and every ECDF index are DAYS.
 # `delay_window` is WEEKS and keeps its name, so it is multiplied by 7 before it
@@ -182,7 +177,7 @@
 }
 
 # The reference weeks to complete: reached by the as-of date and not yet
-# settled. Both completion paths use this one selection.
+# settled.
 .incomplete_weeks <- function(pool, max_delay_days) {
   return(
     !pool$settled &
@@ -220,191 +215,6 @@
     draws[hz$tgt, ] <- hz$draws + late[hz$tgt]
   }
   return(draws)
-}
-
-# The longest run of dates with no delivery in [from, to], one value per pair.
-# A delivery date is a date on which any reference week of the triangle
-# received a count above 0.
-.gap_len <- function(from, to, delivery_dates) {
-  delivered <- as.integer(delivery_dates)
-  return(vapply(
-    seq_along(from),
-    function(k) {
-      a <- as.integer(from[k])
-      b <- as.integer(to[k])
-      if (b < a) {
-        return(0L)
-      }
-      r <- rle(!(seq(a, b) %in% delivered))
-      return(max(c(0L, r$lengths[r$values])))
-    },
-    integer(1)
-  ))
-}
-
-# The pool rows that price target row `i` at delay day `d`. A pool week with a
-# delivery outage in its delay days 0 to d is dropped, but only when the target
-# week has no outage there itself, and only when 3 or more pool weeks remain.
-# Otherwise the full pool prices the week.
-.outage_pool <- function(train, i, mon, d, delivery, outage_gap_days) {
-  if (is.null(outage_gap_days)) {
-    return(train)
-  }
-  if (.gap_len(mon[i], mon[i] + d, delivery) >= outage_gap_days) {
-    return(train)
-  }
-  pool_gap <- .gap_len(mon[train], mon[train] + d, delivery) >= outage_gap_days
-  if (sum(!pool_gap) < 3L) {
-    return(train)
-  }
-  return(train[!pool_gap])
-}
-
-# .ecdf_complete() with an option set. It walks the incomplete weeks in row
-# order and draws each one in turn, so a seeded run uses random numbers in a
-# fixed order. The default path stays in .ecdf_complete(), unchanged, so its
-# output and its random number use do not move.
-#
-# `log_robust` draws pred * exp(median(log r) + mad(log r) * z), z standard
-# normal, floored at the observed count. Here each ratio r carries a factor
-# p(d) and pred carries 1 / p(d), so each draw is
-# O * exp(median(log(T_s / O_s)) + mad(log(T_s / O_s)) * z).
-.ecdf_complete_options <- function(
-  mat,
-  refs,
-  as_of,
-  max_delay_days,
-  n_sim,
-  delay_window,
-  interval,
-  outage_gap_days,
-  delivery,
-  late
-) {
-  within_total <- rowSums(mat)
-  draws <- matrix(within_total + late, length(refs), n_sim)
-  pool <- .delay_pool(mat, refs, as_of, max_delay_days, delay_window, late)
-  if (length(pool$train) < 3L || is.null(pool$p)) {
-    return(draws)
-  }
-  mon <- isoyearweek_week_start(refs)
-  for (i in which(.incomplete_weeks(pool, max_delay_days))) {
-    v <- .option_week(
-      mat,
-      pool,
-      i,
-      mon,
-      within_total[i],
-      n_sim,
-      interval,
-      outage_gap_days,
-      delivery
-    )
-    if (!is.null(v)) {
-      draws[i, ] <- v + late[i]
-    }
-  }
-  return(draws)
-}
-
-# The n_sim draws of incomplete week `i` in .ecdf_complete_options(), or NULL
-# when the week keeps its observed count.
-.option_week <- function(
-  mat,
-  pool,
-  i,
-  mon,
-  floor_at,
-  n_sim,
-  interval,
-  outage_gap_days,
-  delivery
-) {
-  d <- pool$age_days[i]
-  pd <- pool$p[d + 1L]
-  cols <- seq_len(d + 1L)
-  obs <- sum(mat[i, cols])
-  if (!is.finite(pd) || pd <= 0 || obs <= 0) {
-    return(NULL)
-  }
-  train <- .outage_pool(pool$train, i, mon, d, delivery, outage_gap_days)
-  rat <- .completion_ratio(mat, train, pd, cols)
-  if (is.null(rat)) {
-    return(NULL)
-  }
-  return(.option_draws(obs / pd, floor_at, rat, n_sim, interval))
-}
-
-# The n_sim draws of one incomplete week. `pred` is observed_so_far / p(d) and
-# `rat` holds the pool ratios.
-.option_draws <- function(pred, floor_at, rat, n_sim, interval) {
-  if (identical(interval, "log_robust")) {
-    lr <- log(rat)
-    z <- stats::rnorm(n_sim)
-    v <- pmax(
-      pred * exp(stats::median(lr) + stats::mad(lr) * z),
-      floor_at
-    )
-    return(v[sample.int(length(v))])
-  }
-  return(.completion_draws(pred, floor_at, rat, n_sim))
-}
-
-# Stops unless `outage_gap_days` is NULL or one whole number of 1 or more.
-.check_outage_gap_days <- function(outage_gap_days) {
-  if (is.null(outage_gap_days)) {
-    return(invisible(NULL))
-  }
-  ok <- length(outage_gap_days) == 1L &&
-    is.numeric(outage_gap_days) &&
-    is.finite(outage_gap_days) &&
-    outage_gap_days >= 1 &&
-    outage_gap_days == round(outage_gap_days)
-  if (!ok) {
-    stop(
-      "`outage_gap_days` must be NULL or one whole number of 1 or more.",
-      call. = FALSE
-    )
-  }
-  return(invisible(NULL))
-}
-
-# The draw matrix of one series in nowcast_delay_ecdf_v1(). The default path
-# goes to .ecdf_complete() and every option goes to .ecdf_complete_options().
-.ecdf_series_draws <- function(
-  rt,
-  as_of,
-  max_delay_days,
-  n_sim,
-  delay_window,
-  interval,
-  outage_gap_days,
-  delivery
-) {
-  use_options <- !identical(interval, "empirical") || !is.null(outage_gap_days)
-  if (use_options) {
-    return(.ecdf_complete_options(
-      rt$mat,
-      rt$reference,
-      as_of,
-      max_delay_days,
-      n_sim,
-      delay_window,
-      interval,
-      outage_gap_days,
-      delivery,
-      rt$late
-    ))
-  }
-  return(.ecdf_complete(
-    rt$mat,
-    rt$reference,
-    as_of,
-    max_delay_days,
-    n_sim,
-    delay_window,
-    rt$late
-  ))
 }
 
 #' Nowcast a reporting triangle from the delay pattern of settled weeks
@@ -503,17 +313,6 @@ nowcast_delay_ecdf_v1 <- function(x, ...) UseMethod("nowcast_delay_ecdf_v1")
 #' @param delay_window The span, in weeks, of the settled weeks in the pool, so
 #'   that the pool follows a reporting pattern that changes. `NULL` uses every
 #'   settled week.
-#' @param interval How the draws use the pool ratios `T_s / O_s`.
-#'   `"empirical"` takes their quantiles. `"log_robust"` draws
-#'   `observed_so_far * exp(median(log r) + mad(log r) * z)`, with `z` standard
-#'   normal, floored at the observed count. The median and the MAD change
-#'   little when a few pool weeks have extreme ratios.
-#' @param outage_gap_days `NULL`, or the number of consecutive dates with no
-#'   delivery that make a delivery outage. A delivery date is a date on which
-#'   the value column of `x` has a count above 0. For a reference week of age
-#'   `d` days, the pool drops each pool week with an outage in its delay days 0
-#'   to `d`. The full pool stays when the reference week has its own outage in
-#'   delay days 0 to `d`. It also stays when fewer than 3 pool weeks remain.
 #' @returns A `csfmt_ensemble_v3` with one row per reference week and a draw
 #'   matrix `<value_col>_nowcasted` with `n_sim` columns. A settled week has its
 #'   observed total in every draw. `$data` holds `original`, the observed total.
@@ -525,12 +324,17 @@ nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
   n_sim = 1000,
   denominator_col = NULL,
   delay_window = 26,
-  interval = c("empirical", "log_robust"),
-  outage_gap_days = NULL,
   ...
 ) {
-  interval <- match.arg(interval)
-  .check_outage_gap_days(outage_gap_days)
+  # `...` exists for the generic only. A removed argument, such as `interval`
+  # or `outage_gap_days` (2026.10.13), MUST error rather than be ignored.
+  if (...length() > 0L) {
+    stop(
+      "unused argument(s): ",
+      paste(names(list(...)), collapse = ", "),
+      call. = FALSE
+    )
+  }
   # NSE column names, declared so R CMD check does not read them as undefined globals
   isoyearweek <- original <- time_series_id <- NULL
   id_cols <- attr(x, "id_cols")
@@ -555,25 +359,18 @@ nowcast_delay_ecdf_v1.csfmt_reporting_triangle_v3 <- function(
   }
   data <- data.table::rbindlist(data_rows)
 
-  delivery <- NULL
-  if (!is.null(outage_gap_days)) {
-    rep_col <- attr(x, "reporting_col")
-    delivery <- unique(d_tri[[rep_col]][which(d_tri[[val_col]] > 0)])
-  }
-
   draws <- list()
   for (vc in value_cols) {
     rts <- reporting_triangle_matrix(x, max_delay_days, value_col = vc)
     chunks <- lapply(series_ids, function(tsid) {
-      return(.ecdf_series_draws(
-        rts[[tsid]],
+      return(.ecdf_complete(
+        rts[[tsid]]$mat,
+        rts[[tsid]]$reference,
         as_of,
         max_delay_days,
         n_sim,
         delay_window,
-        interval,
-        outage_gap_days,
-        delivery
+        rts[[tsid]]$late
       ))
     })
     draws[[csfmt_var(vc, role = "nowcasted")]] <- do.call(rbind, chunks)

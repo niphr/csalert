@@ -246,25 +246,7 @@ test_that("a pool with no spread gives an interval with no width", {
   expect_equal(max(apply(m, 1, function(r) diff(range(r)))), 0)
 })
 
-# The interval and outage_gap_days options --------------------------------
-
-# A triangle with a delivery outage in each week of `outage_weeks`: nothing
-# arrives on its Tuesday, Wednesday or Thursday, and those counts arrive on its
-# Friday as a backlog. The as-of date is the Thursday of the newest week, so the
-# newest week is observed for delay days 0 to 3.
-sim_outage_tri <- function(outage_weeks, n_weeks = 45L, lambda = 5000) {
-  s <- sim_ecdf_triangle(n_weeks = n_weeks, lambda = lambda, observed_days = 3L)
-  raw <- data.table::copy(s$raw)
-  for (k in outage_weeks) {
-    gap <- s$mondays[k] + 1:3
-    raw[reporting_date %in% gap, reporting_date := s$mondays[k] + 4L]
-  }
-  raw <- raw[,
-    .(numerator = sum(numerator), denominator = sum(denominator)),
-    by = .(isoyearweek_reference, reporting_date, indicator, location, age, sex)
-  ]
-  return(csfmt_reporting_triangle_v3(raw, id_cols = ID_COLS))
-}
+# Seeded runs ---------------------------------------------------------------
 
 # The 2.5%, 50% and 97.5% draw quantiles, one row per reference week.
 draw_q <- function(ens) {
@@ -277,16 +259,12 @@ draw_q <- function(ens) {
   )))
 }
 
-# Fixture (b) and (c): pool week 35 and week 44 have an outage. Week 45 is the
-# newest, at delay day 3, and week 44 is at delay day 10.
-OUTAGE_POOL_WEEK <- 35L
-
 run_ecdf <- function(tri, seed = 1L, ...) {
   set.seed(seed)
   return(nowcast_delay_ecdf_v1(tri, max_delay_days = 35, n_sim = N_EXACT, ...))
 }
 
-test_that("(a) the defaults give the output of the code before the options", {
+test_that("the defaults give the output of the code before the options", {
   # The fixture holds the output of commit 96aaae1, before the options
   # existed. data.table's .internal.selfref pointer differs between a live
   # table and a read one, so it is removed from both sides first.
@@ -304,142 +282,6 @@ test_that("(a) the defaults give the output of the code before the options", {
     denominator_col = "denominator"
   )
   expect_identical(strip(ens), strip(ref))
-  set.seed(20261007)
-  ens2 <- nowcast_delay_ecdf_v1(
-    tri,
-    max_delay_days = 35,
-    n_sim = 200,
-    denominator_col = "denominator",
-    interval = "empirical",
-    outage_gap_days = NULL
-  )
-  expect_identical(strip(ens2), strip(ref))
-})
-
-test_that("(b) outage_gap_days drops an outage pool week from the limit", {
-  tri <- sim_outage_tri(c(OUTAGE_POOL_WEEK, 44L))
-  m <- reporting_triangle_matrix(tri, 35L)[[1]]
-  age <- as.integer(
-    attr(tri, "as_of") - csalert:::isoyearweek_week_start(m$reference)
-  )
-  train <- which(age >= 34L & age < 26L * 7L + 35L)
-  expect_true(OUTAGE_POOL_WEEK %in% train)
-  ratio <- rowSums(m$mat[train, ]) / rowSums(m$mat[train, 1:4])
-  # the outage week has the largest pool ratio by far
-  expect_identical(train[which.max(ratio)], OUTAGE_POOL_WEEK)
-  newest <- nrow(m$mat)
-  ceiling_clean <- sum(m$mat[newest, 1:4]) *
-    max(ratio[train != OUTAGE_POOL_WEEK])
-
-  q_plain <- draw_q(run_ecdf(tri))[newest, 3]
-  q_drop <- draw_q(run_ecdf(tri, outage_gap_days = 3))[newest, 3]
-  # without the option the outage ratio sets the 97.5% limit
-  expect_gt(q_plain, 10 * ceiling_clean)
-  # with it, the limit sits inside the range the other pool weeks give
-  expect_lte(q_drop, ceiling_clean)
-})
-
-test_that("(c) a target week with its own outage keeps the outage pool weeks", {
-  tri <- sim_outage_tri(c(OUTAGE_POOL_WEEK, 44L))
-  plain <- run_ecdf(tri)$draws$numerator_nowcasted
-  drop <- run_ecdf(tri, outage_gap_days = 3)$draws$numerator_nowcasted
-  # week 44 has an outage in its delay days 0 to 10, so its pool is the full pool
-  expect_equal(sort(drop[44, ]), sort(plain[44, ]), tolerance = 1e-12)
-  # the newest week has none, so its pool changes
-  expect_false(isTRUE(all.equal(sort(drop[45, ]), sort(plain[45, ]))))
-})
-
-test_that("(d) the full pool stays when fewer than 3 clean pool weeks remain", {
-  # delay_window = 4 gives a pool of 4 weeks, rows 37 to 40
-  one <- sim_outage_tri(38L)
-  two <- sim_outage_tri(c(38L, 39L))
-  newest <- 45L
-  # 1 outage week: 3 pool weeks remain, so the outage week is dropped
-  expect_false(isTRUE(all.equal(
-    draw_q(run_ecdf(one, delay_window = 4, outage_gap_days = 3))[newest, ],
-    draw_q(run_ecdf(one, delay_window = 4))[newest, ]
-  )))
-  # 2 outage weeks: 2 pool weeks remain, so the full pool is used
-  expect_equal(
-    draw_q(run_ecdf(two, delay_window = 4, outage_gap_days = 3))[newest, ],
-    draw_q(run_ecdf(two, delay_window = 4))[newest, ],
-    tolerance = 1e-12
-  )
-})
-
-test_that("(e) log_robust: one extreme pool ratio does not set the limit", {
-  tri <- sim_outage_tri(c(OUTAGE_POOL_WEEK, 44L))
-  m <- reporting_triangle_matrix(tri, 35L)[[1]]
-  age <- as.integer(
-    attr(tri, "as_of") - csalert:::isoyearweek_week_start(m$reference)
-  )
-  train <- which(age >= 34L & age < 26L * 7L + 35L)
-  ratio <- rowSums(m$mat[train, ]) / rowSums(m$mat[train, 1:4])
-  newest <- nrow(m$mat)
-  ceiling_clean <- sum(m$mat[newest, 1:4]) *
-    max(ratio[train != OUTAGE_POOL_WEEK])
-  q_emp <- draw_q(run_ecdf(tri))[newest, 3]
-  q_rob <- draw_q(run_ecdf(tri, interval = "log_robust"))[newest, 3]
-  expect_gt(q_emp, 10 * ceiling_clean)
-  expect_lte(q_rob, ceiling_clean)
-  expect_error(run_ecdf(tri, interval = "nonsense"))
-  expect_error(run_ecdf(tri, outage_gap_days = 0), "outage_gap_days")
-})
-
-test_that("(f) the options match the reference implementation", {
-  rel_err <- function(a, b) {
-    qa <- draw_q(a)
-    qb <- draw_q(b)
-    return(max(abs(qa - qb) / abs(qb)))
-  }
-  fixtures <- list(
-    b_c = list(tri = sim_outage_tri(c(OUTAGE_POOL_WEEK, 44L)), window = 26L),
-    d_drop = list(tri = sim_outage_tri(38L), window = 4L),
-    d_fallback = list(tri = sim_outage_tri(c(38L, 39L)), window = 4L)
-  )
-  for (nm in names(fixtures)) {
-    tri <- fixtures[[nm]]$tri
-    w <- fixtures[[nm]]$window
-    ref <- function(...) {
-      set.seed(1L)
-      return(ref_nowcast_ecdf_variant(
-        tri,
-        35L,
-        delay_window = w,
-        n_sim = N_EXACT,
-        ...
-      ))
-    }
-    expect_lte(
-      rel_err(
-        run_ecdf(tri, delay_window = w, outage_gap_days = 3),
-        ref(drop_outages = TRUE, gap_days = 3)
-      ),
-      1e-8,
-      label = paste(nm, "outage_gap_days = 3")
-    )
-    expect_lte(
-      rel_err(
-        run_ecdf(tri, delay_window = w, interval = "log_robust"),
-        ref(robust = TRUE)
-      ),
-      1e-8,
-      label = paste(nm, "log_robust")
-    )
-    expect_lte(
-      rel_err(
-        run_ecdf(
-          tri,
-          delay_window = w,
-          interval = "log_robust",
-          outage_gap_days = 3
-        ),
-        ref(robust = TRUE, drop_outages = TRUE, gap_days = 3)
-      ),
-      1e-8,
-      label = paste(nm, "log_robust and outage_gap_days = 3")
-    )
-  }
 })
 
 test_that(".delay_pool leaves out a week with no delay information", {
@@ -518,12 +360,10 @@ test_that("a late report in a pool week does not move the nowcast", {
   s <- sim_ecdf_triangle()
   tri0 <- csfmt_reporting_triangle_v3(s$raw, id_cols = ID_COLS)
   tri1 <- csfmt_reporting_triangle_v3(add_late(s, 30L), id_cols = ID_COLS)
-  for (iv in c("empirical", "log_robust")) {
-    d0 <- run_ecdf(tri0, interval = iv)$draws$numerator_nowcasted
-    d1 <- run_ecdf(tri1, interval = iv)$draws$numerator_nowcasted
-    expect_identical(d1[45, ], d0[45, ], label = iv)
-    expect_identical(d1[44, ], d0[44, ], label = iv)
-  }
+  d0 <- run_ecdf(tri0)$draws$numerator_nowcasted
+  d1 <- run_ecdf(tri1)$draws$numerator_nowcasted
+  expect_identical(d1[45, ], d0[45, ])
+  expect_identical(d1[44, ], d0[44, ])
 })
 
 test_that("the reference implementation matches the engine with a late report", {
@@ -533,8 +373,8 @@ test_that("the reference implementation matches the engine with a late report", 
   tri <- csfmt_reporting_triangle_v3(add_late(s, 30L), id_cols = ID_COLS)
   expect_equal(reporting_triangle_matrix(tri, 35L)[[1]]$late[30], 777)
   set.seed(1L)
-  ref <- ref_nowcast_ecdf_variant(tri, 35L, robust = TRUE, n_sim = N_EXACT)
-  eng <- run_ecdf(tri, delay_window = 26L, interval = "log_robust")
+  ref <- ref_nowcast_ecdf_variant(tri, 35L, n_sim = N_EXACT)
+  eng <- run_ecdf(tri, delay_window = 26L)
   expect_equal(eng$data$original, ref$data$original)
   expect_equal(draw_q(eng)[30, ], draw_q(ref)[30, ])
   expect_lte(max(abs(draw_q(eng) - draw_q(ref)) / abs(draw_q(ref))), 1e-8)
@@ -596,20 +436,31 @@ test_that("a bulk-loaded week stays out of the pool, and in the output", {
     m <- ens$draws$numerator_nowcasted[keep, , drop = FALSE]
     return(t(apply(m, 1, sort)))
   }
-  for (og in list(NULL, 3)) {
-    a <- run_ecdf(with_bulk$tri, outage_gap_days = og)
-    b <- run_ecdf(without$tri, outage_gap_days = og)
-    lab <- paste("outage_gap_days =", deparse(og))
-    expect_equal(newest(a), newest(b), tolerance = 1e-12, label = lab)
-    # the newest weeks are nowcast, not left at their observed count
-    expect_true(all(apply(newest(a), 1, function(r) diff(range(r)) > 0)))
-    # the bulk-loaded weeks keep their count in original and in every draw
-    keep <- a$data$location == "nation" &
-      a$data$isoyearweek %in% with_bulk$refs[1:3]
-    expect_equal(a$data$original[keep], with_bulk$bulk$numerator)
-    expect_equal(
-      unname(a$draws$numerator_nowcasted[keep, 1]),
-      with_bulk$bulk$numerator
-    )
-  }
+  a <- run_ecdf(with_bulk$tri)
+  b <- run_ecdf(without$tri)
+  expect_equal(newest(a), newest(b), tolerance = 1e-12)
+  # the newest weeks are nowcast, not left at their observed count
+  expect_true(all(apply(newest(a), 1, function(r) diff(range(r)) > 0)))
+  # the bulk-loaded weeks keep their count in original and in every draw
+  keep <- a$data$location == "nation" &
+    a$data$isoyearweek %in% with_bulk$refs[1:3]
+  expect_equal(a$data$original[keep], with_bulk$bulk$numerator)
+  expect_equal(
+    unname(a$draws$numerator_nowcasted[keep, 1]),
+    with_bulk$bulk$numerator
+  )
+})
+
+test_that("a removed argument errors instead of being ignored", {
+  tri <- sim_ecdf_tri()
+  expect_error(
+    nowcast_delay_ecdf_v1(tri, max_delay_days = 35, interval = "log_robust"),
+    "unused argument(s): interval",
+    fixed = TRUE
+  )
+  expect_error(
+    nowcast_delay_ecdf_v1(tri, max_delay_days = 35, outage_gap_days = 3),
+    "unused argument(s): outage_gap_days",
+    fixed = TRUE
+  )
 })

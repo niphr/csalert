@@ -13,8 +13,6 @@ nowcast_delay_ecdf_v1(x, ...)
   n_sim = 1000,
   denominator_col = NULL,
   delay_window = 26,
-  interval = c("empirical", "log_robust"),
-  outage_gap_days = NULL,
   ...
 )
 }
@@ -34,19 +32,6 @@ observed total goes to \verb{$data} as \verb{<denominator_col>_observed}.}
 \item{delay_window}{The span, in weeks, of the settled weeks in the pool, so
 that the pool follows a reporting pattern that changes. \code{NULL} uses every
 settled week.}
-
-\item{interval}{How the draws use the pool ratios \code{T_s / O_s}.
-\code{"empirical"} takes their quantiles. \code{"log_robust"} draws
-\verb{observed_so_far * exp(median(log r) + mad(log r) * z)}, with \code{z} standard
-normal, floored at the observed count. The median and the MAD change
-little when a few pool weeks have extreme ratios.}
-
-\item{outage_gap_days}{\code{NULL}, or the number of consecutive dates with no
-delivery that make a delivery outage. A delivery date is a date on which
-the value column of \code{x} has a count above 0. For a reference week of age
-\code{d} days, the pool drops each pool week with an outage in its delay days 0
-to \code{d}. The full pool stays when the reference week has its own outage in
-delay days 0 to \code{d}. It also stays when fewer than 3 pool weeks remain.}
 }
 \value{
 A \code{csfmt_ensemble_v3} with one row per reference week and a draw
