@@ -96,7 +96,8 @@ day \code{d} is always the same weekday. The pool ratios at delay day \code{d} t
 absorb the weekly pattern.
 
 Whether the intervals are calibrated for your series is an empirical
-question. Measure it with \code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}}. Like every nowcast engine,
+question. Replay it with \code{\link[=nowcast_backtest]{nowcast_backtest()}}, and score the replay with
+\code{\link[=nowcast_score_v1]{nowcast_score_v1()}}. Like every nowcast engine,
 this one takes a reporting triangle and returns a \code{csfmt_ensemble_v3}.
 }
 \examples{

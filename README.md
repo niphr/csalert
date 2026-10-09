@@ -84,7 +84,7 @@ res[, .(isoyearweek, numerator_nowcasted_q50x0,
 | Build the input triangle | `csfmt_reporting_triangle_v3()` |
 | Complete the weeks still being reported | `nowcast_delay_ecdf_v1()` |
 | Pass an indicator through with no nowcast | `nowcast_passthrough_to_ensemble_v1()` |
-| Score a nowcast on replayed weeks | `nowcast_evaluate_v1()` |
+| Score a nowcast on replayed weeks | `nowcast_backtest()`, then `nowcast_score_v1()` |
 | Measure how fast cases arrive | `reporting_completion_v1()` |
 | Add a rate | `ens_add_rate()` |
 | Estimate recent direction, per draw | `short_term_trend()` |

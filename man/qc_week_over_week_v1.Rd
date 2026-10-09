@@ -57,8 +57,8 @@ A week is settled when it is at least \code{max_delay_weeks} ISO weeks older tha
 newest week of \code{previous}. A row in \verb{$integrity} means that a published number
 for a settled week changed, so ideally that table is empty. It compares finite
 values only, and leaves out the columns that \code{model_pattern} matches.
-\verb{$signal} counts a new week as a change. Both tables use the
-median, \code{q = 0.5}.
+\verb{$signal} counts a new week as a change. Both tables use the median,
+\code{q = 0.5}.
 }
 \examples{
 # 40 reference weeks, each reported 3, 10 and 17 days after its Monday

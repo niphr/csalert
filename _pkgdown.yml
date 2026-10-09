@@ -61,19 +61,9 @@ reference:
       - nowcast_censor
       - nowcast_truth
       - nowcast_backtest
-      - nowcast_evaluate_v1
       - nowcast_score_v1
       - reporting_completion_v1
       - reporting_completion_trend_v1
-
-  - title: "Nowcast calibration"
-    desc: >
-      Measure how far the intervals of an engine are from nominal coverage, as
-      a factor per horizon. The package does not apply it unless you choose to.
-    contents:
-      - nowcast_estimate_calibration_v1
-      - nowcast_apply_calibration_v1
-      - print.nowcast_calibration
 
   - title: "Quality control"
     desc: "Check one input feed, and compare two runs of the pipeline."

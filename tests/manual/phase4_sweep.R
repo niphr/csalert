@@ -29,10 +29,9 @@
 #
 # CHECK 7 RESOLVES A pkgdown TOPIC AGAINST THE Rd ALIASES, not against
 # getNamespaceExports(). pkgdown resolves a `contents:` entry against the Rd
-# index, and four legitimate entries in _pkgdown.yml are documented topics that
-# the package does not export: print.csfmt_ensemble_v3, print.nowcast_calibration,
-# prediction_interval and prediction_interval.glm. Checking against the export
-# list alone would fail on all four.
+# index, and one legitimate entry in _pkgdown.yml is a documented topic that the
+# package does not export: print.csfmt_ensemble_v3. Checking against the export
+# list alone would fail on it.
 
 args <- commandArgs(trailingOnly = FALSE)
 this_file <- sub("^--file=", "", grep("^--file=", args, value = TRUE))
@@ -173,7 +172,7 @@ check(
 cat(
   "ORACLE [CHECK 7] a topic resolves against the \\alias{} entries in man/, ",
   "which is what pkgdown itself resolves against. NOT getNamespaceExports(): ",
-  "print.csfmt_ensemble_v3, print.nowcast_calibration, prediction_interval and ",
+  "print.csfmt_ensemble_v3, prediction_interval and ",
   "prediction_interval.glm are documented and NOT exported, so an export oracle ",
   "fails on a correct file. Corrected in the brief after round 1.\n",
   sep = ""

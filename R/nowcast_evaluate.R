@@ -1,6 +1,6 @@
-# nowcast_evaluate_v1: replay nowcast method(s) over a triangle and score each on
-# interval coverage + point-estimate revision, in ONE per-horizon table. Pass one
-# method or a named list; a shared seed pairs them by as-of week.
+# nowcast_score_v1: score the replayed quantile nowcasts of nowcast_backtest()
+# against the settled truth of nowcast_truth(), in one table per group (by
+# default, per horizon). The replay itself lives in nowcast_backtest.R.
 #
 # For each forecast (a reference week at a given horizon), joined to its settled
 # truth, we read off two scale-free things:
@@ -12,8 +12,8 @@
 #     band, and the tail exceedance probabilities.
 
 # The per-backtest scorer: join one method's replayed quantile nowcasts to the
-# settled truth and summarise coverage + revision by group. Internal -- callers go
-# through nowcast_evaluate_v1 (which does the replay).
+# settled truth and summarise coverage + revision by group. Internal: callers go
+# through nowcast_score_v1, which adds the WIS columns.
 .evaluate_backtest <- function(
   backtest,
   truth,
@@ -127,12 +127,14 @@
 #' Score replayed nowcast quantiles against the settled truth
 #'
 #' Scores a backtest from [nowcast_backtest()] against the truth from
-#' [nowcast_truth()]. It adds the weighted interval score and a 95% interval
-#' summary to the coverage and revision columns of [nowcast_evaluate_v1()].
+#' [nowcast_truth()]. It reports the interval coverage, the revision of the
+#' median, the weighted interval score and a 95% interval summary.
 #'
 #' A forecast unit is one reference week at one as-of date and horizon. The
 #' function scores only the units that have a finite truth and the 0.05, 0.25,
-#' 0.5, 0.75 and 0.95 quantiles.
+#' 0.5, 0.75 and 0.95 quantiles. The revision of a unit is
+#' `(median - truth) / truth`, over the units with a truth above 0. Every score
+#' is a measurement on the replayed weeks, not a property of a method.
 #'
 #' The weighted interval score (WIS) follows Bracher et al. (2021). For a unit
 #' with truth `y` and median `m`:
@@ -152,8 +154,15 @@
 #'   `reference` and `truth`.
 #' @param by The columns to group the scores by.
 #' @param thresholds The absolute revisions for the `p_gt_<t>` columns.
-#' @returns A data.table with one row per group. It has the columns of
-#'   [nowcast_evaluate_v1()] except `method`, and these columns:
+#' @returns A data.table with one row per group. It has the `by` columns and
+#'   these columns:
+#' * `n`: the number of scored units,
+#' * `coverage_50`, `coverage_90`: the share of truths from the 0.25 to the 0.75
+#'   quantile, and from the 0.05 to the 0.95 quantile,
+#' * `median_signed`, `median_abs`, `q05`, `q95`: the median revision, the median
+#'   absolute revision, and the 5% and 95% quantiles of the revision,
+#' * `p_gt_<t>`: the share of absolute revisions above each threshold, such as
+#'   `p_gt_25` for 0.25,
 #' * `wis`: the mean WIS over the units,
 #' * `wis_log`: the mean WIS after `log1p()` of each quantile and of the truth,
 #' * `coverage_95`: the share of truths from the 0.025 to the 0.975 quantile,
@@ -165,6 +174,8 @@
 #' @references Bracher J, Ray EL, Gneiting T, Reich NG (2021). Evaluating
 #'   epidemic forecasts in an interval format. PLOS Computational Biology 17(2):
 #'   e1008618. \doi{10.1371/journal.pcbi.1008618}
+#' @seealso `vignette("pipeline", package = "csalert")`, stage 2, which explains
+#'   how to read each column.
 #' @examples
 #' truth <- data.table::data.table(reference = "2024-01", truth = 100)
 #' backtest <- data.table::data.table(
@@ -231,97 +242,4 @@ nowcast_score_v1 <- function(
     )
   ]
   return(ev[])
-}
-
-#' Score nowcast methods on interval coverage and revision
-#'
-#' Replays each method with [nowcast_backtest()], and scores every nowcast against
-#' the settled truth from [nowcast_truth()]. It returns a row for each horizon and
-#' method.
-#'
-#' The revision is `(median - truth) / truth`, over the weeks with a truth above
-#' 0. Every score is a measurement on the replayed weeks, not a property of a
-#' method. The methods replay the same as-of dates with the same `seed`, so they
-#' are paired by forecast. That does not give common random numbers, which would
-#' also need the methods to use their random numbers in the same way.
-#' @param triangle A `csfmt_reporting_triangle_v3` with one series.
-#' @param methods One method, or a named list of methods. A method takes a
-#'   triangle and returns a `csfmt_ensemble_v3`. One method gets the name
-#'   `"method"`.
-#' @param max_delay_days The delay horizon in days.
-#' @param as_of_weeks,horizons,probs,seed Passed to [nowcast_backtest()]. `probs`
-#'   MUST include 0.05, 0.25, 0.5, 0.75 and 0.95.
-#' @param by The columns to group the scores by.
-#' @param thresholds The absolute revisions for the `p_gt_<t>` columns.
-#' @returns A data.table with one row per group and method:
-#' * `n`: the number of scored forecasts,
-#' * `coverage_50`, `coverage_90`: the share of truths from the 0.25 to the 0.75
-#'   quantile, and from the 0.05 to the 0.95 quantile,
-#' * `median_signed`, `median_abs`, `q05`, `q95`: the median revision, the median
-#'   absolute revision, and the 5% and 95% quantiles of the revision,
-#' * `p_gt_<t>`: the share of absolute revisions above each threshold, such as
-#'   `p_gt_25` for 0.25,
-#' * `wis`, `wis_log`, `coverage_95`, `width_95_rel_median`: the weighted
-#'   interval score and the 95% interval summary from [nowcast_score_v1()],
-#' * `method`.
-#'
-#' A method with no nowcast gives a warning and no rows.
-#' @family nowcast diagnostics
-#' @seealso `vignette("pipeline", package = "csalert")`, stage 2, which explains
-#'   how to read each column.
-#' @examples
-#' # a small reporting triangle: 30 weeks, each reported 3, 10 and 17 days
-#' # after its Monday
-#' monday <- as.Date("2023-01-02") + 7 * rep(0:29, each = 3)
-#' d <- data.table::data.table(
-#'   isoyearweek_reference = format(monday, "%G-%V"),
-#'   reporting_date = monday + rep(c(3, 10, 17), 30),
-#'   numerator = 10, indicator = "x", location = "n", age = "total", sex = "total")
-#' tri <- csfmt_reporting_triangle_v3(d, id_cols = c("indicator", "location", "age", "sex"))
-#'
-#' # one method
-#' nowcast_evaluate_v1(tri, function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21),
-#'                     max_delay_days = 21, horizons = 0:2, seed = 1)
-#' # a named list of methods, with a `method` column in the result
-#' nowcast_evaluate_v1(tri, max_delay_days = 21, horizons = 0:2, seed = 1, methods = list(
-#'   passthrough = function(x) nowcast_passthrough_to_ensemble_v1(x, max_delay_days = 21)))
-#' @export
-nowcast_evaluate_v1 <- function(
-  triangle,
-  methods,
-  max_delay_days,
-  as_of_weeks = NULL,
-  horizons = 1:2,
-  probs = c(.025, .05, .1, .25, .5, .75, .9, .95, .975),
-  by = "horizon",
-  thresholds = c(0.25, 0.5),
-  seed = NULL
-) {
-  # NSE column names, declared so R CMD check does not read them as undefined globals
-  method <- NULL
-  if (is.function(methods)) {
-    methods <- list(method = methods)
-  } # single -> one-element menu
-  stopifnot(is.list(methods), length(methods) > 0, !is.null(names(methods)))
-  truth <- nowcast_truth(triangle, max_delay_days)
-  out <- list()
-  for (nm in names(methods)) {
-    bt <- nowcast_backtest(
-      triangle,
-      methods[[nm]],
-      as_of_weeks = as_of_weeks,
-      max_delay_days = max_delay_days,
-      horizons = horizons,
-      probs = probs,
-      seed = seed
-    )
-    if (!nrow(bt)) {
-      warning("method '", nm, "' produced no nowcasts", call. = FALSE)
-      next
-    }
-    ev <- nowcast_score_v1(bt, truth, by = by, thresholds = thresholds)
-    ev[, method := nm]
-    out[[nm]] <- ev
-  }
-  return(data.table::rbindlist(out, fill = TRUE))
 }

@@ -1,3 +1,8 @@
+# Version 2026.10.12
+
+- Removed `nowcast_estimate_calibration_v1()`, `nowcast_apply_calibration_v1()` and `nowcast_evaluate_v1()`. The two calibration functions rescaled the intervals after the fit, so calibrate the intervals in the nowcast model instead. Replace `nowcast_evaluate_v1()` with `nowcast_backtest()`, `nowcast_truth()` and `nowcast_score_v1()`, as stage 2 of `vignette("pipeline", package = "csalert")` shows.
+- Inside `nowcast_delay_ecdf_v1()`, the default path and the option path share one selection of the weeks to complete. The output does not change.
+
 # Version 2026.10.11
 
 - `reporting_triangle_matrix()` returns a new element, `late`: the count of each reference week reported at delay `max_delay_days` or later. These reports no longer count in the last delay column of `mat`.

@@ -31,7 +31,7 @@
 # warning. The ECDF estimates each delay day from a count, so it does not
 # degrade with the column count.
 #
-# THE INTERVAL IS EMPIRICAL. Each settled week in the pool is re-completed from
+# THE DEFAULT INTERVAL IS EMPIRICAL. Each settled week in the pool is re-completed from
 # its own first d + 1 delay days, and compared with its settled total. The 5%
 # and 95% quantiles of that truth/estimate ratio, times the point estimate, are
 # the interval. That single spread already carries the estimation error and the
@@ -39,6 +39,11 @@
 # a dispersion-matched negbin for the observation ON TOP of it, which counted
 # the noise twice: measured coverage went to 0.97-1.00 against a nominal 0.90,
 # where the empirical endpoints give 0.80-0.87.
+#
+# TWO OPTIONS change this. `interval = "log_robust"` draws from the median and
+# MAD of the log pool ratios instead of their quantiles. `outage_gap_days` drops
+# a pool week with a delivery outage in its observed delay days. Either option
+# sends the series to .ecdf_complete_options(); the default path never uses it.
 #
 # UNITS. `max_delay_days`, `age_days` and every ECDF index are DAYS.
 # `delay_window` is WEEKS and keeps its name, so it is multiplied by 7 before it
@@ -176,6 +181,17 @@
   return(list(tgt = tgt, draws = out))
 }
 
+# The reference weeks to complete: reached by the as-of date and not yet
+# settled. Both completion paths use this one selection.
+.incomplete_weeks <- function(pool, max_delay_days) {
+  return(
+    !pool$settled &
+      !is.na(pool$age_days) &
+      pool$age_days >= 0L &
+      pool$age_days < (max_delay_days - 1L)
+  )
+}
+
 # Complete a reference x delay-day matrix into n_sim totals per reference week.
 # Settled weeks keep their observed total, rowSums(mat) + late, and so does any
 # week the pool cannot price. A priced week gets the estimate within the
@@ -195,10 +211,7 @@
   if (length(pool$train) < 3L || is.null(pool$p)) {
     return(draws)
   }
-  incomplete <- !pool$settled &
-    !is.na(pool$age_days) &
-    pool$age_days >= 0L &
-    pool$age_days < (max_delay_days - 1L)
+  incomplete <- .incomplete_weeks(pool, max_delay_days)
   for (d in sort(unique(pool$age_days[incomplete]))) {
     hz <- .ecdf_horizon_draws(d, mat, pool, n_sim)
     if (is.null(hz)) {
@@ -275,13 +288,7 @@
     return(draws)
   }
   mon <- isoyearweek_week_start(refs)
-  incomplete <- which(
-    !pool$settled &
-      !is.na(pool$age_days) &
-      pool$age_days >= 0L &
-      pool$age_days < (max_delay_days - 1L)
-  )
-  for (i in incomplete) {
+  for (i in which(.incomplete_weeks(pool, max_delay_days))) {
     v <- .option_week(
       mat,
       pool,
@@ -442,7 +449,8 @@
 #' absorb the weekly pattern.
 #'
 #' Whether the intervals are calibrated for your series is an empirical
-#' question. Measure it with [nowcast_evaluate_v1()]. Like every nowcast engine,
+#' question. Replay it with [nowcast_backtest()], and score the replay with
+#' [nowcast_score_v1()]. Like every nowcast engine,
 #' this one takes a reporting triangle and returns a `csfmt_ensemble_v3`.
 #' @param x The `csfmt_reporting_triangle_v3` to nowcast.
 #' @param ... Passed to the method.

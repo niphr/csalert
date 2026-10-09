@@ -86,11 +86,10 @@ head(bt, 6)
 }
 \seealso{
 \code{vignette("pipeline", package = "csalert")}, stage 2.
-\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}} runs this function and scores the result.
+\code{\link[=nowcast_score_v1]{nowcast_score_v1()}} scores the result against \code{\link[=nowcast_truth]{nowcast_truth()}}.
 
 Other nowcast diagnostics:
 \code{\link[=nowcast_censor]{nowcast_censor()}},
-\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}},
 \code{\link[=nowcast_truth]{nowcast_truth()}}
 }
 \concept{nowcast diagnostics}

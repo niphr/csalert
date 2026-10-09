@@ -276,12 +276,11 @@ if (is.null(rc35) || is.null(rc7)) {
   )
 }
 
-# ---- check 6: the four owned test files run clean ---------------------------
+# ---- check 6: the three owned test files run clean --------------------------
 owned <- c(
   "test-nowcast_backtest.R",
   "test-reporting_completion.R",
-  "test-nowcast_evaluate.R",
-  "test-nowcast_calibration.R"
+  "test-nowcast_evaluate.R"
 )
 for (tf in owned) {
   res <- safe(testthat::test_file(

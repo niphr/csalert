@@ -55,7 +55,6 @@ c(reference_weeks = 40L, settled = nrow(truth))
 
 Other nowcast diagnostics:
 \code{\link[=nowcast_backtest]{nowcast_backtest()}},
-\code{\link[=nowcast_censor]{nowcast_censor()}},
-\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}}
+\code{\link[=nowcast_censor]{nowcast_censor()}}
 }
 \concept{nowcast diagnostics}

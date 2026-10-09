@@ -6,7 +6,7 @@
 # without re-reading truncated raw data. Replaying an engine across a series of
 # "as-of" dates (`nowcast_backtest`) and comparing to the eventually-settled totals
 # (`nowcast_truth`) is how you tell whether a nowcast is any good. The scoring on
-# top of a replay lives in nowcast_evaluate.R (`nowcast_evaluate_v1`).
+# top of a replay lives in nowcast_evaluate.R (`nowcast_score_v1`).
 #
 # THE REPORTING AXIS IS A DATE. `as_of` is a Date, the delay horizon
 # `max_delay_days` counts DAYS, and no function here looks a reporting value up
@@ -260,7 +260,7 @@ nowcast_truth <- function(triangle, max_delay_days) {
 #'   `quantile_level` and `predicted`.
 #' @family nowcast diagnostics
 #' @seealso `vignette("pipeline", package = "csalert")`, stage 2.
-#'   [nowcast_evaluate_v1()] runs this function and scores the result.
+#'   [nowcast_score_v1()] scores the result against [nowcast_truth()].
 #' @examples
 #' monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 #' set.seed(1)

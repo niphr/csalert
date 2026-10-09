@@ -19,9 +19,16 @@ nowcast_score_v1(backtest, truth, by = "horizon", thresholds = c(0.25, 0.5))
 \item{thresholds}{The absolute revisions for the \verb{p_gt_<t>} columns.}
 }
 \value{
-A data.table with one row per group. It has the columns of
-\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}} except \code{method}, and these columns:
+A data.table with one row per group. It has the \code{by} columns and
+these columns:
 \itemize{
+\item \code{n}: the number of scored units,
+\item \code{coverage_50}, \code{coverage_90}: the share of truths from the 0.25 to the 0.75
+quantile, and from the 0.05 to the 0.95 quantile,
+\item \code{median_signed}, \code{median_abs}, \code{q05}, \code{q95}: the median revision, the median
+absolute revision, and the 5\% and 95\% quantiles of the revision,
+\item \verb{p_gt_<t>}: the share of absolute revisions above each threshold, such as
+\code{p_gt_25} for 0.25,
 \item \code{wis}: the mean WIS over the units,
 \item \code{wis_log}: the mean WIS after \code{log1p()} of each quantile and of the truth,
 \item \code{coverage_95}: the share of truths from the 0.025 to the 0.975 quantile,
@@ -34,13 +41,15 @@ no 0.025 or no 0.975 quantile.
 }
 \description{
 Scores a backtest from \code{\link[=nowcast_backtest]{nowcast_backtest()}} against the truth from
-\code{\link[=nowcast_truth]{nowcast_truth()}}. It adds the weighted interval score and a 95\% interval
-summary to the coverage and revision columns of \code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}}.
+\code{\link[=nowcast_truth]{nowcast_truth()}}. It reports the interval coverage, the revision of the
+median, the weighted interval score and a 95\% interval summary.
 }
 \details{
 A forecast unit is one reference week at one as-of date and horizon. The
 function scores only the units that have a finite truth and the 0.05, 0.25,
-0.5, 0.75 and 0.95 quantiles.
+0.5, 0.75 and 0.95 quantiles. The revision of a unit is
+\code{(median - truth) / truth}, over the units with a truth above 0. Every score
+is a measurement on the replayed weeks, not a property of a method.
 
 The weighted interval score (WIS) follows Bracher et al. (2021). For a unit
 with truth \code{y} and median \code{m}:
@@ -65,4 +74,8 @@ nowcast_score_v1(backtest, truth)
 Bracher J, Ray EL, Gneiting T, Reich NG (2021). Evaluating
 epidemic forecasts in an interval format. PLOS Computational Biology 17(2):
 e1008618. \doi{10.1371/journal.pcbi.1008618}
+}
+\seealso{
+\code{vignette("pipeline", package = "csalert")}, stage 2, which explains
+how to read each column.
 }

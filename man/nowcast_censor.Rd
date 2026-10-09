@@ -49,7 +49,6 @@ c(rows_now = nrow(tri), rows_then = nrow(past))
 
 Other nowcast diagnostics:
 \code{\link[=nowcast_backtest]{nowcast_backtest()}},
-\code{\link[=nowcast_evaluate_v1]{nowcast_evaluate_v1()}},
 \code{\link[=nowcast_truth]{nowcast_truth()}}
 }
 \concept{nowcast diagnostics}
