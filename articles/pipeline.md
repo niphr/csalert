@@ -78,7 +78,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.10.11
+#> csalert 2026.10.12
 #> https://niphr.github.io/csalert/
 ```
 
@@ -389,9 +389,10 @@ nrow(bt)
 #> [1] 600
 ```
 
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-runs the replay and scores each forecast against its settled truth. It
-returns one row per horizon and method:
+[`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md)
+scores each forecast of a replay against its settled truth from
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md).
+It returns one row per horizon:
 
 - `n`: the number of scored forecasts in the row.
 - `coverage_50`, `coverage_90`: the **measured share of settled truths
@@ -405,30 +406,38 @@ returns one row per horizon and method:
   `p_gt_50` are **empirical exceedance proportions**: the share of
   replayed forecasts whose absolute relative revision was above 0.25 and
   0.50. They are not probabilities of anything.
+- `wis`, `wis_log`, `coverage_95`, `width_95_rel_median`: the weighted
+  interval score and a 95% interval summary. The help page of
+  [`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md)
+  defines them.
 
-A **named list** of methods replays every method on the same reference
-and as-of weeks, so the comparison is paired **by forecast**. `seed`
-makes the run of each method reproducible. It does not give common
-random numbers across methods, which would need the methods to use their
-random numbers in the same way. Here they cannot:
+To compare methods, replay each method on the same reference and as-of
+weeks with the same `seed`, and score each replay. The comparison is
+then paired **by forecast**. `seed` makes the run of each method
+reproducible. It does not give common random numbers across methods,
+which would need the methods to use their random numbers in the same
+way. Here they cannot:
 [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md)
 draws no random numbers at all. It does no completion and republishes
 the counts reported so far, which makes the numbers easy to read:
 
 ``` r
-ev <- nowcast_evaluate_v1(
-  tri,
-  methods = list(
-    delay_ecdf  = method_ecdf,
-    passthrough = function(x) {
-      nowcast_passthrough_to_ensemble_v1(x, max_delay_days = max_delay_days)
-    }
-  ),
-  max_delay_days = max_delay_days,
-  as_of_weeks    = as_of_dates,
-  horizons       = 0:3,
-  seed           = 1
+methods <- list(
+  delay_ecdf  = method_ecdf,
+  passthrough = function(x) {
+    nowcast_passthrough_to_ensemble_v1(x, max_delay_days = max_delay_days)
+  }
 )
+ev <- rbindlist(lapply(names(methods), function(m) {
+  bt_m <- nowcast_backtest(
+    tri, methods[[m]],
+    max_delay_days = max_delay_days,
+    as_of_weeks    = as_of_dates,
+    horizons       = 0:3,
+    seed           = 1
+  )
+  cbind(method = m, nowcast_score_v1(bt_m, truth))
+}))
 ev[, .(method, horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
 #>         method horizon     n coverage_50 coverage_90 median_signed median_abs
 #>         <char>   <int> <int>       <num>       <num>         <num>      <num>
@@ -481,8 +490,9 @@ slow_dates <- tail(week_end[cstime::isoyearweek_to_isoyear_n(ref_weeks) == 2023]
 c(from = slow_dates[1], to = slow_dates[length(slow_dates)])
 #>         from           to 
 #> "2023-06-11" "2023-12-31"
-nowcast_evaluate_v1(tri, method_ecdf, max_delay_days = max_delay_days,
-                    as_of_weeks = slow_dates, horizons = 0:3, seed = 1)[
+bt_slow <- nowcast_backtest(tri, method_ecdf, max_delay_days = max_delay_days,
+                            as_of_weeks = slow_dates, horizons = 0:3, seed = 1)
+nowcast_score_v1(bt_slow, truth)[
   , .(horizon, n, coverage_50, coverage_90, median_signed, median_abs)]
 #>    horizon     n coverage_50 coverage_90 median_signed median_abs
 #>      <int> <int>       <num>       <num>         <num>      <num>
@@ -499,12 +509,6 @@ to 30 scored weeks cannot separate those from the regime change. The
 general lesson is the reason `delay_window` exists: **a nowcast engine
 is only as current as the reporting it was trained on**. Stage 3 shows
 when that reporting changed.
-
-[`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
-reports the same coverage per horizon, with an interval scaling factor
-learned from the replay. Its help page states that this is an empirical
-rescaling and not split conformal, so the factor carries no
-finite-sample coverage guarantee.
 
 ## 3. Reporting completion: how fast does the data arrive?
 
@@ -1489,9 +1493,6 @@ q_value(q_label(1))        # NA: three integer digits do not parse
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
   puts the year and month slices of stage 3 into one table with a
   `scope` column.
-- [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
-  turns a long replay into an interval scaling factor per horizon, as a
-  check on an engine.
 - The
   [`cstidy::csfmt_rts_data_v1`](https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html)
   methods of

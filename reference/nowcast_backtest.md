@@ -75,12 +75,12 @@ Monday to the as-of date. Horizon 0 is the week of the as-of date.
 
 [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
 stage 2.
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-runs this function and scores the result.
+[`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md)
+scores the result against
+[`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md).
 
 Other nowcast diagnostics:
 [`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
 
 ## Examples

@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.12</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -178,7 +178,7 @@ use.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.10.11</span></span>
+<span><span class="co">#&gt; csalert 2026.10.12</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -453,9 +453,9 @@ current week, which is the least observed.</p>
 <span><span class="co">#&gt; 4:   2023-41 2023-10-15       0           0.05  15.80000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">bt</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 600</span></span></code></pre></div>
-<p><code><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code> runs the replay and scores each
-forecast against its settled truth. It returns one row per horizon and
-method:</p>
+<p><code><a href="../reference/nowcast_score_v1.html">nowcast_score_v1()</a></code> scores each forecast of a replay
+against its settled truth from <code><a href="../reference/nowcast_truth.html">nowcast_truth()</a></code>. It returns
+one row per horizon:</p>
 <ul>
 <li>
 <code>n</code>: the number of scored forecasts in the row.</li>
@@ -476,29 +476,38 @@ usual expected-error sense. <code>p_gt_25</code> and
 proportions</strong>: the share of replayed forecasts whose absolute
 relative revision was above 0.25 and 0.50. They are not probabilities of
 anything.</li>
+<li>
+<code>wis</code>, <code>wis_log</code>, <code>coverage_95</code>,
+<code>width_95_rel_median</code>: the weighted interval score and a 95%
+interval summary. The help page of <code><a href="../reference/nowcast_score_v1.html">nowcast_score_v1()</a></code>
+defines them.</li>
 </ul>
-<p>A <strong>named list</strong> of methods replays every method on the
-same reference and as-of weeks, so the comparison is paired <strong>by
-forecast</strong>. <code>seed</code> makes the run of each method
-reproducible. It does not give common random numbers across methods,
-which would need the methods to use their random numbers in the same
-way. Here they cannot: <code><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1()</a></code>
-draws no random numbers at all. It does no completion and republishes
-the counts reported so far, which makes the numbers easy to read:</p>
+<p>To compare methods, replay each method on the same reference and
+as-of weeks with the same <code>seed</code>, and score each replay. The
+comparison is then paired <strong>by forecast</strong>.
+<code>seed</code> makes the run of each method reproducible. It does not
+give common random numbers across methods, which would need the methods
+to use their random numbers in the same way. Here they cannot:
+<code><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1()</a></code> draws no random
+numbers at all. It does no completion and republishes the counts
+reported so far, which makes the numbers easy to read:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ev</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></span><span class="op">(</span></span>
-<span>  <span class="va">tri</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    delay_ecdf  <span class="op">=</span> <span class="va">method_ecdf</span>,</span>
-<span>    passthrough <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1</a></span><span class="op">(</span><span class="va">x</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span></span>
-<span>    <span class="op">}</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
-<span>  as_of_weeks    <span class="op">=</span> <span class="va">as_of_dates</span>,</span>
-<span>  horizons       <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>,</span>
-<span>  seed           <span class="op">=</span> <span class="fl">1</span></span>
+<code class="sourceCode R"><span><span class="va">methods</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  delay_ecdf  <span class="op">=</span> <span class="va">method_ecdf</span>,</span>
+<span>  passthrough <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1</a></span><span class="op">(</span><span class="va">x</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span>
+<span><span class="va">ev</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">rbindlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">methods</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">bt_m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_backtest.html">nowcast_backtest</a></span><span class="op">(</span></span>
+<span>    <span class="va">tri</span>, <span class="va">methods</span><span class="op">[[</span><span class="va">m</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>    max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
+<span>    as_of_weeks    <span class="op">=</span> <span class="va">as_of_dates</span>,</span>
+<span>    horizons       <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>,</span>
+<span>    seed           <span class="op">=</span> <span class="fl">1</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">m</span>, <span class="fu"><a href="../reference/nowcast_score_v1.html">nowcast_score_v1</a></span><span class="op">(</span><span class="va">bt_m</span>, <span class="va">truth</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ev</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">method</span>, <span class="va">horizon</span>, <span class="va">n</span>, <span class="va">coverage_50</span>, <span class="va">coverage_90</span>, <span class="va">median_signed</span>, <span class="va">median_abs</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;         method horizon     n coverage_50 coverage_90 median_signed median_abs</span></span>
 <span><span class="co">#&gt;         &lt;char&gt;   &lt;int&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
@@ -549,8 +558,9 @@ contrast:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>from <span class="op">=</span> <span class="va">slow_dates</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, to <span class="op">=</span> <span class="va">slow_dates</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">slow_dates</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         from           to </span></span>
 <span><span class="co">#&gt; "2023-06-11" "2023-12-31"</span></span>
-<span><span class="fu"><a href="../reference/nowcast_evaluate_v1.html">nowcast_evaluate_v1</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">method_ecdf</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
-<span>                    as_of_weeks <span class="op">=</span> <span class="va">slow_dates</span>, horizons <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">[</span></span>
+<span><span class="va">bt_slow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nowcast_backtest.html">nowcast_backtest</a></span><span class="op">(</span><span class="va">tri</span>, <span class="va">method_ecdf</span>, max_delay_days <span class="op">=</span> <span class="va">max_delay_days</span>,</span>
+<span>                            as_of_weeks <span class="op">=</span> <span class="va">slow_dates</span>, horizons <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/nowcast_score_v1.html">nowcast_score_v1</a></span><span class="op">(</span><span class="va">bt_slow</span>, <span class="va">truth</span><span class="op">)</span><span class="op">[</span></span>
 <span>  , <span class="fu">.</span><span class="op">(</span><span class="va">horizon</span>, <span class="va">n</span>, <span class="va">coverage_50</span>, <span class="va">coverage_90</span>, <span class="va">median_signed</span>, <span class="va">median_abs</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    horizon     n coverage_50 coverage_90 median_signed median_abs</span></span>
 <span><span class="co">#&gt;      &lt;int&gt; &lt;int&gt;       &lt;num&gt;       &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span></span>
@@ -565,11 +575,6 @@ to 30 scored weeks cannot separate those from the regime change. The
 general lesson is the reason <code>delay_window</code> exists: <strong>a
 nowcast engine is only as current as the reporting it was trained
 on</strong>. Stage 3 shows when that reporting changed.</p>
-<p><code><a href="../reference/nowcast_estimate_calibration_v1.html">nowcast_estimate_calibration_v1()</a></code> reports the same
-coverage per horizon, with an interval scaling factor learned from the
-replay. Its help page states that this is an empirical rescaling and not
-split conformal, so the factor carries no finite-sample coverage
-guarantee.</p>
 </div>
 </div>
 <div class="section level2">
@@ -1491,10 +1496,6 @@ the rest of the pipeline.</li>
 <li>
 <code><a href="../reference/reporting_completion_trend_v1.html">reporting_completion_trend_v1()</a></code> puts the year and month
 slices of stage 3 into one table with a <code>scope</code> column.</li>
-<li>
-<code><a href="../reference/nowcast_estimate_calibration_v1.html">nowcast_estimate_calibration_v1()</a></code> turns a long replay
-into an interval scaling factor per horizon, as a check on an
-engine.</li>
 <li>The <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code> methods of
 <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code>
 are deprecated. No vignette runs them, and their help pages hold the

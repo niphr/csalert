@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 2026.10.12
+
+- Removed `nowcast_estimate_calibration_v1()`,
+  `nowcast_apply_calibration_v1()` and `nowcast_evaluate_v1()`. The two
+  calibration functions rescaled the intervals after the fit, so
+  calibrate the intervals in the nowcast model instead. Replace
+  `nowcast_evaluate_v1()` with
+  [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
+  [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md)
+  and
+  [`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md),
+  as stage 2 of
+  [`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md)
+  shows.
+- Inside
+  [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md),
+  the default path and the option path share one selection of the weeks
+  to complete. The output does not change.
+
 ## Version 2026.10.11
 
 - [`reporting_triangle_matrix()`](https://niphr.github.io/csalert/reference/reporting_triangle_matrix.md)
@@ -81,8 +100,7 @@
   coverage and the 95% interval width relative to the truth. Coverage
   alone rewards an interval that is too wide, and WIS penalises both a
   miss and the width.
-- [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-  calls
+- `nowcast_evaluate_v1()` calls
   [`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md)
   and gains the columns `wis`, `wis_log`, `coverage_95` and
   `width_95_rel_median`. The earlier columns keep their values.
@@ -220,7 +238,7 @@ wrong numbers rather than an error.
   [`nowcast_passthrough_to_ensemble_v1()`](https://niphr.github.io/csalert/reference/nowcast_passthrough_to_ensemble_v1.md),
   [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md),
   [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
-  [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
+  `nowcast_evaluate_v1()`,
   [`nowcast_delay_ecdf_v1()`](https://niphr.github.io/csalert/reference/nowcast_delay_ecdf_v1.md),
   [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
   and
@@ -511,12 +529,12 @@ window and never had this argument.
 
 ### Corrections
 
-- **[`?nowcast_evaluate_v1`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-  claimed common random numbers, and the code does not establish them.**
-  Every method starts from the same RNG state on each as-of week, which
-  pairs the comparison. Common random numbers would also need the
-  methods to consume compatible variates, and nothing enforces that. The
-  documentation now states the mechanism and stops there.
+- **`?nowcast_evaluate_v1` claimed common random numbers, and the code
+  does not establish them.** Every method starts from the same RNG state
+  on each as-of week, which pairs the comparison. Common random numbers
+  would also need the methods to consume compatible variates, and
+  nothing enforces that. The documentation now states the mechanism and
+  stops there.
   [`vignette("pipeline")`](https://niphr.github.io/csalert/articles/pipeline.md)
   already said this. The roxygen contradicted it in three places,
   including a worked example.
@@ -792,8 +810,7 @@ them.
   a fitted model and truncating at the observed count does not establish
   calibrated coverage. The documentation now says calibration is an
   empirical question about a given series and points at
-  [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md),
-  which exists to measure it.
+  `nowcast_evaluate_v1()`, which exists to measure it.
 - **The calibration functions no longer claim split conformal or nominal
   coverage.** The estimator takes the ordinary type-7 quantile of
   `|truth - median| / halfwidth`, not the conformal order statistic.
@@ -873,16 +890,14 @@ them.
 
 ### Nowcast calibration, restored as a diagnostic
 
-- **[`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
-  /
-  [`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md)
-  are back**, after being removed earlier in this release cycle. They
-  are available to *check an engine with*, not applied to published
-  numbers. The estimator reports a per-horizon `factor`. So “your 90%
-  interval would need to be 1.4x wider to actually cover 90%” is
-  readable straight off the backtest. That is a far more actionable red
-  flag than a bare coverage fraction, and it keeps the published number
-  the model’s own.
+- **`nowcast_estimate_calibration_v1()` /
+  `nowcast_apply_calibration_v1()` are back**, after being removed
+  earlier in this release cycle. They are available to *check an engine
+  with*, not applied to published numbers. The estimator reports a
+  per-horizon `factor`. So “your 90% interval would need to be 1.4x
+  wider to actually cover 90%” is readable straight off the backtest.
+  That is a far more actionable red flag than a bare coverage fraction,
+  and it keeps the published number the model’s own.
 - Their tests now run against `nowcast_quasipoisson_v1`. The old
   assertions (`factor > 1` everywhere, raw coverage below 0.82) encoded
   the removed `nowcast_survrtrunc_v1`’s behaviour. The current engine

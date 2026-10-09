@@ -11,7 +11,7 @@ completion ratios that the pool shows at the same delay day."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.11</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.12</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -166,7 +166,8 @@ keeps its observed count. So the draws are not built from
 day <code>d</code> is always the same weekday. The pool ratios at delay day <code>d</code> therefore
 absorb the weekly pattern.</p>
 <p>Whether the intervals are calibrated for your series is an empirical
-question. Measure it with <code><a href="nowcast_evaluate_v1.html">nowcast_evaluate_v1()</a></code>. Like every nowcast engine,
+question. Replay it with <code><a href="nowcast_backtest.html">nowcast_backtest()</a></code>, and score the replay with
+<code><a href="nowcast_score_v1.html">nowcast_score_v1()</a></code>. Like every nowcast engine,
 this one takes a reporting triangle and returns a <code>csfmt_ensemble_v3</code>.</p>
     </div>
     <div class="section level2">

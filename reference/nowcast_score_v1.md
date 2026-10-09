@@ -4,9 +4,8 @@ Scores a backtest from
 [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
 against the truth from
 [`nowcast_truth()`](https://niphr.github.io/csalert/reference/nowcast_truth.md).
-It adds the weighted interval score and a 95% interval summary to the
-coverage and revision columns of
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md).
+It reports the interval coverage, the revision of the median, the
+weighted interval score and a 95% interval summary.
 
 ## Usage
 
@@ -39,9 +38,20 @@ nowcast_score_v1(backtest, truth, by = "horizon", thresholds = c(0.25, 0.5))
 
 ## Value
 
-A data.table with one row per group. It has the columns of
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-except `method`, and these columns:
+A data.table with one row per group. It has the `by` columns and these
+columns:
+
+- `n`: the number of scored units,
+
+- `coverage_50`, `coverage_90`: the share of truths from the 0.25 to the
+  0.75 quantile, and from the 0.05 to the 0.95 quantile,
+
+- `median_signed`, `median_abs`, `q05`, `q95`: the median revision, the
+  median absolute revision, and the 5% and 95% quantiles of the
+  revision,
+
+- `p_gt_<t>`: the share of absolute revisions above each threshold, such
+  as `p_gt_25` for 0.25,
 
 - `wis`: the mean WIS over the units,
 
@@ -62,7 +72,10 @@ unit has no 0.025 or no 0.975 quantile.
 
 A forecast unit is one reference week at one as-of date and horizon. The
 function scores only the units that have a finite truth and the 0.05,
-0.25, 0.5, 0.75 and 0.95 quantiles.
+0.25, 0.5, 0.75 and 0.95 quantiles. The revision of a unit is
+`(median - truth) / truth`, over the units with a truth above 0. Every
+score is a measurement on the replayed weeks, not a property of a
+method.
 
 The weighted interval score (WIS) follows Bracher et al. (2021). For a
 unit with truth `y` and median `m`:
@@ -80,6 +93,11 @@ Bracher J, Ray EL, Gneiting T, Reich NG (2021). Evaluating epidemic
 forecasts in an interval format. PLOS Computational Biology 17(2):
 e1008618.
 [doi:10.1371/journal.pcbi.1008618](https://doi.org/10.1371/journal.pcbi.1008618)
+
+## See also
+
+[`vignette("pipeline", package = "csalert")`](https://niphr.github.io/csalert/articles/pipeline.md),
+stage 2, which explains how to read each column.
 
 ## Examples
 

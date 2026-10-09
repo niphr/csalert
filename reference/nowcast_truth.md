@@ -42,8 +42,7 @@ stage 2.
 
 Other nowcast diagnostics:
 [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
-[`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md),
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
+[`nowcast_censor()`](https://niphr.github.io/csalert/reference/nowcast_censor.md)
 
 ## Examples
 

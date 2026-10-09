@@ -80,31 +80,12 @@ arrive.
   : The settled total of each reference week
 - [`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md)
   : Replay a nowcast method on past as-of dates
-- [`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md)
-  : Score nowcast methods on interval coverage and revision
 - [`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md)
   : Score replayed nowcast quantiles against the settled truth
 - [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
   : Measure how fast the counts of a reporting triangle arrive
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
   : Reporting speed by year and by recent month, in one table
-
-## Nowcast calibration
-
-Measure how far the intervals of an engine are from nominal coverage, as
-a factor per horizon. The package does not apply it unless you choose
-to.
-
-- [`nowcast_estimate_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_estimate_calibration_v1.md)
-  : Estimate an interval scaling factor from a backtest
-
-- [`nowcast_apply_calibration_v1()`](https://niphr.github.io/csalert/reference/nowcast_apply_calibration_v1.md)
-  : Rescale quantile nowcasts by a calibration factor
-
-- [`print(`*`<nowcast_calibration>`*`)`](https://niphr.github.io/csalert/reference/print.nowcast_calibration.md)
-  :
-
-  Print a `nowcast_calibration`
 
 ## Quality control
 

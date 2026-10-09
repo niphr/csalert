@@ -118,8 +118,10 @@ delay day `d` is always the same weekday. The pool ratios at delay day
 `d` therefore absorb the weekly pattern.
 
 Whether the intervals are calibrated for your series is an empirical
-question. Measure it with
-[`nowcast_evaluate_v1()`](https://niphr.github.io/csalert/reference/nowcast_evaluate_v1.md).
+question. Replay it with
+[`nowcast_backtest()`](https://niphr.github.io/csalert/reference/nowcast_backtest.md),
+and score the replay with
+[`nowcast_score_v1()`](https://niphr.github.io/csalert/reference/nowcast_score_v1.md).
 Like every nowcast engine, this one takes a reporting triangle and
 returns a `csfmt_ensemble_v3`.
 
