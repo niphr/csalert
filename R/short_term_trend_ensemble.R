@@ -184,8 +184,8 @@ irls_working <- function(y, m, eta, binom) {
 
 # Wald standard error at the converged coefficients: sqrt(phi * (X'WX)^-1_22),
 # and (X'WX)^-1_22 is Sw / det. The quasi-Poisson dispersion is the Pearson
-# statistic over width - 2; the binomial family fixes it at 1, as stats::glm
-# does.
+# statistic over width - 2, floored at 1, so below 1 it is not the dispersion
+# of stats::glm. The binomial family fixes it at 1, as stats::glm does.
 irls_wald_se <- function(b0, b1, tt, Ylag, Mlag, binom, n, D, n_rows) {
   Sw <- Swt <- Swt2 <- chi <- matrix(0, n_rows, D)
   for (j in seq_len(n)) {
@@ -201,7 +201,7 @@ irls_wald_se <- function(b0, b1, tt, Ylag, Mlag, binom, n, D, n_rows) {
     Swt <- Swt + w * tt[j]
     Swt2 <- Swt2 + w * tt[j]^2
   }
-  phi <- if (binom) 1 else chi / (n - 2)
+  phi <- if (binom) 1 else pmax(chi / (n - 2), 1)
   return(sqrt(phi * Sw / (Sw * Swt2 - Swt^2)))
 }
 
@@ -273,8 +273,8 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
 
   # Wald standard error at the converged coefficients: sqrt(phi * (X'WX)^-1_22),
   # and (X'WX)^-1_22 is Sw / det. The quasi-Poisson dispersion is the Pearson
-  # statistic over width - 2; the binomial family fixes it at 1, as stats::glm
-  # does.
+  # statistic over width - 2, floored at 1, so below 1 it is not the dispersion
+  # of stats::glm. The binomial family fixes it at 1, as stats::glm does.
   se <- irls_wald_se(b0, b1, tt, Ylag, Mlag, binom, n, D, length(rows))
 
   # A non-convergent window is a separated one. Its last iterate is a finite
@@ -436,7 +436,8 @@ stt_error_reference <- function(family, error_reference, width) {
 #'   freedom, the residual degrees of freedom of their dispersion. It gives
 #'   `"binomial"` a normal. At width 3 that t is a Cauchy, with heavy tails. Use
 #'   `"normal"` to match `stats::confint()`, which profiles the deviance against
-#'   an asymptotic chi-squared.
+#'   an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
+#'   its standard error is never smaller than the Poisson one.
 #' @returns The ensemble method returns `x` with the draw matrices
 #'   `<measure>_trend_beta1`, the slope per week, and `<measure>_trend_gr`, the
 #'   growth rate. It adds `<measure>_trend_increasing_pr`, the share of draws with

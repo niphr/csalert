@@ -174,7 +174,7 @@ ref_glm <- function(
   denom = NULL,
   control = stats::glm.control()
 ) {
-  b <- se <- rep(NA_real_, length(y))
+  b <- se <- disp <- rep(NA_real_, length(y))
   for (i in width:length(y)) {
     idx <- (i - width + 1):i
     dd <- data.frame(week = seq_len(width), y = y[idx])
@@ -197,8 +197,9 @@ ref_glm <- function(
     }
     b[i] <- stats::coef(m)[[2]]
     se[i] <- summary(m)$coefficients[2, 2]
+    disp[i] <- summary(m)$dispersion
   }
-  list(beta1 = b, se = se)
+  list(beta1 = b, se = se, dispersion = disp)
 }
 
 ens_1draw <- function(y, denom = NULL) {
@@ -362,14 +363,46 @@ test_that("family = 'quasipoisson' matches a per-window glm, zeros included", {
       100 * (exp(ref$beta1) - 1),
       tolerance = 1e-6
     )
+    # The kernel floors the dispersion at 1, and stats::glm does not. So the
+    # reference SE is rescaled from glm's dispersion to the floored one.
+    ref_t <- ref_glm(y, 4, "quasipoisson", control = tight)
     expect_equal(
       rolling_slope_matrix(matrix(y, ncol = 1), 4, family = "quasipoisson")$se[,
         1
       ],
-      ref_glm(y, 4, "quasipoisson", control = tight)$se,
+      ref_t$se * sqrt(pmax(1, ref_t$dispersion) / ref_t$dispersion),
       tolerance = 1e-6
     )
   }
+})
+
+test_that("quasipoisson dispersion is floored at 1", {
+  # The last 3-week window, 39, 36, 33, is an exact line on the count scale and
+  # nearly one on the log scale. Its Pearson dispersion is near 0, which gave an
+  # SE of 0.00201 and P(increasing) of exactly 0. The floor gives the Poisson SE.
+  y <- c(30, 33, 36, 39, 36, 33)
+  rs <- rolling_slope_matrix(matrix(y, ncol = 1), 3, family = "quasipoisson")
+  pois <- stats::glm(
+    y ~ t,
+    data = data.frame(y = c(39, 36, 33), t = 1:3),
+    family = stats::poisson,
+    control = stats::glm.control(epsilon = 1e-12, maxit = 100)
+  )
+  pois_se <- summary(pois)$coefficients[2, 2]
+  expect_equal(pois_se, 0.1180562, tolerance = 1e-6)
+  expect_equal(rs$se[6, 1], pois_se, tolerance = 1e-10)
+
+  set.seed(20261015L)
+  out <- short_term_trend(
+    ens_1draw(y),
+    measure = "cases",
+    trend_isoyearweeks = 3,
+    family = "quasipoisson",
+    error_reference = "normal"
+  )
+  pr <- out$data[["cases_trend_increasing_pr"]][6]
+  expect_gt(pr, 0)
+  expect_lt(pr, 1)
 })
 
 test_that("family = 'binomial' matches a per-window weighted glm", {
@@ -406,7 +439,7 @@ test_that("family = 'binomial' matches a per-window weighted glm", {
 
 test_that("P(increasing) is never degenerate at width 3", {
   # Every 3-week window here zig-zags, so the slope is small next to its own
-  # standard error: max |beta1 / se| is 0.43. Without the slope's error every
+  # standard error: max |beta1 / se| is 0.37. Without the slope's error every
   # one of these would read as certainty, 0 or 1. A GLM Wald interval is
   # asymptotic, so the perturbation is normal and width 3 stays usable.
   y <- c(10, 13, 11, 14, 12, 15, 13, 16, 14, 17, 12, 16)

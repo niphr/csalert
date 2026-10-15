@@ -922,8 +922,9 @@ pipeline built on `stats::confint()`.
 
 Width 2 is an error for those two families. Both estimate a dispersion from
 `width - 2` residual degrees of freedom, so at width 2 there are none and `se`
-has no value. `family = "binomial"` fixes the dispersion at 1, and accepts
-width 2.
+has no value. The quasi-Poisson dispersion is floored at 1, so its `se` is
+never smaller than the Poisson one. `family = "binomial"` fixes the dispersion
+at 1, and accepts width 2.
 
 The ensemble method is not the same estimator as `short_term_trend()` on a
 `cstidy::csfmt_rts_data_v1`. That one fits a quasi-Poisson log-link model over

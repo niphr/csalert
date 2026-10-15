@@ -100,7 +100,8 @@ week, in the odds under \code{"binomial"}. A zero count needs no offset.}
 freedom, the residual degrees of freedom of their dispersion. It gives
 \code{"binomial"} a normal. At width 3 that t is a Cauchy, with heavy tails. Use
 \code{"normal"} to match \code{stats::confint()}, which profiles the deviance against
-an asymptotic chi-squared.}
+an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
+its standard error is never smaller than the Poisson one.}
 }
 \value{
 The v1 method returns \code{x} with the forecast weeks added. The new
