@@ -1,3 +1,9 @@
+# Version 2026.10.16
+
+- The `csfmt_rts_data_v1` table methods of `short_term_trend()` and `signal_detection_hlm()` are supported for counts without delayed reporting. The documentation no longer calls them deprecated, and their code does not change.
+- `glue` moves from Suggests to Imports, because the table method of `short_term_trend()` calls it. csalert no longer imports `ggplot2` or suggests `csmaps`, because no code uses them.
+- Removed the development files in `dev/` and `tests/manual/`, the CRAN submission files, the R-hub workflow, two unused internal data generators and commented-out code. `R/nowcast_evaluate.R` is now `R/nowcast_score.R`, named after `nowcast_score_v1()`.
+
 # Version 2026.10.15
 
 - `short_term_trend()` floors the quasi-Poisson dispersion at 1. A window with less variation than Poisson now gets the Poisson standard error. Before, it could get a near-zero one, and a `<measure>_trend_increasing_pr` of exactly 0 or 1.

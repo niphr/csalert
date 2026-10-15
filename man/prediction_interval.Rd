@@ -23,7 +23,7 @@ A \code{data.table} with one row per row of \code{newdata}: \code{lower}, \code{
 \code{upper}, on the response scale.
 }
 \description{
-Internal: the deprecated \code{csfmt_rts_data_v1} method of \code{\link[=short_term_trend]{short_term_trend()}} uses
-it for its forecast.
+Internal: the \code{csfmt_rts_data_v1} table method of \code{\link[=short_term_trend]{short_term_trend()}} uses it
+for its forecast.
 }
 \keyword{internal}

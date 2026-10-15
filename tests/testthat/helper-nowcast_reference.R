@@ -1,7 +1,6 @@
-# The reference implementation of nowcast_delay_ecdf_v1(), copied from
-# luftveisovervaking_trend, R_nowcast_comparison_v01/nowcast_candidates.R:
-# .series(), .ensemble() and nowcast_ecdf_variant(). The tests compare the
-# engine's draw quantiles with it.
+# A reference copy of the ECDF engine behind nowcast_delay_ecdf_v1(), kept for
+# the equivalence test. It holds .series(), .ensemble() and
+# nowcast_ecdf_variant(). The tests compare the engine's draw quantiles with it.
 #
 # Changes from the source, and nothing else:
 # - every name has a `ref_` prefix, so it cannot mask a csalert internal inside
@@ -67,7 +66,8 @@ ref_nowcast_ecdf_variant <- function(
       next
     }
     r <- Ts[ok] / Os[ok]
-    v <- O * stats::quantile(r, (seq_len(n_sim) - 1) / (n_sim - 1), names = FALSE)
+    v <- O *
+      stats::quantile(r, (seq_len(n_sim) - 1) / (n_sim - 1), names = FALSE)
     draws[i, ] <- sample(pmax(v, obs_total[i]))
   }
   .ref_ensemble(x, m, draws)

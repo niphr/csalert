@@ -41,7 +41,7 @@ short_term_trend(x, ...)
 )
 }
 \arguments{
-\item{x}{A \code{csfmt_ensemble_v3}, or a deprecated \code{csfmt_rts_data_v1}.}
+\item{x}{A \code{csfmt_ensemble_v3}, or a \code{csfmt_rts_data_v1} table.}
 
 \item{...}{Passed to the method.}
 
@@ -118,15 +118,19 @@ a positive slope, to \verb{$data} by reference, so the input ensemble gets it to
 }
 \description{
 The \code{csfmt_ensemble_v3} method fits a line through a rolling window of weeks in
-every draw. The deprecated \code{csfmt_rts_data_v1} method fits a rolling
+every draw. The \code{csfmt_rts_data_v1} table method fits a rolling
 quasi-Poisson regression to a table, after Benedetti (2019)
 \url{doi:10.5588/pha.19.0002}.
 }
-\section{The deprecated csfmt_rts_data_v1 method}{
+\section{The csfmt_rts_data_v1 table method}{
 
-\code{short_term_trend.csfmt_rts_data_v1()} is \strong{deprecated}. It still works and
-gives no warning. New work SHOULD run the ensemble method before
-\code{\link[=ens_collapse]{ens_collapse()}}:
+\code{short_term_trend.csfmt_rts_data_v1()} is supported for counts without
+delayed reporting. It gives each week a status from a quasi-Poisson test on
+the slope. \code{\link[=short_term_trend_sts_v1]{short_term_trend_sts_v1()}} runs the same test on a
+\code{surveillance::sts} object.
+
+For counts with delayed reporting, run the ensemble method on the nowcast,
+before \code{\link[=ens_collapse]{ens_collapse()}}:
 
 \preformatted{
 ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
@@ -134,7 +138,7 @@ ens <- short_term_trend(ens, measure = "numerator_nowcasted")
 out <- ens_collapse(ens, heal = TRUE)
 }
 
-\strong{The replacement is not a drop-in.} The v1 method takes \code{numerator},
+\strong{The ensemble method is not a drop-in.} The v1 method takes \code{numerator},
 \code{denominator}, \code{prX} and the \verb{*_naming_prefix} arguments. The ensemble method
 takes one draw matrix, \code{measure}. The v1 method returns a status and a
 doubling time from a quasi-Poisson log-link fit. The ensemble method returns a
@@ -188,7 +192,7 @@ names(ens$draws)
 # the share of draws with a positive slope; the first 4 weeks have no window
 ens$data[, .(isoyearweek, numerator_nowcasted_trend_increasing_pr)]
 
-# the deprecated csfmt_rts_data_v1 method
+# the csfmt_rts_data_v1 table method, for counts without delayed reporting
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
 res <- csalert::short_term_trend(

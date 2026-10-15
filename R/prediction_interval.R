@@ -1,7 +1,7 @@
 #' Prediction interval for new data from a fitted model
 #'
-#' Internal: the deprecated `csfmt_rts_data_v1` method of [short_term_trend()] uses
-#' it for its forecast.
+#' Internal: the `csfmt_rts_data_v1` table method of [short_term_trend()] uses it
+#' for its forecast.
 #' @param object A fitted model.
 #' @param newdata A data.frame of covariates.
 #' @param alpha The two-sided significance level.

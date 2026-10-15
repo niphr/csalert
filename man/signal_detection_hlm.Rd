@@ -26,7 +26,7 @@ signal_detection_hlm(x, ...)
 \method{signal_detection_hlm}{csfmt_ensemble_v3}(x, measure, baseline_isoyears = 5, ...)
 }
 \arguments{
-\item{x}{A \code{csfmt_ensemble_v3}, or a deprecated \code{csfmt_rts_data_v1}.}
+\item{x}{A \code{csfmt_ensemble_v3}, or a \code{csfmt_rts_data_v1} table.}
 
 \item{...}{Passed to the method.}
 
@@ -76,11 +76,14 @@ The baseline of a week is the values 52, 104, and so on up to
 none. A year back is 52 rows, so across a 53-week ISO year the baseline is
 one week off. The limit is treated as known.
 }
-\section{The deprecated csfmt_rts_data_v1 method}{
+\section{The csfmt_rts_data_v1 table method}{
 
-\code{signal_detection_hlm.csfmt_rts_data_v1()} is \strong{deprecated}. It still works
-and gives no warning. New work SHOULD run the ensemble method before
-\code{\link[=ens_collapse]{ens_collapse()}}:
+\code{signal_detection_hlm.csfmt_rts_data_v1()} is supported for counts without
+delayed reporting. It compares each observed week with the limit, and gives
+the week one label.
+
+For counts with delayed reporting, run the ensemble method on the nowcast,
+before \code{\link[=ens_collapse]{ens_collapse()}}:
 
 \preformatted{
 ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
@@ -88,7 +91,7 @@ ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")
 out <- ens_collapse(ens, heal = TRUE)
 }
 
-\strong{The replacement is not a drop-in.} The v1 method takes \code{value},
+\strong{The ensemble method is not a drop-in.} The v1 method takes \code{value},
 \code{remove_last_isoyearweeks}, \code{forecast_isoyearweeks} and \code{value_naming_prefix},
 where the ensemble method takes a draw matrix, \code{measure}. The v1 method returns
 a label per week. The ensemble method classifies every draw, so after the
@@ -120,7 +123,7 @@ probability or a false-alarm rate.
 }
 
 \examples{
-# the deprecated csfmt_rts_data_v1 method
+# the csfmt_rts_data_v1 table method, for counts without delayed reporting
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
 res <- csalert::signal_detection_hlm(

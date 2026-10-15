@@ -6,7 +6,7 @@
 # without re-reading truncated raw data. Replaying an engine across a series of
 # "as-of" dates (`nowcast_backtest`) and comparing to the eventually-settled totals
 # (`nowcast_truth`) is how you tell whether a nowcast is any good. The scoring on
-# top of a replay lives in nowcast_evaluate.R (`nowcast_score_v1`).
+# top of a replay lives in nowcast_score.R (`nowcast_score_v1`).
 #
 # THE REPORTING AXIS IS A DATE. `as_of` is a Date, the delay horizon
 # `max_delay_days` counts DAYS, and no function here looks a reporting value up

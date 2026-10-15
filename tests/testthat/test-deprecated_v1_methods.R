@@ -2,9 +2,9 @@
 # collapsed csfmt_rts_data_v3 is output and never input. These tests pin the two
 # halves of that contract:
 #   1. the v3 methods exist only to say so, and always stop() with a signpost;
-#   2. the deprecated csfmt_rts_data_v1 methods still run SILENTLY -- the
-#      deprecation is documentation only, because norsyss.cs9 calls both nightly
-#      and a runtime warning would spam logs for something it cannot act on yet.
+#   2. the csfmt_rts_data_v1 table methods run SILENTLY. They are supported for
+#      counts without delayed reporting, and norsyss.cs9 calls both nightly, so
+#      a runtime warning would only fill its logs.
 
 test_that("short_term_trend() on a csfmt_rts_data_v3 stops with a signpost", {
   d <- data.table::data.table(
@@ -38,11 +38,11 @@ test_that("signal_detection_hlm() on a csfmt_rts_data_v3 stops with a signpost",
   expect_error(signal_detection_hlm(d), "BEFORE ens_collapse")
 })
 
-test_that("the deprecated csfmt_rts_data_v1 methods emit no runtime condition", {
+test_that("the csfmt_rts_data_v1 table methods emit no runtime condition", {
   d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
   d <- d[granularity_time == "isoyearweek"]
 
-  # documentation-only deprecation: no warning, no message, no condition at all
+  # a supported method: no warning, no message, no condition at all
   expect_no_warning(
     res_trend <- short_term_trend(
       d,

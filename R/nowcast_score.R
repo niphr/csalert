@@ -21,7 +21,7 @@
   thresholds = c(0.25, 0.5)
 ) {
   # NSE column names, declared so R CMD check does not read them as undefined globals
-  hi50 <- hi90 <- in50 <- in90 <- lo50 <- lo90 <- med <- NULL
+  hi50 <- hi90 <- in50 <- in90 <- lo50 <- lo90 <- med <- rel <- NULL
   bt <- data.table::as.data.table(backtest)
   if (!nrow(bt)) {
     stop("empty backtest: nothing to evaluate", call. = FALSE)

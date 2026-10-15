@@ -264,9 +264,9 @@ run_ecdf <- function(tri, seed = 1L, ...) {
   return(nowcast_delay_ecdf_v1(tri, max_delay_days = 35, n_sim = N_EXACT, ...))
 }
 
-test_that("the defaults give the output of the code before the options", {
-  # The fixture holds the output of commit 96aaae1, before the options
-  # existed. data.table's .internal.selfref pointer differs between a live
+test_that("the defaults give the output pinned at commit 96aaae1", {
+  # The fixture holds the output of commit 96aaae1 for the same call and seed.
+  # data.table's .internal.selfref pointer differs between a live
   # table and a read one, so it is removed from both sides first.
   strip <- function(e) {
     attr(e$data, ".internal.selfref") <- NULL

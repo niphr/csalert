@@ -1,25 +1,3 @@
-gen_data_short_term_trend <- function(seed = 4) {
-  isoyear <- NULL
-  cases_n <- NULL
-  seasonweek <- NULL
-
-  d <- cstidy::csfmt_rts_data_v1(data.table(
-    location_code = "norge",
-    date = do.call(c, cstime::dates_by_isoyearweek[isoyear == 2020]$days),
-    age = "total",
-    sex = "total",
-    border = 2020
-  ))
-  # set.seed(4)
-  d[, cases_n := stats::rpois(.N, lambda = seasonweek * 4)]
-  return(d)
-}
-
-# x = d_msis[granularity_geo=="nation" & granularity_time=="isoyearweek"]
-# numerator = "covid19_cases_testdate_n"
-# trend_isoyearweeks = 6
-# remove_last_isoyearweeks = 1
-
 # The naming prefix for one side of the rate. `from` is the prefix value that
 # means "take it from the column name". The literal "generic" means "use
 # `generic_word`". Anything else is used as written.
@@ -459,8 +437,6 @@ short_term_trend_internal <- function(
     (length(trend) - remove_last_rows - forecast_rows + 1):length(trend)
   ] <- "forecast"
 
-  #if(remove_last_dates > 0) indexes <- indexes[-c(1:remove_last_dates)]
-  #indexes <- indexes[which(cstime::keep_sundates_and_latest_date(x$date[indexes]) != "delete")]
   fitted <- stt_v1_fit_windows(
     x,
     with_pred,
@@ -515,10 +491,10 @@ short_term_trend_internal <- function(
 #'
 #' @description
 #' The `csfmt_ensemble_v3` method fits a line through a rolling window of weeks in
-#' every draw. The deprecated `csfmt_rts_data_v1` method fits a rolling
+#' every draw. The `csfmt_rts_data_v1` table method fits a rolling
 #' quasi-Poisson regression to a table, after Benedetti (2019)
 #' <doi:10.5588/pha.19.0002>.
-#' @param x A `csfmt_ensemble_v3`, or a deprecated `csfmt_rts_data_v1`.
+#' @param x A `csfmt_ensemble_v3`, or a `csfmt_rts_data_v1` table.
 #' @param ... Passed to the method.
 #' @family ensemble operations
 #' @family short-term trend functions
@@ -553,10 +529,14 @@ short_term_trend <- function(
 
 #' @method short_term_trend csfmt_rts_data_v1
 #' @rdname short_term_trend
-#' @section The deprecated csfmt_rts_data_v1 method:
-#' `short_term_trend.csfmt_rts_data_v1()` is **deprecated**. It still works and
-#' gives no warning. New work SHOULD run the ensemble method before
-#' [ens_collapse()]:
+#' @section The csfmt_rts_data_v1 table method:
+#' `short_term_trend.csfmt_rts_data_v1()` is supported for counts without
+#' delayed reporting. It gives each week a status from a quasi-Poisson test on
+#' the slope. [short_term_trend_sts_v1()] runs the same test on a
+#' `surveillance::sts` object.
+#'
+#' For counts with delayed reporting, run the ensemble method on the nowcast,
+#' before [ens_collapse()]:
 #'
 #' \preformatted{
 #' ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
@@ -564,7 +544,7 @@ short_term_trend <- function(
 #' out <- ens_collapse(ens, heal = TRUE)
 #' }
 #'
-#' **The replacement is not a drop-in.** The v1 method takes `numerator`,
+#' **The ensemble method is not a drop-in.** The v1 method takes `numerator`,
 #' `denominator`, `prX` and the `*_naming_prefix` arguments. The ensemble method
 #' takes one draw matrix, `measure`. The v1 method returns a status and a
 #' doubling time from a quasi-Poisson log-link fit. The ensemble method returns a
@@ -598,7 +578,7 @@ short_term_trend <- function(
 #'   2.5% and 97.5% limits, and a logical forecast marker. With a denominator,
 #'   it also adds the forecast denominator and rates.
 #' @examples
-#' # the deprecated csfmt_rts_data_v1 method
+#' # the csfmt_rts_data_v1 table method, for counts without delayed reporting
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 #' d <- d[granularity_time=="isoyearweek"]
 #' res <- csalert::short_term_trend(

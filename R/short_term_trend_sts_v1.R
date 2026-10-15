@@ -15,8 +15,8 @@
 #'   significance level. A missing element takes its default.
 #' @returns `sts` with its alarms set.
 #' @family short-term trend functions
-#' @seealso `vignette("csalert", package = "csalert")`, which explains the
-#'   deprecated trend methods. The `csfmt_rts_data_v1` method of
+#' @seealso `vignette("csalert", package = "csalert")`, which explains when to
+#'   use each trend method. The `csfmt_rts_data_v1` method of
 #'   [short_term_trend()] is the table form of this function.
 #' @examples
 #' d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1

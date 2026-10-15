@@ -258,8 +258,8 @@ test_that("nowcast_score_v1 is exported", {
   expect_true("nowcast_score_v1" %in% getNamespaceExports("csalert"))
 })
 
-# The fixed values below were pinned through nowcast_evaluate_v1 (removed in
-# 2026.10.12). That function ran nowcast_backtest() and then nowcast_score_v1(),
+# The fixed values below were pinned through the evaluation function removed in
+# 2026.10.12 (see NEWS.md). It ran nowcast_backtest() and then nowcast_score_v1(),
 # so the same two calls MUST give the same values.
 mk_tri <- function() {
   set.seed(11)

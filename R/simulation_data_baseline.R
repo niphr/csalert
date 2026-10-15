@@ -1,24 +1,3 @@
-# gen_csfmt_rts_baseline_data <- function(start_date,
-#                                          end_date){
-#
-#   start_date <- as.Date(start_date)
-#   end_date <- as.Date(end_date)
-#
-#       d <- cstidy::csfmt_rts_data_v1(data.table(
-#         location_code = "norge",
-#         date = seq.Date(start_date,end_date,by="day"),
-#         age = "total",
-#         sex = "total",
-#         border = 2020,
-#         granularity_time="day"
-#       ))
-#       d[, time:=1:.N]
-#
-#       d[, wday:=lubridate::wday(date)]
-#
-#   return(d)
-# }
-
 periodic_pattern <- function(
   n_p = 2,
   g1 = 0.8,
@@ -122,8 +101,6 @@ simulate_baseline_data <- function(
   seasonal_pattern <- NULL
   weekly_pattern <- NULL
   n <- NULL
-
-  # d <- csalert::gen_csfmt_rts_baseline_data(start_date, end_date)
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -322,7 +299,6 @@ simulate_seasonal_outbreak_data <- function(
   d[, seasonal_outbreak_n_rw := 0]
 
   for (y in years_out) {
-    # set.seed(y)
 
     wtime <- c(
       paste(y, c(week_season_start:52), sep = "-"),
@@ -566,65 +542,3 @@ add_holiday_effect <- function(data, holiday_data, holiday_effect = 2) {
 
   return(d)
 }
-
-# run_simulation <- function(start_date,
-#                            end_date,
-#                            seasonal_pattern_n,
-#                            weekly_pattern_n,
-#                            week_season_start,
-#                            week_season_peak ,
-#                            week_season_end,
-#                            n_season_outbreak,
-#                            num_sp_outbreak,
-#                            baseline_param_list = list(alpha, beta, gamma1,gamma3,gamma4,phi,shift),
-#                            outbreak_param_list = list(m),
-#                            nsim) {
-#
-#
-#     retval <- list()
-#
-#     for (i in 1:(nsim)) {
-#
-#           data <- simulate_baseline_data(start_date,
-#                                      end_date,
-#                                      seasonal_pattern_n,
-#                                      weekly_pattern_n,
-#                                      baseline_param_list)
-#       if (seasonal_pattern_n!=0) {
-#
-#           data <- simulate_seasonal_outbreak_data(data,
-#                                               week_season_start,
-#                                               week_season_peak ,
-#                                               week_season_end,
-#                                               n_season_outbreak,
-#                                               baseline_param_list,
-#                                               outbreak_param_list)
-#       }
-#
-#       data <- simulate_spike_outbreak_data(data,
-#                                            num_sp_outbreak,
-#                                            baseline_param_list,
-#                                            outbreak_param_list)
-#
-#       retval[[i]] <-  data
-#
-#
-#     }
-#
-#     return(retval)
-#
-# }
-
-# sim <- run_simulation(nsim=100,
-#                start_date = as.Date("2012-01-01"),
-#                end_date = as.Date("2019-12-31"),
-#                seasonal_pattern_n = 1,
-#                weekly_pattern_n = 1,
-#                week_season_start = 40,
-#                week_season_peak = 4,
-#                week_season_end = 20,
-#                n_season_outbreak = 1,
-#                num_sp_outbreak = 1,
-#                baseline_param_list = list(alpha = 3, beta = 0,gamma1 = 0.8, gamma2 = 0.6, gamma3 = 0.8, gamma4 = 0.4, phi = 4,shift = 29 ),
-#                outbreak_param_list = list(m=2)
-# )

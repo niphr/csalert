@@ -1,6 +1,6 @@
 Package: csalert
 Title: Alerts from Public Health Surveillance Data
-Version: 2026.10.15
+Version: 2026.10.16
 Authors@R:
     c(
       person(
@@ -36,8 +36,8 @@ BugReports: https://github.com/niphr/csalert/issues
 Encoding: UTF-8
 LazyData: true
 Imports: data.table,
-    ggplot2,
     glm2,
+    glue,
     cstidy (>= 2026.7.1),
     cstime,
     digest,
@@ -49,12 +49,10 @@ Imports: data.table,
 Suggests: testthat,
     knitr,
     rmarkdown,
-    glue,
-    csmaps,
     mem,
     scoringutils
 VignetteBuilder: knitr
 Remotes: niphr/cstidy
 Config/Needs/website: niphr/cstemplate
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.1
 Roxygen: list(markdown = TRUE)

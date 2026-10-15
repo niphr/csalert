@@ -1,8 +1,5 @@
 # csalert <a href="https://niphr.github.io/csalert/"><img src="man/figures/logo.png" align="right" width="120" /></a>
 
-[![CRAN status](https://www.r-pkg.org/badges/version/csalert)](https://cran.r-project.org/package=csalert)
-[![CRAN downloads](https://cranlogs.r-pkg.org/badges/csalert)](https://cran.r-project.org/package=csalert)
-
 ## Overview
 
 [csalert](https://niphr.github.io/csalert/) makes alerts from weekly
@@ -15,9 +12,9 @@ those draws, so the reporting uncertainty reaches the alert.
 
 The table methods of `short_term_trend()` and `signal_detection_hlm()`, after
 Benedetti (2019),
-[doi:10.5588/pha.19.0002](https://doi.org/10.5588/pha.19.0002), are
-**deprecated**. They still work with no warning, but they take different
-arguments and give different numbers.
+[doi:10.5588/pha.19.0002](https://doi.org/10.5588/pha.19.0002), are for counts
+without delayed reporting. They take different arguments from the ensemble
+methods, and give different numbers.
 
 ## Installation
 
@@ -95,8 +92,8 @@ res[, .(isoyearweek, numerator_nowcasted_q50x0,
 | Compare this run with the previous run | `qc_week_over_week_v1()`, `compare_results()` |
 | Simulate counts with known outbreaks | `simulate_baseline_data()` |
 
-`short_term_trend()` and `signal_detection_hlm()` run the current method on a
-`csfmt_ensemble_v3`, and the deprecated method on a `csfmt_rts_data_v1`.
+`short_term_trend()` and `signal_detection_hlm()` run the ensemble method on a
+`csfmt_ensemble_v3`, and the table method on a `csfmt_rts_data_v1`.
 
 ## Documentation
 

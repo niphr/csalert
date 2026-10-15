@@ -44,8 +44,8 @@ x <- csalert::short_term_trend_sts_v1(
 plot(x)
 }
 \seealso{
-\code{vignette("csalert", package = "csalert")}, which explains the
-deprecated trend methods. The \code{csfmt_rts_data_v1} method of
+\code{vignette("csalert", package = "csalert")}, which explains when to
+use each trend method. The \code{csfmt_rts_data_v1} method of
 \code{\link[=short_term_trend]{short_term_trend()}} is the table form of this function.
 
 Other short-term trend functions:

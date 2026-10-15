@@ -1,4 +1,4 @@
-#' @import data.table ggplot2
+#' @import data.table
 .onAttach <- function(libname, pkgname) {
   version <- tryCatch(
     utils::packageDescription("csalert", fields = "Version"),
