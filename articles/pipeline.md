@@ -78,7 +78,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.10.15
+#> csalert 2026.10.16
 #> https://niphr.github.io/csalert/
 ```
 
@@ -1175,10 +1175,10 @@ Benedetti (2019); see
 [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md).
 The ensemble method defaults to an OLS slope, because it is a fixed
 linear filter that runs down 500 draw columns at once.
-`family = "quasipoisson"` gives it the log link of the deprecated
-method, at the same cost, because it runs the iteration as a filter too.
-**The `csfmt_rts_data_v1` method belongs to the older design, and it is
-deprecated.** New work SHOULD run
+`family = "quasipoisson"` gives it the log link of the table method, at
+the same cost, because it runs the iteration as a filter too. **The
+`csfmt_rts_data_v1` table method is for counts without delayed
+reporting.** For counts with delayed reporting, run
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 on the ensemble, as above, before
 [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md).
@@ -1500,7 +1500,7 @@ q_value(q_label(1))        # NA: three integer digits do not parse
   [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
   and
   [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
-  are deprecated. No vignette runs them, and their help pages hold the
-  only examples.
+  are for counts without delayed reporting. No vignette runs them, and
+  their help pages hold the only examples.
   [`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md)
-  explains what replaced them.
+  explains when to use them.

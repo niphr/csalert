@@ -1,8 +1,8 @@
 # Estimate the short-term trend of a series
 
 The `csfmt_ensemble_v3` method fits a line through a rolling window of
-weeks in every draw. The deprecated `csfmt_rts_data_v1` method fits a
-rolling quasi-Poisson regression to a table, after Benedetti (2019)
+weeks in every draw. The `csfmt_rts_data_v1` table method fits a rolling
+quasi-Poisson regression to a table, after Benedetti (2019)
 <doi:10.5588/pha.19.0002>.
 
 ## Usage
@@ -48,7 +48,7 @@ short_term_trend(
 
 - x:
 
-  A `csfmt_ensemble_v3`, or a deprecated `csfmt_rts_data_v1`.
+  A `csfmt_ensemble_v3`, or a `csfmt_rts_data_v1` table.
 
 - ...:
 
@@ -165,22 +165,31 @@ the growth rate. It adds `<measure>_trend_increasing_pr`, the share of
 draws with a positive slope, to `$data` by reference, so the input
 ensemble gets it too.
 
-## The deprecated csfmt_rts_data_v1 method
+## The csfmt_rts_data_v1 table method
 
-`short_term_trend.csfmt_rts_data_v1()` is **deprecated**. It still works
-and gives no warning. New work SHOULD run the ensemble method before
+`short_term_trend.csfmt_rts_data_v1()` is supported for counts without
+delayed reporting. It gives each week a status from a quasi-Poisson test
+on the slope.
+[`short_term_trend_sts_v1()`](https://niphr.github.io/csalert/reference/short_term_trend_sts_v1.md)
+runs the same test on a
+[`surveillance::sts`](https://rdrr.io/pkg/surveillance/man/sts-class.html)
+object.
+
+For counts with delayed reporting, run the ensemble method on the
+nowcast, before
 [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md):
 
     ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
     ens <- short_term_trend(ens, measure = "numerator_nowcasted")
     out <- ens_collapse(ens, heal = TRUE)
 
-**The replacement is not a drop-in.** The v1 method takes `numerator`,
-`denominator`, `prX` and the `*_naming_prefix` arguments. The ensemble
-method takes one draw matrix, `measure`. The v1 method returns a status
-and a doubling time from a quasi-Poisson log-link fit. The ensemble
-method returns a slope, a growth rate and the share of draws with a
-positive slope. So the call changes, and the numbers do not match.
+**The ensemble method is not a drop-in.** The v1 method takes
+`numerator`, `denominator`, `prX` and the `*_naming_prefix` arguments.
+The ensemble method takes one draw matrix, `measure`. The v1 method
+returns a status and a doubling time from a quasi-Poisson log-link fit.
+The ensemble method returns a slope, a growth rate and the share of
+draws with a positive slope. So the call changes, and the numbers do not
+match.
 
 The v1 method needs `granularity_time == "isoyearweek"`. A window is
 `increasing` when its slope is positive with a p-value at most `alpha`.
@@ -258,7 +267,7 @@ ens$data[, .(isoyearweek, numerator_nowcasted_trend_increasing_pr)]
 #>  9:     2023-09                                   0.855
 #> 10:     2023-10                                   0.855
 
-# the deprecated csfmt_rts_data_v1 method
+# the csfmt_rts_data_v1 table method, for counts without delayed reporting
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
 res <- csalert::short_term_trend(

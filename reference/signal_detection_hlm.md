@@ -32,7 +32,7 @@ signal_detection_hlm(x, measure, baseline_isoyears = 5, ...)
 
 - x:
 
-  A `csfmt_ensemble_v3`, or a deprecated `csfmt_rts_data_v1`.
+  A `csfmt_ensemble_v3`, or a `csfmt_rts_data_v1` table.
 
 - ...:
 
@@ -97,18 +97,21 @@ limit is `qnorm(0.995, mean, sd)` of those values. A week that lacks any
 of them gets none. A year back is 52 rows, so across a 53-week ISO year
 the baseline is one week off. The limit is treated as known.
 
-## The deprecated csfmt_rts_data_v1 method
+## The csfmt_rts_data_v1 table method
 
-`signal_detection_hlm.csfmt_rts_data_v1()` is **deprecated**. It still
-works and gives no warning. New work SHOULD run the ensemble method
-before
+`signal_detection_hlm.csfmt_rts_data_v1()` is supported for counts
+without delayed reporting. It compares each observed week with the
+limit, and gives the week one label.
+
+For counts with delayed reporting, run the ensemble method on the
+nowcast, before
 [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md):
 
     ens <- nowcast_delay_ecdf_v1(triangle, max_delay_days = 35)
     ens <- signal_detection_hlm(ens, measure = "numerator_nowcasted")
     out <- ens_collapse(ens, heal = TRUE)
 
-**The replacement is not a drop-in.** The v1 method takes `value`,
+**The ensemble method is not a drop-in.** The v1 method takes `value`,
 `remove_last_isoyearweeks`, `forecast_isoyearweeks` and
 `value_naming_prefix`, where the ensemble method takes a draw matrix,
 `measure`. The v1 method returns a label per week. The ensemble method
@@ -152,7 +155,7 @@ Other ensemble operations:
 ## Examples
 
 ``` r
-# the deprecated csfmt_rts_data_v1 method
+# the csfmt_rts_data_v1 table method, for counts without delayed reporting
 d <- cstidy::nor_covid19_icu_and_hospitalization_csfmt_rts_v1
 d <- d[granularity_time=="isoyearweek"]
 res <- csalert::signal_detection_hlm(

@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.15</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.16</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -141,20 +141,22 @@ collapse once, at the end.</p>
 each stage finds the measure that it reads.</p>
 </div>
 <div class="section level3">
-<h3 id="the-deprecated-methods-work-on-tables">The deprecated methods work on tables<a class="anchor" aria-label="anchor" href="#the-deprecated-methods-work-on-tables"></a>
+<h3 id="the-table-methods-work-on-counts-without-delayed-reporting">The table methods work on counts without delayed reporting<a class="anchor" aria-label="anchor" href="#the-table-methods-work-on-counts-without-delayed-reporting"></a>
 </h3>
 <p><code><a href="../reference/short_term_trend.html">short_term_trend.csfmt_rts_data_v1()</a></code> and
 <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm.csfmt_rts_data_v1()</a></code> read a
 <code>cstidy</code> table and write new columns onto it. They have no
 draws.</p>
-<p>Both are <strong>deprecated</strong>. Both still work, and
-<strong>neither gives a warning</strong>. So an existing pipeline keeps
-running, and never tells you that it uses them.</p>
-<p><strong>The replacement is not a drop-in.</strong> The arguments, the
-shape of the result and the numbers all differ, because the two are
-different estimators. A move to the new method is a rewrite of the call.
-<code><a href="../reference/short_term_trend.html">?short_term_trend</a></code> and <code><a href="../reference/signal_detection_hlm.html">?signal_detection_hlm</a></code>
-list each difference.</p>
+<p>Both are supported for counts without delayed reporting. The trend
+method gives each week a status from a quasi-Poisson test on the slope.
+<code><a href="../reference/short_term_trend_sts_v1.html">short_term_trend_sts_v1()</a></code> runs the same test on a
+<code><a href="https://rdrr.io/pkg/surveillance/man/sts-class.html" class="external-link">surveillance::sts</a></code> object. The HLM method gives each week
+one label against the historical limit.</p>
+<p><strong>The ensemble method is not a drop-in.</strong> The arguments,
+the shape of the result and the numbers all differ, because the two are
+different estimators. A move between a table method and an ensemble
+method is a rewrite of the call. <code><a href="../reference/short_term_trend.html">?short_term_trend</a></code> and
+<code><a href="../reference/signal_detection_hlm.html">?signal_detection_hlm</a></code> list each difference.</p>
 </div>
 </div>
 <div class="section level2">
@@ -199,7 +201,7 @@ outbreak is. Run a detector on them, and check that it fires on those
 days.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.10.15</span></span>
+<span><span class="co">#&gt; csalert 2026.10.16</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>

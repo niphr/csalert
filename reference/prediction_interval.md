@@ -1,6 +1,6 @@
 # Prediction interval for new data from a fitted model
 
-Internal: the deprecated `csfmt_rts_data_v1` method of
+Internal: the `csfmt_rts_data_v1` table method of
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 uses it for its forecast.
 

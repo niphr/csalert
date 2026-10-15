@@ -40,7 +40,7 @@ points keep their alarm.
 ## See also
 
 [`vignette("csalert", package = "csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
-which explains the deprecated trend methods. The `csfmt_rts_data_v1`
+which explains when to use each trend method. The `csfmt_rts_data_v1`
 method of
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 is the table form of this function.

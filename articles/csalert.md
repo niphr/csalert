@@ -55,20 +55,25 @@ analysis stage first, and collapse once, at the end.
 The middle stages are optional, and their order is free, as long as each
 stage finds the measure that it reads.
 
-### The deprecated methods work on tables
+### The table methods work on counts without delayed reporting
 
 [`short_term_trend.csfmt_rts_data_v1()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 and
 [`signal_detection_hlm.csfmt_rts_data_v1()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
 read a `cstidy` table and write new columns onto it. They have no draws.
 
-Both are **deprecated**. Both still work, and **neither gives a
-warning**. So an existing pipeline keeps running, and never tells you
-that it uses them.
+Both are supported for counts without delayed reporting. The trend
+method gives each week a status from a quasi-Poisson test on the slope.
+[`short_term_trend_sts_v1()`](https://niphr.github.io/csalert/reference/short_term_trend_sts_v1.md)
+runs the same test on a
+[`surveillance::sts`](https://rdrr.io/pkg/surveillance/man/sts-class.html)
+object. The HLM method gives each week one label against the historical
+limit.
 
-**The replacement is not a drop-in.** The arguments, the shape of the
-result and the numbers all differ, because the two are different
-estimators. A move to the new method is a rewrite of the call.
+**The ensemble method is not a drop-in.** The arguments, the shape of
+the result and the numbers all differ, because the two are different
+estimators. A move between a table method and an ensemble method is a
+rewrite of the call.
 [`?short_term_trend`](https://niphr.github.io/csalert/reference/short_term_trend.md)
 and
 [`?signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
@@ -107,7 +112,7 @@ is. Run a detector on them, and check that it fires on those days.
 
 ``` r
 library(csalert)
-#> csalert 2026.10.15
+#> csalert 2026.10.16
 #> https://niphr.github.io/csalert/
 library(data.table)
 #> 
