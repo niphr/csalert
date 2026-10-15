@@ -146,7 +146,9 @@ short_term_trend(
   `"binomial"` a normal. At width 3 that t is a Cauchy, with heavy
   tails. Use `"normal"` to match
   [`stats::confint()`](https://rdrr.io/r/stats/confint.html), which
-  profiles the deviance against an asymptotic chi-squared.
+  profiles the deviance against an asymptotic chi-squared. The
+  quasi-Poisson dispersion is floored at 1, so its standard error is
+  never smaller than the Poisson one.
 
 ## Value
 

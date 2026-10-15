@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 2026.10.15
+
+- [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  floors the quasi-Poisson dispersion at 1. A window with less variation
+  than Poisson now gets the Poisson standard error. Before, it could get
+  a near-zero one, and a `<measure>_trend_increasing_pr` of exactly 0 or
+  1.
+
 ## Version 2026.10.13
 
 - Removed the `interval` and `outage_gap_days` arguments of

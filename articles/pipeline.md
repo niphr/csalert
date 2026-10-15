@@ -78,7 +78,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.10.13
+#> csalert 2026.10.15
 #> https://niphr.github.io/csalert/
 ```
 
@@ -1161,8 +1161,9 @@ uses the normal, and so does a pipeline built on
 
 Width 2 is an error for those two families. Both estimate a dispersion
 from `width - 2` residual degrees of freedom, so at width 2 there are
-none and `se` has no value. `family = "binomial"` fixes the dispersion
-at 1, and accepts width 2.
+none and `se` has no value. The quasi-Poisson dispersion is floored at
+1, so its `se` is never smaller than the Poisson one.
+`family = "binomial"` fixes the dispersion at 1, and accepts width 2.
 
 The ensemble method is not the same estimator as
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)

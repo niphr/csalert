@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.13</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.15</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,7 @@
     <li><a class="dropdown-item" href="https://niphr.github.io/csalert/">csalert — surveillance alerts</a></li>
     <li><a class="external-link dropdown-item" href="https://niphr.github.io/csdata/">csdata — structural data</a></li>
     <li><a class="external-link dropdown-item" href="https://niphr.github.io/csdb/">csdb — database access</a></li>
+    <li><a class="external-link dropdown-item" href="https://niphr.github.io/csdocs/">csdocs — package documentation</a></li>
     <li><a class="external-link dropdown-item" href="https://niphr.github.io/csmaps/">csmaps — maps of Norway</a></li>
     <li><a class="external-link dropdown-item" href="https://niphr.github.io/csstyle/">csstyle — output styling</a></li>
     <li><a class="external-link dropdown-item" href="https://niphr.github.io/cstidy/">cstidy — tidy surveillance data</a></li>
@@ -178,7 +179,7 @@ use.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.10.13</span></span>
+<span><span class="co">#&gt; csalert 2026.10.15</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -1204,9 +1205,10 @@ normal, and so does a pipeline built on
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">stats::confint()</a></code>.</p>
 <p>Width 2 is an error for those two families. Both estimate a
 dispersion from <code>width - 2</code> residual degrees of freedom, so
-at width 2 there are none and <code>se</code> has no value.
-<code>family = "binomial"</code> fixes the dispersion at 1, and accepts
-width 2.</p>
+at width 2 there are none and <code>se</code> has no value. The
+quasi-Poisson dispersion is floored at 1, so its <code>se</code> is
+never smaller than the Poisson one. <code>family = "binomial"</code>
+fixes the dispersion at 1, and accepts width 2.</p>
 <p>The ensemble method is not the same estimator as
 <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a
 <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code>. That one fits a quasi-Poisson
@@ -1511,7 +1513,7 @@ explains what replaced them.</li>
 
     <footer><div class="pkgdown-footer-left">
   <p>Crafted by Beatriz Valcarcel Salamanca, Chi Zhang, <a href="https://www.rwhite.no" class="external-link">Richard Aubrey White</a>.
-<nav class="cs-family" aria-label="cs* family"><a class="external-link cs-family-label" href="https://niphr.github.io/">cs* family ↗</a> <a href="https://niphr.github.io/cs9/" class="external-link">cs9</a> <a href="https://niphr.github.io/csalert/">csalert</a> <a href="https://niphr.github.io/csdata/" class="external-link">csdata</a> <a href="https://niphr.github.io/csdb/" class="external-link">csdb</a> <a href="https://niphr.github.io/csmaps/" class="external-link">csmaps</a> <a href="https://niphr.github.io/csstyle/" class="external-link">csstyle</a> <a href="https://niphr.github.io/cstidy/" class="external-link">cstidy</a> <a href="https://niphr.github.io/cstime/" class="external-link">cstime</a> <a href="https://niphr.github.io/csutil/" class="external-link">csutil</a>
+<nav class="cs-family" aria-label="cs* family"><a class="external-link cs-family-label" href="https://niphr.github.io/">cs* family ↗</a> <a href="https://niphr.github.io/cs9/" class="external-link">cs9</a> <a href="https://niphr.github.io/csalert/">csalert</a> <a href="https://niphr.github.io/csdata/" class="external-link">csdata</a> <a href="https://niphr.github.io/csdb/" class="external-link">csdb</a> <a href="https://niphr.github.io/csdocs/" class="external-link">csdocs</a> <a href="https://niphr.github.io/csmaps/" class="external-link">csmaps</a> <a href="https://niphr.github.io/csstyle/" class="external-link">csstyle</a> <a href="https://niphr.github.io/cstidy/" class="external-link">cstidy</a> <a href="https://niphr.github.io/cstime/" class="external-link">cstime</a> <a href="https://niphr.github.io/csutil/" class="external-link">csutil</a>
 </nav></p>
 </div>
 
