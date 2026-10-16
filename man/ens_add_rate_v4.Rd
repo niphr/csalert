@@ -61,9 +61,11 @@ names(ens$draws)
 Other v4 functions:
 \code{\link[=csfmt_ensemble_v4]{csfmt_ensemble_v4()}},
 \code{\link[=csfmt_reporting_triangle_v4]{csfmt_reporting_triangle_v4()}},
+\code{\link[=mem_thresholds_v4]{mem_thresholds_v4()}},
 \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}},
 \code{\link[=nowcast_passthrough_v4]{nowcast_passthrough_v4()}},
 \code{\link[=print.csfmt_ensemble_v4]{print.csfmt_ensemble_v4()}},
-\code{\link[=short_term_trend_v4]{short_term_trend_v4()}}
+\code{\link[=short_term_trend_v4]{short_term_trend_v4()}},
+\code{\link[=signal_detection_hlm_v4]{signal_detection_hlm_v4()}}
 }
 \concept{v4 functions}

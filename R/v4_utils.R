@@ -216,3 +216,27 @@
 # A copy of the default `probs` of ens_collapse(): the 9 probabilities of the
 # percentile columns, from q02x5 to q97x5.
 .V4_PROBS <- c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975)
+
+# Stop unless `measure` is one string that names a draw matrix of `x`, and
+# check it with .v4_check_measure_names(). The HLM and MEM steps use it.
+.v4_check_draw_measure <- function(x, measure) {
+  if (
+    !is.character(measure) ||
+      length(measure) != 1L ||
+      !measure %in% names(x$draws)
+  ) {
+    stop("`measure` must name one matrix in $draws", call. = FALSE)
+  }
+  .v4_check_measure_names(measure)
+  return(invisible(measure))
+}
+
+# The names that .v4_collapse_status_into() writes for the status `stem` with
+# the levels `levs`: one probability per level, then one ordinal quantile per
+# probability in .V4_PROBS. The HLM and MEM steps use it.
+.v4_status_names <- function(stem, levs) {
+  return(c(
+    paste0(stem, "_prob_", levs),
+    paste0(stem, "_", .v4_q_label(.V4_PROBS))
+  ))
+}
