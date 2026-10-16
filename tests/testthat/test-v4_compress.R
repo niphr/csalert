@@ -126,18 +126,23 @@ test_that("a table column is a stored measure only with its 9 percentiles", {
 
 test_that("two rebuilds of the same table are identical", {
   tab <- ens_compress_v4(v4c_cont())
-  for (rule in c("same_rank", "independent")) {
-    y1 <- .v4_as_ensemble(tab, "location_code", "isoyearweek", 500L, rule)
-    y2 <- .v4_as_ensemble(tab, "location_code", "isoyearweek", 500L, rule)
-    # The measures are read in the opposite order, so the u cannot depend on
-    # which measure comes first.
-    c1 <- .v4_draws(y1, "cases")
-    o1 <- .v4_draws(y1, "other")
-    o2 <- .v4_draws(y2, "other")
-    c2 <- .v4_draws(y2, "cases")
-    expect_identical(c1, c2)
-    expect_identical(o1, o2)
-  }
+  y1 <- as_ensemble_v4(tab, "location_code", n_sim = 500L)
+  y2 <- as_ensemble_v4(tab, "location_code", n_sim = 500L)
+  # The measures are read in the opposite order, so the u cannot depend on
+  # which measure comes first.
+  c1 <- .v4_draws(y1, "cases")
+  o1 <- .v4_draws(y1, "other")
+  o2 <- .v4_draws(y2, "other")
+  c2 <- .v4_draws(y2, "cases")
+  expect_identical(c1, c2)
+  expect_identical(o1, o2)
+})
+
+test_that("the rebuild has one rule, and no function takes a rule argument", {
+  expect_false("rule" %in% names(formals(.v4_as_ensemble)))
+  expect_false("rule" %in% names(formals(.v4_draw_u)))
+  expect_false("rule" %in% names(formals(as_ensemble_v4)))
+  expect_identical(.V4_REBUILD_RULES, "independent")
 })
 
 test_that("compress, as_ensemble_v4 and every step leave .Random.seed unchanged", {
@@ -181,47 +186,29 @@ test_that("compress, as_ensemble_v4 and every step leave .Random.seed unchanged"
   expect_true(absent)
 })
 
-test_that("same-rank: every two non-constant weeks of a series have Spearman correlation 1", {
+test_that("two weeks of a series have absolute Spearman correlation below 0.1 at n_sim = 20,000", {
   tab <- ens_compress_v4(v4c_cont())
-  y <- .v4_as_ensemble(tab, "location_code", "isoyearweek", 2000L, "same_rank")
-  R <- .v4_draws(y, "cases")
-  # Week 3 of "a" is constant and week 4 of "b" is NA.
-  expect_equal(v4c_pair_cor(R, c(1, 2, 4, 5, 6)), rep(1, 10))
-  expect_equal(v4c_pair_cor(R, c(7, 8, 9, 11, 12)), rep(1, 10))
-  O <- .v4_draws(y, "other")
-  expect_equal(v4c_pair_cor(O, 1:6), rep(1, 15))
-})
-
-test_that("independent: two weeks of a series have absolute Spearman correlation below 0.1 at n_sim = 20,000", {
-  tab <- ens_compress_v4(v4c_cont())
-  y <- .v4_as_ensemble(
-    tab,
-    "location_code",
-    "isoyearweek",
-    20000L,
-    "independent"
-  )
+  y <- as_ensemble_v4(tab, "location_code", n_sim = 20000L)
   R <- .v4_draws(y, "other")
   rho <- c(v4c_pair_cor(R, 1:6), v4c_pair_cor(R, 7:12))
   expect_length(rho, 30)
   expect_true(all(abs(rho) < 0.1))
 })
 
-test_that("both rules give the measures of one week the same u", {
+test_that("the measures of one week share their u", {
   tab <- ens_compress_v4(v4c_cont())
-  for (rule in c("same_rank", "independent")) {
-    y <- .v4_as_ensemble(tab, "location_code", "isoyearweek", 2000L, rule)
-    C <- .v4_draws(y, "cases")
-    O <- .v4_draws(y, "other")
-    rho <- vapply(
-      c(1, 2, 4, 5, 6, 7, 8, 9, 11, 12),
-      function(i) {
-        return(stats::cor(C[i, ], O[i, ], method = "spearman"))
-      },
-      numeric(1)
-    )
-    expect_equal(rho, rep(1, 10))
-  }
+  y <- as_ensemble_v4(tab, "location_code", n_sim = 2000L)
+  C <- .v4_draws(y, "cases")
+  O <- .v4_draws(y, "other")
+  # Week 3 of "a" is constant and week 4 of "b" is NA.
+  rho <- vapply(
+    c(1, 2, 4, 5, 6, 7, 8, 9, 11, 12),
+    function(i) {
+      return(stats::cor(C[i, ], O[i, ], method = "spearman"))
+    },
+    numeric(1)
+  )
+  expect_equal(rho, rep(1, 10))
 })
 
 test_that("the rebuilt tails are flat at the stored 2.5% and 97.5%, and the quartiles hold at n_sim = 20,000", {

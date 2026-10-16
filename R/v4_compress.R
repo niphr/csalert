@@ -5,9 +5,10 @@
 # The seed of the rebuild.
 .V4_REBUILD_SEED <- 4L
 
-# The two rules of the rebuild. "same_rank" gives a series one u per draw,
-# shared by every week. "independent" gives a series one u per week and draw.
-.V4_REBUILD_RULES <- c("same_rank", "independent")
+# The rule of the rebuild: one u per row and draw, so the weeks of a series
+# are independent. The luftvei validation of 2026-10-16 chose it over one u
+# per series. .v4_validate_state() checks $rule against this value.
+.V4_REBUILD_RULES <- "independent"
 
 #' Compress a csfmt_ensemble_v4 into a table to store
 #'
@@ -91,12 +92,13 @@ ens_compress_v4 <- function(x) {
 #' The table holds no other metadata, so a table with every attribute removed
 #' gives the same ensemble.
 #'
-#' The rebuild draws one u from U(0, 1) per series and draw, with seed 4, and
-#' then puts back the random-number state of the caller. Every week and every
-#' base measure of a series use that u. The value of a draw is u through the
-#' quantile function of the row. That function interpolates linearly between
-#' the 9 stored percentiles, and it is flat below 2.5% and above 97.5%. A row
-#' with `NA` percentiles gets its point value in every draw.
+#' The rebuild draws one u from U(0, 1) per row and draw, with seed 4, and
+#' then puts back the random-number state of the caller. Every base measure of
+#' a row uses that u, and the weeks of a series get independent u. The value
+#' of a draw is u through the quantile function of the row. That function
+#' interpolates linearly between the 9 stored percentiles, and it is flat
+#' below 2.5% and above 97.5%. A row with `NA` percentiles gets its point
+#' value in every draw.
 #'
 #' A rate rebuilt from its own percentiles loses the pairing of its draws with
 #' the draws of its numerator and denominator. Before a step on a rate, you
@@ -132,19 +134,17 @@ as_ensemble_v4 <- function(
   time_col = "isoyearweek",
   n_sim = 1000L
 ) {
-  return(.v4_as_ensemble(d, id_cols, time_col, n_sim, rule = "same_rank"))
+  return(.v4_as_ensemble(d, id_cols, time_col, n_sim))
 }
 
-# The work of as_ensemble_v4(). `rule` is one of .V4_REBUILD_RULES. It is an
-# internal argument, so that a validation can compare the two rules.
-.v4_as_ensemble <- function(d, id_cols, time_col, n_sim, rule) {
+# The work of as_ensemble_v4().
+.v4_as_ensemble <- function(d, id_cols, time_col, n_sim) {
   if (!data.table::is.data.table(d)) {
     stop("`d` must be a data.table", call. = FALSE)
   }
   if (!.v4_is_whole_number(n_sim) || n_sim < 1) {
     stop("`n_sim` must be one whole number of at least 1", call. = FALSE)
   }
-  rule <- match.arg(rule, .V4_REBUILD_RULES)
   stored <- .v4_stored_measures(names(d))
   cols <- unlist(lapply(stored, .v4_summary_names), use.names = FALSE)
   numeric_col <- vapply(
@@ -164,7 +164,7 @@ as_ensemble_v4 <- function(
   x <- csfmt_ensemble_v4(d, id_cols = id_cols, time_col = time_col)
   x$state <- "compressed"
   x$n_sim <- as.integer(n_sim)
-  x$rule <- rule
+  x$rule <- .V4_REBUILD_RULES
   x$cache <- new.env(parent = emptyenv())
   return(.v4_validate_ensemble(x))
 }
@@ -253,22 +253,17 @@ as_ensemble_v4 <- function(
   if (is.null(x$cache$u)) {
     x$cache$u <- .v4_with_seed(
       .V4_REBUILD_SEED,
-      .v4_draw_u(x$data, x$time_col, x$n_sim, x$rule)
+      .v4_draw_u(x$data, x$time_col, x$n_sim)
     )
   }
   return(x$cache$u)
 }
 
-# Draw the u matrix in a fixed order: the series sorted by time_series_id,
-# then the weeks. The caller sets the seed.
-.v4_draw_u <- function(data, time_col, n_sim, rule) {
+# Draw one u per row and draw, in a fixed order: the series sorted by
+# time_series_id, then the weeks. The caller sets the seed.
+.v4_draw_u <- function(data, time_col, n_sim) {
   sid <- data$time_series_id
   n <- length(sid)
-  if (identical(rule, "same_rank")) {
-    series <- sort(unique(sid), method = "radix")
-    U <- matrix(stats::runif(length(series) * n_sim), length(series), n_sim)
-    return(U[match(sid, series), , drop = FALSE])
-  }
   o <- order(sid, data[[time_col]], method = "radix")
   u <- matrix(NA_real_, n, n_sim)
   u[o, ] <- stats::runif(n * n_sim)

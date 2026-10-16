@@ -30,12 +30,13 @@ A base measure is a column \verb{<m>} that has the 9 percentile columns
 The table holds no other metadata, so a table with every attribute removed
 gives the same ensemble.
 
-The rebuild draws one u from U(0, 1) per series and draw, with seed 4, and
-then puts back the random-number state of the caller. Every week and every
-base measure of a series use that u. The value of a draw is u through the
-quantile function of the row. That function interpolates linearly between
-the 9 stored percentiles, and it is flat below 2.5\% and above 97.5\%. A row
-with \code{NA} percentiles gets its point value in every draw.
+The rebuild draws one u from U(0, 1) per row and draw, with seed 4, and
+then puts back the random-number state of the caller. Every base measure of
+a row uses that u, and the weeks of a series get independent u. The value
+of a draw is u through the quantile function of the row. That function
+interpolates linearly between the 9 stored percentiles, and it is flat
+below 2.5\% and above 97.5\%. A row with \code{NA} percentiles gets its point
+value in every draw.
 
 A rate rebuilt from its own percentiles loses the pairing of its draws with
 the draws of its numerator and denominator. Before a step on a rate, you
