@@ -107,25 +107,7 @@
     width >= 1
   )
 
-  empty <- matrix(NA_real_, n_row, n_col)
-  out <- list(
-    beta0 = empty,
-    beta1 = empty,
-    se = empty,
-    p = empty,
-    df = empty,
-    claimed = matrix(NA, n_row, n_col),
-    max_rise = empty
-  )
-  if (extended) {
-    out$var_b0 <- empty
-    out$cov_b0b1 <- empty
-    out$phi <- empty
-    out$converged <- matrix(NA, n_row, n_col)
-    out$separated <- matrix(NA, n_row, n_col)
-    out$n_used <- empty
-    out$n_pos <- empty
-  }
+  out <- .v4_rolling_empty_out(n_row, n_col, extended)
   if (n_row < width) {
     return(out)
   }
@@ -147,21 +129,23 @@
   n_used <- colSums(all_finite)
   n_pos <- colSums(y_zeroed > 0)
   no_negative <- colSums(y_zeroed < 0) == 0
-  if (na_rm) {
-    # A row without a finite value gets weight 0. Its placeholder values keep
-    # every step finite and do not change the fit.
-    pw <- all_finite * 1
-    y[!all_finite] <- 0
-    off[!all_finite] <- 0
-    tt[!all_finite] <- 0
-    fit_set <- n_used >= .V4_MIN_ROWS & no_negative
-    eligible <- fit_set & n_pos >= 2
-  } else {
-    pw <- NULL
-    eligible <- colSums(!all_finite) == 0 & width >= 3
-    eligible <- eligible & no_negative & n_pos >= 2
-    fit_set <- eligible
-  }
+  prep <- .v4_rolling_prepare(
+    y,
+    off,
+    tt,
+    all_finite,
+    n_used,
+    n_pos,
+    no_negative,
+    width,
+    na_rm
+  )
+  y <- prep$y
+  off <- prep$off
+  tt <- prep$tt
+  pw <- prep$pw
+  fit_set <- prep$fit_set
+  eligible <- prep$eligible
 
   claimed <- rep(FALSE, n_win)
   converged <- rep(FALSE, n_win)
@@ -232,25 +216,117 @@
   out$claimed[rows, ] <- matrix(claimed, n_end, n_col)
   out$max_rise[rows, ] <- matrix(max_rise, n_end, n_col)
   if (extended) {
-    # The smallest and largest time value of the used rows, and of the used
-    # rows with a count above 0.
-    masked_t <- function(mask, fill) {
-      m <- tt
-      m[!mask] <- fill
-      m
-    }
-    pos <- all_finite & y_zeroed > 0
-    t_min <- matrixStats::colMins(masked_t(all_finite, Inf))
-    t_max <- matrixStats::colMaxs(masked_t(all_finite, -Inf))
-    t_pos_min <- matrixStats::colMins(masked_t(pos, Inf))
-    t_pos_max <- matrixStats::colMaxs(masked_t(pos, -Inf))
-    separated <- n_pos >= 1 & (t_pos_max <= t_min | t_pos_min >= t_max)
-    out$converged[rows, ] <- matrix(converged, n_end, n_col)
-    out$separated[rows, ] <- matrix(separated, n_end, n_col)
-    out$n_used[rows, ] <- matrix(as.numeric(n_used), n_end, n_col)
-    out$n_pos[rows, ] <- matrix(as.numeric(n_pos), n_end, n_col)
+    out <- .v4_rolling_fill_extended(
+      out,
+      rows,
+      tt,
+      all_finite,
+      y_zeroed,
+      converged,
+      n_used,
+      n_pos
+    )
   }
-  out
+  return(out)
+}
+
+# The windows that .v4_rolling_qp_offset() fits (`fit_set`) and those it can
+# claim (`eligible`). With `na_rm = TRUE`, `pw` gives a row without a finite
+# value weight 0, and `y`, `off` and `tt` hold 0 in that row. With
+# `na_rm = FALSE`, `pw` is NULL and `y`, `off` and `tt` are unchanged.
+.v4_rolling_prepare <- function(
+  y,
+  off,
+  tt,
+  all_finite,
+  n_used,
+  n_pos,
+  no_negative,
+  width,
+  na_rm
+) {
+  if (na_rm) {
+    # A row without a finite value gets weight 0. Its placeholder values keep
+    # every step finite and do not change the fit.
+    pw <- all_finite * 1
+    y[!all_finite] <- 0
+    off[!all_finite] <- 0
+    tt[!all_finite] <- 0
+    fit_set <- n_used >= .V4_MIN_ROWS & no_negative
+    eligible <- fit_set & n_pos >= 2
+  } else {
+    pw <- NULL
+    eligible <- colSums(!all_finite) == 0 & width >= 3
+    eligible <- eligible & no_negative & n_pos >= 2
+    fit_set <- eligible
+  }
+  return(list(
+    y = y,
+    off = off,
+    tt = tt,
+    pw = pw,
+    fit_set = fit_set,
+    eligible = eligible
+  ))
+}
+
+# The list that .v4_rolling_qp_offset() returns, with every matrix all NA.
+# With `extended = TRUE` it also holds the 7 extended matrices.
+.v4_rolling_empty_out <- function(n_row, n_col, extended) {
+  empty <- matrix(NA_real_, n_row, n_col)
+  out <- list(
+    beta0 = empty,
+    beta1 = empty,
+    se = empty,
+    p = empty,
+    df = empty,
+    claimed = matrix(NA, n_row, n_col),
+    max_rise = empty
+  )
+  if (extended) {
+    out$var_b0 <- empty
+    out$cov_b0b1 <- empty
+    out$phi <- empty
+    out$converged <- matrix(NA, n_row, n_col)
+    out$separated <- matrix(NA, n_row, n_col)
+    out$n_used <- empty
+    out$n_pos <- empty
+  }
+  return(out)
+}
+
+# Write `converged`, `separated`, `n_used` and `n_pos` of each window into the
+# rows `rows` of `out`. The windows are the columns of `tt`.
+.v4_rolling_fill_extended <- function(
+  out,
+  rows,
+  tt,
+  all_finite,
+  y_zeroed,
+  converged,
+  n_used,
+  n_pos
+) {
+  n_end <- length(rows)
+  n_col <- ncol(out$converged)
+  # The smallest and largest time value of the used rows, and of the used
+  # rows with a count above 0.
+  masked_t <- function(mask, fill) {
+    m <- tt
+    m[!mask] <- fill
+    return(m)
+  }
+  pos <- all_finite & y_zeroed > 0
+  t_min <- matrixStats::colMins(masked_t(all_finite, Inf))
+  t_max <- matrixStats::colMaxs(masked_t(all_finite, -Inf))
+  t_pos_min <- matrixStats::colMins(masked_t(pos, Inf))
+  t_pos_max <- matrixStats::colMaxs(masked_t(pos, -Inf))
+  separated <- n_pos >= 1 & (t_pos_max <= t_min | t_pos_min >= t_max)
+  out$converged[rows, ] <- matrix(converged, n_end, n_col)
+  out$separated[rows, ] <- matrix(separated, n_end, n_col)
+  out$n_used[rows, ] <- matrix(as.numeric(n_used), n_end, n_col)
+  out$n_pos[rows, ] <- matrix(as.numeric(n_pos), n_end, n_col)
+  return(out)
 }
 
 # The quasi-Poisson deviance of each column. It equals
@@ -263,7 +339,7 @@
   if (!is.null(pw)) {
     terms <- terms * pw
   }
-  2 * colSums(terms)
+  return(2 * colSums(terms))
 }
 
 # Plain IRLS for the quasi-Poisson log link, over the columns of `y` at once.
@@ -438,9 +514,9 @@
   fill <- function(v) {
     out <- rep(NA_real_, n_win)
     out[done] <- v
-    out
+    return(out)
   }
-  list(
+  return(list(
     clean = clean,
     converged = converged,
     max_rise = max_rise,
@@ -452,5 +528,5 @@
     var_b0 = fill(var_b0),
     cov_b0b1 = fill(cov_b0b1),
     phi = fill(phi)
-  )
+  ))
 }

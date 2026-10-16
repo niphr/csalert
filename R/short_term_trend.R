@@ -42,7 +42,11 @@ stt_v1_status <- function(pval, co, alpha, include_decreasing) {
   if (!include_decreasing) {
     return(ifelse(pval <= alpha & co > 0, "increasing", "notincreasing"))
   }
-  ifelse(pval > alpha, "null", ifelse(co < 0, "decreasing", "increasing"))
+  return(ifelse(
+    pval > alpha,
+    "null",
+    ifelse(co < 0, "decreasing", "increasing")
+  ))
 }
 
 # The kernel's fit of the window that ends at row `i`, as the forecast needs
@@ -51,14 +55,14 @@ stt_v1_last_fit <- function(k, i) {
   if (!k$converged[i, 1] || k$separated[i, 1]) {
     return(NULL)
   }
-  list(
+  return(list(
     beta0 = k$beta0[i, 1],
     beta1 = k$beta1[i, 1],
     var_b0 = k$var_b0[i, 1],
     cov_b0b1 = k$cov_b0b1[i, 1],
     var_b1 = k$se[i, 1]^2,
     phi = k$phi[i, 1]
-  )
+  ))
 }
 
 # Fit every rolling window with the v4 kernel, and label its status.
@@ -173,7 +177,7 @@ stt_v1_fit_windows <- function(
 # is the scaled covariance of the intercept and the slope. All three values
 # are NA when any step warns or errors.
 stt_v1_prediction_interval <- function(fit, t0, offset) {
-  tryCatch(
+  return(tryCatch(
     {
       # mu0 uses the inverse link of stats::quasipoisson(), pmax(exp(eta),
       # .Machine$double.eps). predict.glm(type = "response") inside
@@ -192,20 +196,20 @@ stt_v1_prediction_interval <- function(fit, t0, offset) {
       data.table(lower = mu0 - z * se, point = mu0, upper = mu0 + z * se)
     },
     warning = function(cond) {
-      data.table(
+      return(data.table(
         lower = rep(NA_real_, length(t0)),
         point = rep(NA_real_, length(t0)),
         upper = rep(NA_real_, length(t0))
-      )
+      ))
     },
     error = function(cond) {
-      data.table(
+      return(data.table(
         lower = rep(NA_real_, length(t0)),
         point = rep(NA_real_, length(t0)),
         upper = rep(NA_real_, length(t0))
-      )
+      ))
     }
-  )
+  ))
 }
 
 
