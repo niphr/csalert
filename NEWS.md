@@ -1,3 +1,15 @@
+# Version 2026.10.17
+
+- The `csfmt_rts_data_v1` method of `short_term_trend()` fits all rolling windows of a series in one vectorised step, and it no longer calls `glm2`. On a synthetic group of 252 series of 1,000 weeks, it took 34 s, against 1,180 s before.
+- In that synthetic group, the statuses and forecasts did not change. 9 of 251,496 doubling days changed, and each was above 8 million days in absolute value.
+- A window still leaves out its weeks with an NA count or denominator. With fewer than 3 weeks left, it now gets NA status, NA doubling days and, as the last window, NA forecasts.
+- A window whose counts are all 0 keeps its status, but its doubling days are now NA. Before, they came from a fit that has no estimate.
+- A window gets NA status and NA doubling days when its first week, or its last week, holds every count above 0. Before, it got the status of a `glm2` fit that has no estimate, and doubling days near 0. A window whose fit does not converge still gets NA.
+- A window of 2 weeks with a count above 0 now gets NA status and NA doubling days. Its fit has no degree of freedom left for the dispersion. Before, some such windows got `notincreasing`. A last window of 2 weeks now gives NA forecasts.
+- A window where `glm2` halved the step got NA before. It now gets the estimate of the fit, when the fit converges.
+- Without a `denominator`, the `csfmt_rts_data_v1` method no longer stops with "object 'varname_forecast_denominator' not found" when the last window has no fit. It returns NA forecasts, as it does with a denominator.
+- csalert no longer imports `glue`, because no code calls it.
+
 # Version 2026.10.16
 
 - The `csfmt_rts_data_v1` table methods of `short_term_trend()` and `signal_detection_hlm()` are supported for counts without delayed reporting. The documentation no longer calls them deprecated, and their code does not change.

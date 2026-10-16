@@ -35,30 +35,53 @@ stt_v1_status_levels <- function(include_decreasing) {
   return(c("training", "forecast", "notincreasing", "increasing"))
 }
 
-# One window's status from its slope and p-value. Without
+# The status of each window from its slope and p-value. Without
 # `include_decreasing` the test is one-sided: a significant negative slope is
 # "notincreasing", the same label a flat series gets.
 stt_v1_status <- function(pval, co, alpha, include_decreasing) {
   if (!include_decreasing) {
-    if (pval <= alpha && co > 0) {
-      return("increasing")
-    }
-    return("notincreasing")
+    return(ifelse(pval <= alpha & co > 0, "increasing", "notincreasing"))
   }
-  if (pval > alpha) {
-    return("null")
-  }
-  if (co < 0) {
-    return("decreasing")
-  }
-  return("increasing")
+  ifelse(pval > alpha, "null", ifelse(co < 0, "decreasing", "increasing"))
 }
 
-# Fit one quasi-Poisson GLM per rolling window and label its status.
+# The kernel's fit of the window that ends at row `i`, as the forecast needs
+# it. NULL when the fit did not converge, or when its counts are separated.
+stt_v1_last_fit <- function(k, i) {
+  if (!k$converged[i, 1] || k$separated[i, 1]) {
+    return(NULL)
+  }
+  list(
+    beta0 = k$beta0[i, 1],
+    beta1 = k$beta1[i, 1],
+    var_b0 = k$var_b0[i, 1],
+    cov_b0b1 = k$cov_b0b1[i, 1],
+    var_b1 = k$se[i, 1]^2,
+    phi = k$phi[i, 1]
+  )
+}
+
+# Fit every rolling window with the v4 kernel, and label its status.
 #
-# `model` and `model_denominator` are the fits from the LAST window, and the
-# caller uses them to build the forecast. A window that warns or errors leaves
-# them NULL, which is what the caller tests for.
+# .v4_rolling_qp_offset() fits all windows of the series at once. It drops the
+# rows with an NA count or denominator from a window, and it fits a window
+# only when at least 3 rows remain. The first rule that holds gives a window
+# its status and doubling time:
+# 1. A window with NA rows and fewer than 3 rows left gets no status and no
+#    doubling time.
+# 2. A window where every count left is 0 gets "notincreasing", or "null" with
+#    `include_decreasing`, and no doubling time. This rule holds at every
+#    width, also at width 2.
+# 3. A window gets no status and no doubling time when its fit does not
+#    converge, has a non-finite value, or has separated counts. The kernel
+#    fits no window of fewer than 3 rows. So a window of width 2 with a count
+#    above 0 falls under this rule.
+# 4. Every other window gets the status and doubling time from the kernel's
+#    slope and p-value.
+#
+# `forecast` and `forecast_denominator` are the kernel's fits of the LAST
+# window, which the caller uses for the forecast. They are NULL when that fit
+# gives no forecast.
 stt_v1_fit_windows <- function(
   x,
   with_pred,
@@ -73,87 +96,116 @@ stt_v1_fit_windows <- function(
   alpha,
   gran_time
 ) {
-  trend_variable <- NULL
-  model <- NULL
-  model_denominator <- NULL
-  for (i in seq_len(nrow(x) - remove_last_rows)) {
-    index <- (i - trend_rows + 1):i
-    if (min(index) < 1) {
-      next()
-    }
+  n_fit <- nrow(x) - remove_last_rows
+  rows <- seq_len(n_fit)
+  if (n_fit < trend_rows) {
+    return(list(
+      trend = trend,
+      doubling_time = doubling_time,
+      forecast = NULL,
+      forecast_denominator = NULL
+    ))
+  }
 
-    training_data <- with_pred[index]
+  # A zero denominator becomes 1 before the log.
+  tv <- with_pred[["trend_variable"]][rows]
+  log_den <- NULL
+  if (!is.null(denominator)) {
+    den <- as.numeric(with_pred[[varname_forecast_denominator]][rows])
+    den[!is.na(den) & den == 0] <- 1
+    log_den <- matrix(log(den))
+  }
+  k <- .v4_rolling_qp_offset(
+    Y = matrix(as.numeric(with_pred[[varname_forecast_numerator]][rows])),
+    OFF = log_den,
+    TT = matrix(tv),
+    width = trend_rows,
+    na_rm = TRUE,
+    extended = TRUE
+  )
 
-    formula <- glue::glue("{varname_forecast_numerator} ~ trend_variable")
+  windows <- trend_rows:n_fit
+  # The minimum of 3 rows applies only to a window with NA rows.
+  n_used <- k$n_used[windows, 1]
+  too_few <- n_used < trend_rows & n_used < .V4_MIN_ROWS
+  all_zero <- !too_few & k$n_pos[windows, 1] == 0
+  fitted <- k$converged[windows, 1] & !k$separated[windows, 1] & !all_zero
 
-    # model for data with denom
-    model_denominator <- NULL
-    if (!is.null(denominator)) {
-      # if denominator is zero, replace with 1
-      training_data[
-        get(varname_forecast_denominator) == 0,
-        (varname_forecast_denominator) := 1
-      ]
+  i <- windows[fitted]
+  co <- k$beta1[i, 1]
+  trend[i] <- stt_v1_status(k$p[i, 1], co, alpha, include_decreasing)
+  doubling_time[i] <- nrow(with_pred) * log(2) / co # remember to scale it so that it is per date!!
+  if (gran_time == "isoyearweek") {
+    doubling_time[i] <- doubling_time[i] * 7 # remember to scale it so that it is per date!!
+  }
+  trend[windows[all_zero]] <- if (include_decreasing) {
+    "null"
+  } else {
+    "notincreasing"
+  }
 
-      formula_denominator <- glue::glue(
-        "{varname_forecast_denominator} ~ trend_variable"
-      )
-      tryCatch(
-        {
-          # qp model
-          model_denominator <- glm2::glm2(
-            stats::as.formula(formula_denominator),
-            data = training_data,
-            family = stats::quasipoisson(link = "log")
-          )
-        },
-        warning = function(cond) {
-          return(model_denominator <- NULL)
-        },
-        error = function(cond) {
-          return(model_denominator <- NULL)
-        }
-      )
-
-      formula <- glue::glue(
-        "{formula} + offset(log({varname_forecast_denominator}))"
-      )
-    }
-
-    # model for data with num only
-    model <- NULL
-    tryCatch(
-      {
-        model <- glm2::glm2(
-          stats::as.formula(formula),
-          data = training_data,
-          family = stats::quasipoisson(link = "log")
-        )
-
-        # determine the trend based on beta
-        vals <- stats::coef(summary(model))
-        co <- vals["trend_variable", "Estimate"]
-        pval <- vals["trend_variable", ][[4]]
-        trend[i] <- stt_v1_status(pval, co, alpha, include_decreasing)
-        doubling_time[i] <- nrow(with_pred) * log(2) / co # remember to scale it so that it is per date!!
-        if (gran_time == "isoyearweek") {
-          doubling_time[i] <- doubling_time[i] * 7 # remember to scale it so that it is per date!!
-        }
-      },
-      warning = function(cond) {
-        return(model <- NULL)
-      },
-      error = function(cond) {
-        return(model <- NULL)
-      }
+  # The forecast uses the fit of the last window. The denominator fit has no
+  # offset.
+  forecast <- stt_v1_last_fit(k, n_fit)
+  forecast_denominator <- NULL
+  if (!is.null(denominator)) {
+    last <- (n_fit - trend_rows + 1):n_fit
+    k_den <- .v4_rolling_qp_offset(
+      Y = matrix(den[last]),
+      TT = matrix(tv[last]),
+      width = trend_rows,
+      na_rm = TRUE,
+      extended = TRUE
     )
+    forecast_denominator <- stt_v1_last_fit(k_den, trend_rows)
   }
   return(list(
     trend = trend,
     doubling_time = doubling_time,
-    model = model,
-    model_denominator = model_denominator
+    forecast = forecast,
+    forecast_denominator = forecast_denominator
   ))
+}
+
+# The forecast and its 95% prediction interval at time values `t0`, from a fit
+# of stt_v1_last_fit(). The formula is that of prediction_interval.glm():
+# se = sqrt(phi * mu0 + mu0^2 * se_link^2), where se_link^2 = x0' V x0 and V
+# is the scaled covariance of the intercept and the slope. All three values
+# are NA when any step warns or errors.
+stt_v1_prediction_interval <- function(fit, t0, offset) {
+  tryCatch(
+    {
+      # mu0 uses the inverse link of stats::quasipoisson(), pmax(exp(eta),
+      # .Machine$double.eps). predict.glm(type = "response") inside
+      # prediction_interval.glm() uses the same inverse link. As there, the
+      # lower and upper bounds are not clamped at 0, and the lower bound can
+      # be negative.
+      mu0 <- pmax(
+        exp(fit$beta0 + fit$beta1 * t0 + offset),
+        .Machine$double.eps
+      )
+      se_link2 <- fit$var_b0 + 2 * t0 * fit$cov_b0b1 + t0^2 * fit$var_b1
+      se_fit <- sqrt(se_link2) * mu0
+      tau <- fit$phi + se_fit^2 / mu0
+      se <- sqrt(mu0 * tau)
+      z <- stats::qnorm(1 - 0.05 / 2)
+      data.table(lower = mu0 - z * se, point = mu0, upper = mu0 + z * se)
+    },
+    warning = function(cond) {
+      data.table(
+        lower = rep(NA_real_, length(t0)),
+        point = rep(NA_real_, length(t0)),
+        upper = rep(NA_real_, length(t0))
+      )
+    },
+    error = function(cond) {
+      data.table(
+        lower = rep(NA_real_, length(t0)),
+        point = rep(NA_real_, length(t0)),
+        upper = rep(NA_real_, length(t0))
+      )
+    }
+  )
 }
 
 
@@ -162,8 +214,8 @@ stt_v1_fit_windows <- function(
 # training values in place.
 stt_v1_forecast <- function(
   with_pred,
-  model,
-  model_denominator,
+  forecast,
+  forecast_denominator,
   denominator,
   prX,
   varname_forecast_numerator,
@@ -176,11 +228,17 @@ stt_v1_forecast <- function(
 ) {
   to_be_forecasted <- NULL
   # prediction interval
-  if (is.null(model) || (!is.null(denominator) && is.null(model_denominator))) {
-    suppressWarnings(with_pred[
-      to_be_forecasted == TRUE,
-      (varname_forecast_denominator) := NA_real_
-    ])
+  if (
+    is.null(forecast) ||
+      (!is.null(denominator) && is.null(forecast_denominator))
+  ) {
+    # Without a denominator, `varname_forecast_denominator` is not defined.
+    if (!is.null(denominator)) {
+      suppressWarnings(with_pred[
+        to_be_forecasted == TRUE,
+        (varname_forecast_denominator) := NA_real_
+      ])
+    }
     suppressWarnings(with_pred[
       to_be_forecasted == TRUE,
       (varname_forecast_numerator) := NA_real_
@@ -200,28 +258,29 @@ stt_v1_forecast <- function(
       with_pred[, (varname_forecast_predinterval_q97x5_prX) := NA_real_]
     }
   } else {
+    t0 <- with_pred[to_be_forecasted == TRUE][["trend_variable"]]
+    offset <- 0
     if (!is.null(denominator)) {
-      forecasted_denominator <- prediction_interval(
-        model_denominator,
-        with_pred[to_be_forecasted == TRUE],
-        alpha = 0.05
+      # The denominator forecast is the point of the denominator fit.
+      forecasted_denominator <- pmax(
+        exp(forecast_denominator$beta0 + forecast_denominator$beta1 * t0),
+        .Machine$double.eps
       )
       suppressWarnings(with_pred[
         to_be_forecasted == TRUE,
-        (varname_forecast_denominator) := round(forecasted_denominator$point)
+        (varname_forecast_denominator) := round(forecasted_denominator)
       ])
       # if denominator is zero, replace with 1
       with_pred[
         to_be_forecasted == TRUE & get(varname_forecast_denominator) == 0,
         (varname_forecast_denominator) := 1
       ]
+      offset <- log(
+        with_pred[to_be_forecasted == TRUE][[varname_forecast_denominator]]
+      )
     }
 
-    forecasted <- prediction_interval(
-      model,
-      with_pred[to_be_forecasted == TRUE],
-      alpha = 0.05
-    )
+    forecasted <- stt_v1_prediction_interval(forecast, t0, offset)
     suppressWarnings(with_pred[
       to_be_forecasted == TRUE,
       (varname_forecast_numerator) := round(forecasted$point)
@@ -453,13 +512,11 @@ short_term_trend_internal <- function(
   )
   trend <- fitted$trend
   doubling_time <- fitted$doubling_time
-  model <- fitted$model
-  model_denominator <- fitted$model_denominator
   trend <- factor(trend, levels = stt_v1_status_levels(include_decreasing))
   stt_v1_forecast(
     with_pred,
-    model,
-    model_denominator,
+    fitted$forecast,
+    fitted$forecast_denominator,
     denominator,
     prX,
     varname_forecast_numerator,
