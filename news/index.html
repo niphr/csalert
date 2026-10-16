@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.16</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.17</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,6 +51,18 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.17" id="version-20261017">Version 2026.10.17<a class="anchor" aria-label="anchor" href="#version-20261017"></a></h2>
+<ul><li>The <code>csfmt_rts_data_v1</code> method of <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> fits all rolling windows of a series in one vectorised step, and it no longer calls <code>glm2</code>. On a synthetic group of 252 series of 1,000 weeks, it took 34 s, against 1,180 s before.</li>
+<li>In that synthetic group, the statuses and forecasts did not change. 9 of 251,496 doubling days changed, and each was above 8 million days in absolute value.</li>
+<li>A window still leaves out its weeks with an NA count or denominator. With fewer than 3 weeks left, it now gets NA status, NA doubling days and, as the last window, NA forecasts.</li>
+<li>A window whose counts are all 0 keeps its status, but its doubling days are now NA. Before, they came from a fit that has no estimate.</li>
+<li>A window gets NA status and NA doubling days when its first week, or its last week, holds every count above 0. Before, it got the status of a <code>glm2</code> fit that has no estimate, and doubling days near 0. A window whose fit does not converge still gets NA.</li>
+<li>A window of 2 weeks with a count above 0 now gets NA status and NA doubling days. Its fit has no degree of freedom left for the dispersion. Before, some such windows got <code>notincreasing</code>. A last window of 2 weeks now gives NA forecasts.</li>
+<li>A window where <code>glm2</code> halved the step got NA before. It now gets the estimate of the fit, when the fit converges.</li>
+<li>Without a <code>denominator</code>, the <code>csfmt_rts_data_v1</code> method no longer stops with “object ‘varname_forecast_denominator’ not found” when the last window has no fit. It returns NA forecasts, as it does with a denominator.</li>
+<li>csalert no longer imports <code>glue</code>, because no code calls it.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.16" id="version-20261016">Version 2026.10.16<a class="anchor" aria-label="anchor" href="#version-20261016"></a></h2>
 <ul><li>The <code>csfmt_rts_data_v1</code> table methods of <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> and <code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> are supported for counts without delayed reporting. The documentation no longer calls them deprecated, and their code does not change.</li>
