@@ -47,9 +47,11 @@ nowcast_passthrough_v4(tri, max_delay_days = 21)
 }
 \seealso{
 Other v4 functions:
+\code{\link[=as_ensemble_v4]{as_ensemble_v4()}},
 \code{\link[=csfmt_ensemble_v4]{csfmt_ensemble_v4()}},
 \code{\link[=csfmt_reporting_triangle_v4]{csfmt_reporting_triangle_v4()}},
 \code{\link[=ens_add_rate_v4]{ens_add_rate_v4()}},
+\code{\link[=ens_compress_v4]{ens_compress_v4()}},
 \code{\link[=mem_thresholds_v4]{mem_thresholds_v4()}},
 \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}},
 \code{\link[=print.csfmt_ensemble_v4]{print.csfmt_ensemble_v4()}},

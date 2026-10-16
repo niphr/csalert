@@ -1,8 +1,10 @@
 # csfmt_ensemble_v4: the working format of the v4 methods. A list with the
 # slots `data`, `draws`, `id_cols`, `time_col` and `state`. The slots are list
-# elements, so they survive a subset or a copy that drops attributes.
+# elements, so they survive a subset or a copy that drops attributes. A
+# compressed ensemble, from as_ensemble_v4(), also has the slots `n_sim`,
+# `rule` and `cache`.
 
-.V4_ENSEMBLE_STATES <- "full"
+.V4_ENSEMBLE_STATES <- c("full", "compressed")
 
 #' Build a csfmt_ensemble_v4
 #'
@@ -106,13 +108,7 @@ csfmt_ensemble_v4 <- function(
     is.character(ens$time_col),
     length(ens$time_col) == 1L
   )
-  if (!identical(ens$state, .V4_ENSEMBLE_STATES)) {
-    stop(
-      "ensemble $state must be one of: ",
-      paste(.V4_ENSEMBLE_STATES, collapse = ", "),
-      call. = FALSE
-    )
-  }
+  .v4_validate_state(ens)
   need <- c(
     ens$id_cols,
     ens$time_col,
@@ -129,7 +125,7 @@ csfmt_ensemble_v4 <- function(
   if (length(ens$draws) && is.null(names(ens$draws))) {
     stop("ensemble $draws must be a named list", call. = FALSE)
   }
-  .v4_check_names(c(names(ens$data), names(ens$draws)))
+  .v4_check_names(.v4_ensemble_names(ens))
   n <- nrow(ens$data)
   for (m in names(ens$draws)) {
     M <- ens$draws[[m]]
@@ -141,6 +137,44 @@ csfmt_ensemble_v4 <- function(
     }
   }
   return(invisible(ens))
+}
+
+# Check the state, and the slots that only a compressed ensemble has.
+.v4_validate_state <- function(ens) {
+  if (!isTRUE(ens$state %in% .V4_ENSEMBLE_STATES)) {
+    stop(
+      "ensemble $state must be one of: ",
+      paste(.V4_ENSEMBLE_STATES, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (!identical(ens$state, "compressed")) {
+    return(invisible(ens))
+  }
+  ok <- c(
+    .v4_is_whole_number(ens$n_sim) && ens$n_sim >= 1,
+    isTRUE(ens$rule %in% .V4_REBUILD_RULES),
+    is.environment(ens$cache)
+  )
+  if (!all(ok)) {
+    stop(
+      "an ensemble with $state 'compressed' needs $n_sim, $rule and $cache. ",
+      "Make it with as_ensemble_v4().",
+      call. = FALSE
+    )
+  }
+  return(invisible(ens))
+}
+
+# The names of the columns of $data and of the draw matrices. In a compressed
+# ensemble, a rate that ens_add_rate_v4() added is both a draw matrix and a
+# stored measure in $data, and its name counts once.
+.v4_ensemble_names <- function(ens) {
+  draw_names <- names(ens$draws)
+  if (identical(ens$state, "compressed")) {
+    draw_names <- setdiff(draw_names, names(ens$data))
+  }
+  return(c(names(ens$data), draw_names))
 }
 
 #' Print a csfmt_ensemble_v4

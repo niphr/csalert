@@ -1,0 +1,297 @@
+# The two states of a csfmt_ensemble_v4. A full ensemble holds its draws in
+# memory. A compressed ensemble holds, for each base measure, a point value
+# and 9 percentiles in $data, and rebuilds the draws from them on demand.
+
+# The seed of the rebuild.
+.V4_REBUILD_SEED <- 4L
+
+# The two rules of the rebuild. "same_rank" gives a series one u per draw,
+# shared by every week. "independent" gives a series one u per week and draw.
+.V4_REBUILD_RULES <- c("same_rank", "independent")
+
+#' Compress a csfmt_ensemble_v4 into a table to store
+#'
+#' @description
+#' Returns `$data` of `x` as a data.table, with the median and 9 percentiles
+#' of each base measure in place of its draws. [as_ensemble_v4()] turns the
+#' table back into an ensemble.
+#'
+#' @details
+#' A base measure is a draw matrix whose name does not end in a reserved
+#' suffix, such as `_trend_beta1` or `_hlm`. Each base measure `<m>` becomes
+#' these columns:
+#' - `<m>`: the median of the draws.
+#' - `<m>_q02x5` to `<m>_q97x5`: the draws at the 9 percentiles 2.5, 5, 10,
+#'   25, 50, 75, 90, 95 and 97.5.
+#'
+#' The percentiles are `NA` in a row where every draw that is not `NA` has the
+#' same value. A row with one draw, as from [nowcast_passthrough_v4()], is
+#' such a row. The table does not hold the derived draw matrices. The columns
+#' that the steps wrote to `$data` already summarise them.
+#'
+#' The function draws no random numbers.
+#' @param x A `csfmt_ensemble_v4`, full or compressed. Each column of `$data`
+#'   MUST be an atomic vector that is not a factor.
+#' @returns A data.table with the columns of `x$data` and the columns of each
+#'   base measure. Each column name MUST be at most 63 bytes, and the function
+#'   stops with an error when one is not.
+#' @family v4 functions
+#' @examples
+#' d <- data.table::data.table(
+#'   location_code = "nation",
+#'   isoyearweek = sprintf("2023-%02d", 1:10)
+#' )
+#' set.seed(1)
+#' ens <- csfmt_ensemble_v4(
+#'   d,
+#'   id_cols = "location_code",
+#'   draws = list(cases = matrix(rpois(10 * 200, 20), nrow = 10))
+#' )
+#' stored <- ens_compress_v4(ens)
+#' stored[, .(isoyearweek, cases, cases_q02x5, cases_q97x5)]
+#' @export
+ens_compress_v4 <- function(x) {
+  .v4_validate_ensemble(x)
+  bad <- vapply(
+    x$data,
+    function(v) {
+      return(is.list(v) || is.matrix(v) || is.factor(v))
+    },
+    logical(1)
+  )
+  if (any(bad)) {
+    stop(
+      "$data has list, matrix or factor columns, which a table cannot ",
+      "store: ",
+      paste(names(x$data)[bad], collapse = ", "),
+      call. = FALSE
+    )
+  }
+  base <- names(x$draws)[!.v4_is_derived(names(x$draws))]
+  new <- unlist(lapply(base, .v4_summary_names), use.names = FALSE)
+  .v4_check_names(unique(c(names(x$data), new)))
+
+  d <- data.table::copy(x$data)
+  for (m in base) {
+    .v4_summary_into(d, m, x$draws[[m]])
+  }
+  return(d)
+}
+
+#' Rebuild a csfmt_ensemble_v4 from a stored table
+#'
+#' @description
+#' Turns a table from [ens_compress_v4()] into a compressed
+#' `csfmt_ensemble_v4`. The v4 steps take it as they take a full ensemble, and
+#' rebuild the draws of each base measure that they read.
+#'
+#' @details
+#' A base measure is a column `<m>` that has the 9 percentile columns
+#' `<m>_q02x5` to `<m>_q97x5`, where `<m>` does not end in a reserved suffix.
+#' The table holds no other metadata, so a table with every attribute removed
+#' gives the same ensemble.
+#'
+#' The rebuild draws one u from U(0, 1) per series and draw, with seed 4, and
+#' then puts back the random-number state of the caller. Every week and every
+#' base measure of a series use that u. The value of a draw is u through the
+#' quantile function of the row. That function interpolates linearly between
+#' the 9 stored percentiles, and it is flat below 2.5% and above 97.5%. A row
+#' with `NA` percentiles gets its point value in every draw.
+#'
+#' A rate rebuilt from its own percentiles loses the pairing of its draws with
+#' the draws of its numerator and denominator. Before a step on a rate, you
+#' MUST add the rate again from its parts with [ens_add_rate_v4()]. The step
+#' then reads the recomputed rate.
+#' @param d A data.table from [ens_compress_v4()].
+#' @param id_cols The identity columns that define one series.
+#' @param time_col The column that orders time within a series.
+#' @param n_sim The number of draws in each rebuilt draw matrix.
+#' @returns A `csfmt_ensemble_v4` with `state` `"compressed"`. Its `$draws` is
+#'   empty, and it holds only the draw matrices that the steps add.
+#' @family v4 functions
+#' @examples
+#' d <- data.table::data.table(
+#'   location_code = "nation",
+#'   isoyearweek = sprintf("2023-%02d", 1:10)
+#' )
+#' set.seed(1)
+#' ens <- csfmt_ensemble_v4(
+#'   d,
+#'   id_cols = "location_code",
+#'   draws = list(cases = matrix(rpois(10 * 200, 20 * exp(0.1 * 1:10)), 10))
+#' )
+#' stored <- ens_compress_v4(ens)
+#' back <- as_ensemble_v4(stored, id_cols = "location_code")
+#' back
+#' back <- short_term_trend_v4(back, measure = "cases", width = 5, seed = 4)
+#' back$data[, .(isoyearweek, cases, cases_trend_pinc)]
+#' @export
+as_ensemble_v4 <- function(
+  d,
+  id_cols,
+  time_col = "isoyearweek",
+  n_sim = 1000L
+) {
+  return(.v4_as_ensemble(d, id_cols, time_col, n_sim, rule = "same_rank"))
+}
+
+# The work of as_ensemble_v4(). `rule` is one of .V4_REBUILD_RULES. It is an
+# internal argument, so that a validation can compare the two rules.
+.v4_as_ensemble <- function(d, id_cols, time_col, n_sim, rule) {
+  if (!data.table::is.data.table(d)) {
+    stop("`d` must be a data.table", call. = FALSE)
+  }
+  if (!.v4_is_whole_number(n_sim) || n_sim < 1) {
+    stop("`n_sim` must be one whole number of at least 1", call. = FALSE)
+  }
+  rule <- match.arg(rule, .V4_REBUILD_RULES)
+  stored <- .v4_stored_measures(names(d))
+  cols <- unlist(lapply(stored, .v4_summary_names), use.names = FALSE)
+  numeric_col <- vapply(
+    cols,
+    function(v) {
+      return(is.numeric(d[[v]]))
+    },
+    logical(1)
+  )
+  if (!all(numeric_col)) {
+    stop(
+      "the stored measure columns must be numeric: ",
+      paste(cols[!numeric_col], collapse = ", "),
+      call. = FALSE
+    )
+  }
+  x <- csfmt_ensemble_v4(d, id_cols = id_cols, time_col = time_col)
+  x$state <- "compressed"
+  x$n_sim <- as.integer(n_sim)
+  x$rule <- rule
+  x$cache <- new.env(parent = emptyenv())
+  return(.v4_validate_ensemble(x))
+}
+
+# The draws of `measure` in the ensemble `x`. A draw matrix in $draws is
+# returned as it is. In a compressed ensemble, a stored base measure that is
+# not in $draws is rebuilt from its percentiles. Every v4 step reads its draws
+# through this function, so that it works in both states.
+.v4_draws <- function(x, measure) {
+  if (measure %in% names(x$draws)) {
+    return(x$draws[[measure]])
+  }
+  if (!measure %in% .v4_measures(x)) {
+    stop("`measure` must name one matrix in $draws", call. = FALSE)
+  }
+  u <- .v4_rebuild_u(x)
+  q <- as.matrix(x$data[, .v4_summary_names(measure)[-1], with = FALSE])
+  return(.v4_quantile_map(x$data[[measure]], q, u))
+}
+
+# The names of the measures of `x`: the draw matrices in $draws and, in a
+# compressed ensemble, the base measures stored in $data.
+.v4_measures <- function(x) {
+  out <- names(x$draws)
+  if (identical(x$state, "compressed")) {
+    out <- union(out, .v4_stored_measures(names(x$data)))
+  }
+  return(out)
+}
+
+# The dimensions of the draw matrix of `measure`, with no rebuild.
+.v4_draw_dim <- function(x, measure) {
+  if (measure %in% names(x$draws)) {
+    return(dim(x$draws[[measure]]))
+  }
+  return(c(nrow(x$data), x$n_sim))
+}
+
+# TRUE for each name that ends in a reserved suffix.
+.v4_is_derived <- function(x) {
+  pattern <- paste0("(", paste(.V4_RESERVED_SUFFIXES, collapse = "|"), ")$")
+  return(grepl(pattern, x))
+}
+
+# The point column and the 9 percentile columns of the base measure `m`.
+.v4_summary_names <- function(m) {
+  return(c(m, paste0(m, "_", .v4_q_label(.V4_PROBS))))
+}
+
+# The base measures stored in a table with the column names `cols`: each
+# column that has its 9 percentile columns and no reserved suffix.
+.v4_stored_measures <- function(cols) {
+  full <- vapply(
+    cols,
+    function(m) {
+      return(all(.v4_summary_names(m)[-1] %in% cols))
+    },
+    logical(1),
+    USE.NAMES = FALSE
+  )
+  return(cols[full & !.v4_is_derived(cols)])
+}
+
+# Write the median of the draw matrix `M` to the column `m` of `d`, and its 9
+# percentiles to the columns `<m>_q02x5` to `<m>_q97x5`, by reference. The
+# percentiles are NA in a row where every draw that is not NA is equal.
+.v4_summary_into <- function(d, m, M) {
+  n <- nrow(M)
+  med <- matrixStats::rowMedians(M, na.rm = TRUE)
+  med[is.nan(med)] <- NA_real_
+  q <- matrixStats::rowQuantiles(M, probs = .V4_PROBS, na.rm = TRUE)
+  q <- matrix(as.numeric(q), n, length(.V4_PROBS))
+  r <- suppressWarnings(matrixStats::rowRanges(M, na.rm = TRUE))
+  q[!(r[, 2] > r[, 1]), ] <- NA_real_
+  nm <- .v4_summary_names(m)
+  d[, (nm[1]) := as.numeric(med)]
+  d[, (nm[-1]) := data.table::as.data.table(q)]
+  return(invisible(d))
+}
+
+# The u matrix of the rebuild of `x`: one row per row of $data and one column
+# per draw. It is drawn once, under seed 4, and kept in x$cache, so that it
+# does not depend on which measure is rebuilt first. All base measures share
+# it, so a numerator and its denominator keep their pairing.
+.v4_rebuild_u <- function(x) {
+  if (is.null(x$cache$u)) {
+    x$cache$u <- .v4_with_seed(
+      .V4_REBUILD_SEED,
+      .v4_draw_u(x$data, x$time_col, x$n_sim, x$rule)
+    )
+  }
+  return(x$cache$u)
+}
+
+# Draw the u matrix in a fixed order: the series sorted by time_series_id,
+# then the weeks. The caller sets the seed.
+.v4_draw_u <- function(data, time_col, n_sim, rule) {
+  sid <- data$time_series_id
+  n <- length(sid)
+  if (identical(rule, "same_rank")) {
+    series <- sort(unique(sid), method = "radix")
+    U <- matrix(stats::runif(length(series) * n_sim), length(series), n_sim)
+    return(U[match(sid, series), , drop = FALSE])
+  }
+  o <- order(sid, data[[time_col]], method = "radix")
+  u <- matrix(NA_real_, n, n_sim)
+  u[o, ] <- stats::runif(n * n_sim)
+  return(u)
+}
+
+# Map each u through the quantile function of its row. `q` holds the 9
+# percentiles of each row at .V4_PROBS. The function interpolates linearly
+# between them, and is flat below the first and above the last. A row with an
+# NA percentile gets `point` in every draw.
+.v4_quantile_map <- function(point, q, u) {
+  n <- nrow(u)
+  p <- .V4_PROBS
+  uc <- pmin(pmax(u, p[1]), p[length(p)])
+  j <- findInterval(uc, p, all.inside = TRUE)
+  row <- rep(seq_len(n), ncol(u))
+  lo <- q[cbind(row, j)]
+  hi <- q[cbind(row, j + 1L)]
+  w <- (uc - p[j]) / (p[j + 1L] - p[j])
+  # This form gives the stored value exactly at w = 0 and at w = 1.
+  out <- (1 - w) * lo + w * hi
+  out <- matrix(out, n, ncol(u))
+  na_q <- rowSums(is.na(q)) > 0
+  out[na_q, ] <- as.numeric(point[na_q])
+  return(out)
+}

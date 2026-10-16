@@ -7,7 +7,8 @@
 ens_add_rate_v4(x, numerator, denominator, per = 100, name)
 }
 \arguments{
-\item{x}{The full \code{csfmt_ensemble_v4} that holds both measures.}
+\item{x}{The \code{csfmt_ensemble_v4}, full or compressed, that holds both
+measures.}
 
 \item{numerator, denominator}{The names of two draw matrices in \verb{$draws}.}
 
@@ -16,7 +17,8 @@ ens_add_rate_v4(x, numerator, denominator, per = 100, name)
 \item{name}{The name of the new draw matrix. It MUST be at most 63 bytes,
 and it MUST NOT end in a reserved suffix such as \verb{_trend_gr} or \verb{_hlm}.
 It MUST NOT be the name of a column of \verb{$data}, such as an identity
-column or the time column.}
+column or the time column. In a compressed ensemble, it MAY be the name
+of a stored measure, whose columns the rate then replaces.}
 }
 \value{
 \code{x} with the rate in \verb{$draws[[name]]}. A draw matrix with that name
@@ -33,6 +35,14 @@ rate is identical. The rate is \code{per * numerator / denominator}. A zero or
 \code{NA} denominator gives \code{NA}, also for \code{0 / 0}. The numerator is a subset of
 the denominator, so the rate is capped at \code{per}. A draw with a numerator
 above its denominator gives a warning.
+
+On a compressed ensemble from \code{\link[=as_ensemble_v4]{as_ensemble_v4()}}, the function rebuilds the
+numerator and the denominator. The two share their u, so their draws stay
+paired. It then writes the median and the 9 percentiles of the rate to
+\verb{$data}, as \code{\link[=ens_compress_v4]{ens_compress_v4()}} does. A rate that \code{as_ensemble_v4()} reads
+from a stored table is rebuilt from its own percentiles, which loses that
+pairing. Before a step on a rate after a rebuild, you MUST add the rate
+again from its parts with this function.
 }
 \examples{
 d <- data.table::data.table(
@@ -59,8 +69,10 @@ names(ens$draws)
 }
 \seealso{
 Other v4 functions:
+\code{\link[=as_ensemble_v4]{as_ensemble_v4()}},
 \code{\link[=csfmt_ensemble_v4]{csfmt_ensemble_v4()}},
 \code{\link[=csfmt_reporting_triangle_v4]{csfmt_reporting_triangle_v4()}},
+\code{\link[=ens_compress_v4]{ens_compress_v4()}},
 \code{\link[=mem_thresholds_v4]{mem_thresholds_v4()}},
 \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}},
 \code{\link[=nowcast_passthrough_v4]{nowcast_passthrough_v4()}},

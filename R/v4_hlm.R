@@ -28,7 +28,7 @@
 #'
 #' The function draws no random numbers.
 #' The function takes no `...`, so a misspelt argument is an error.
-#' @param x The full `csfmt_ensemble_v4`.
+#' @param x The `csfmt_ensemble_v4`, full or compressed.
 #' @param measure The name of the draw matrix to compare with the limit. It
 #'   MUST NOT end in a reserved suffix.
 #' @param baseline_isoyears The number of earlier years in the baseline.
@@ -62,7 +62,7 @@ signal_detection_hlm_v4 <- function(x, measure, baseline_isoyears = 5) {
   nm <- .v4_hlm_names(measure)
   .v4_check_names(unlist(nm, use.names = FALSE))
 
-  Y <- x$draws[[measure]]
+  Y <- .v4_draws(x, measure)
   thr <- .v4_hlm_threshold(
     Y,
     series = x$data$time_series_id,

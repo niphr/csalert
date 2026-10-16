@@ -39,7 +39,7 @@
 #'
 #' The function draws no random numbers. It needs the mem package.
 #' The function takes no `...`, so a misspelt argument is an error.
-#' @param x The full `csfmt_ensemble_v4`.
+#' @param x The `csfmt_ensemble_v4`, full or compressed.
 #' @param measure The name of the draw matrix to classify, a count or a rate.
 #'   It MUST NOT end in a reserved suffix.
 #' @param min_seasons The fewest training seasons for a fit.
@@ -103,7 +103,7 @@ mem_thresholds_v4 <- function(
   nm <- .v4_mem_names(measure)
   .v4_check_names(unlist(nm, use.names = FALSE))
 
-  Y <- x$draws[[measure]]
+  Y <- .v4_draws(x, measure)
   weeks <- x$data[[x$time_col]]
   d <- data.table::data.table(
     season = cstime::isoyearweek_to_season_c(weeks),

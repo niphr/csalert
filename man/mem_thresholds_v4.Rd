@@ -15,7 +15,7 @@ mem_thresholds_v4(
 )
 }
 \arguments{
-\item{x}{The full \code{csfmt_ensemble_v4}.}
+\item{x}{The \code{csfmt_ensemble_v4}, full or compressed.}
 
 \item{measure}{The name of the draw matrix to classify, a count or a rate.
 It MUST NOT end in a reserved suffix.}
@@ -108,9 +108,11 @@ if (requireNamespace("mem", quietly = TRUE)) {
 }
 \seealso{
 Other v4 functions:
+\code{\link[=as_ensemble_v4]{as_ensemble_v4()}},
 \code{\link[=csfmt_ensemble_v4]{csfmt_ensemble_v4()}},
 \code{\link[=csfmt_reporting_triangle_v4]{csfmt_reporting_triangle_v4()}},
 \code{\link[=ens_add_rate_v4]{ens_add_rate_v4()}},
+\code{\link[=ens_compress_v4]{ens_compress_v4()}},
 \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}},
 \code{\link[=nowcast_passthrough_v4]{nowcast_passthrough_v4()}},
 \code{\link[=print.csfmt_ensemble_v4]{print.csfmt_ensemble_v4()}},

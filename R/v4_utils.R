@@ -217,13 +217,14 @@
 # percentile columns, from q02x5 to q97x5.
 .V4_PROBS <- c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975)
 
-# Stop unless `measure` is one string that names a draw matrix of `x`, and
-# check it with .v4_check_measure_names(). The HLM and MEM steps use it.
+# Stop unless `measure` is one string that names a measure of `x`: a draw
+# matrix, or a stored measure of a compressed ensemble. Then check it with
+# .v4_check_measure_names(). The HLM and MEM steps use it.
 .v4_check_draw_measure <- function(x, measure) {
   if (
     !is.character(measure) ||
       length(measure) != 1L ||
-      !measure %in% names(x$draws)
+      !measure %in% .v4_measures(x)
   ) {
     stop("`measure` must name one matrix in $draws", call. = FALSE)
   }

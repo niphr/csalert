@@ -12,13 +12,23 @@
 #' `NA` denominator gives `NA`, also for `0 / 0`. The numerator is a subset of
 #' the denominator, so the rate is capped at `per`. A draw with a numerator
 #' above its denominator gives a warning.
-#' @param x The full `csfmt_ensemble_v4` that holds both measures.
+#'
+#' On a compressed ensemble from [as_ensemble_v4()], the function rebuilds the
+#' numerator and the denominator. The two share their u, so their draws stay
+#' paired. It then writes the median and the 9 percentiles of the rate to
+#' `$data`, as [ens_compress_v4()] does. A rate that `as_ensemble_v4()` reads
+#' from a stored table is rebuilt from its own percentiles, which loses that
+#' pairing. Before a step on a rate after a rebuild, you MUST add the rate
+#' again from its parts with this function.
+#' @param x The `csfmt_ensemble_v4`, full or compressed, that holds both
+#'   measures.
 #' @param numerator,denominator The names of two draw matrices in `$draws`.
 #' @param per The scale of the rate. `100` gives a percentage.
 #' @param name The name of the new draw matrix. It MUST be at most 63 bytes,
 #'   and it MUST NOT end in a reserved suffix such as `_trend_gr` or `_hlm`.
 #'   It MUST NOT be the name of a column of `$data`, such as an identity
-#'   column or the time column.
+#'   column or the time column. In a compressed ensemble, it MAY be the name
+#'   of a stored measure, whose columns the rate then replaces.
 #' @returns `x` with the rate in `$draws[[name]]`. A draw matrix with that name
 #'   is replaced.
 #' @family v4 functions
@@ -48,7 +58,9 @@
 ens_add_rate_v4 <- function(x, numerator, denominator, per = 100, name) {
   .v4_validate_ensemble(x)
   .v4_check_measure_names(name)
-  if (name %in% names(x$data)) {
+  compressed <- identical(x$state, "compressed")
+  stored <- compressed && name %in% .v4_stored_measures(names(x$data))
+  if (name %in% names(x$data) && !stored) {
     stop(
       "`name` '",
       name,
@@ -56,15 +68,19 @@ ens_add_rate_v4 <- function(x, numerator, denominator, per = 100, name) {
       call. = FALSE
     )
   }
-  if (!all(c(numerator, denominator) %in% names(x$draws))) {
+  if (!all(c(numerator, denominator) %in% .v4_measures(x))) {
     stop(
       "numerator and denominator must both be measures in $draws",
       call. = FALSE
     )
   }
 
-  N <- x$draws[[numerator]]
-  D <- x$draws[[denominator]]
+  if (compressed) {
+    .v4_check_names(unique(c(names(x$data), .v4_summary_names(name))))
+  }
+
+  N <- .v4_draws(x, numerator)
+  D <- .v4_draws(x, denominator)
   if (any(N > D, na.rm = TRUE)) {
     warning(
       "numerator > denominator in some draws; rate capped at `per`",
@@ -80,7 +96,14 @@ ens_add_rate_v4 <- function(x, numerator, denominator, per = 100, name) {
 
   # `x` is valid, and `name` passed .v4_check_measure_names() and is no
   # column of $data, so the new ensemble is valid. A draw matrix with that
-  # name is replaced.
+  # name is replaced. A compressed ensemble also gets the summary columns of
+  # the rate, which replace those of a stored measure with that name.
   x$draws[[name]] <- rate
+  if (compressed) {
+    d <- data.table::copy(x$data)
+    .v4_summary_into(d, name, rate)
+    x$data <- d
+    .v4_validate_ensemble(x)
+  }
   return(x)
 }

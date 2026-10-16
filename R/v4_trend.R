@@ -51,7 +51,7 @@
 #'
 #' The function sets `seed` itself, and then puts back the random-number state
 #' of the caller.
-#' @param x The full `csfmt_ensemble_v4`.
+#' @param x The `csfmt_ensemble_v4`, full or compressed.
 #' @param measure The name of the draw matrix of counts in `$draws`.
 #' @param width The number of weeks in a window, one whole number of at least
 #'   2.
@@ -99,8 +99,8 @@ short_term_trend_v4 <- function(
   .v4_trend_check_weeks(x)
 
   fit <- .v4_trend_fit(
-    Y = x$draws[[measure]],
-    D = if (!is.null(denominator)) x$draws[[denominator]],
+    Y = .v4_draws(x, measure),
+    D = if (!is.null(denominator)) .v4_draws(x, denominator),
     series = x$data$time_series_id,
     pos = x$data$time_series_internal_id,
     width = width
@@ -126,7 +126,7 @@ short_term_trend_v4 <- function(
   named <- vapply(
     given,
     function(m) {
-      return(is.character(m) && length(m) == 1L && m %in% names(x$draws))
+      return(is.character(m) && length(m) == 1L && m %in% .v4_measures(x))
     },
     logical(1)
   )
@@ -138,7 +138,7 @@ short_term_trend_v4 <- function(
   }
   if (
     !is.null(denominator) &&
-      !identical(dim(x$draws[[measure]]), dim(x$draws[[denominator]]))
+      !identical(.v4_draw_dim(x, measure), .v4_draw_dim(x, denominator))
   ) {
     stop(
       "the measure and denominator matrices differ in dimensions",
