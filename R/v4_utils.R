@@ -212,3 +212,7 @@
   d[, (qcols) := data.table::as.data.table(qmat)]
   return(invisible(d))
 }
+
+# A copy of the default `probs` of ens_collapse(): the 9 probabilities of the
+# percentile columns, from q02x5 to q97x5.
+.V4_PROBS <- c(0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975)
