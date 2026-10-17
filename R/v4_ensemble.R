@@ -1,8 +1,8 @@
 # csfmt_ensemble_v4: the working format of the v4 methods. A list with the
 # slots `data`, `draws`, `id_cols`, `time_col` and `state`. The slots are list
 # elements, so they survive a subset or a copy that drops attributes. A
-# compressed ensemble, from as_ensemble_v4(), also has the slots `n_sim`,
-# `rule` and `cache`.
+# compressed ensemble, from as_ensemble_v4(), also has the slots `n_sim`
+# and `cache`.
 
 .V4_ENSEMBLE_STATES <- c("full", "compressed")
 
@@ -153,12 +153,11 @@ csfmt_ensemble_v4 <- function(
   }
   ok <- c(
     .v4_is_whole_number(ens$n_sim) && ens$n_sim >= 1,
-    isTRUE(ens$rule %in% .V4_REBUILD_RULES),
     is.environment(ens$cache)
   )
   if (!all(ok)) {
     stop(
-      "an ensemble with $state 'compressed' needs $n_sim, $rule and $cache. ",
+      "an ensemble with $state 'compressed' needs $n_sim and $cache.",
       "Make it with as_ensemble_v4().",
       call. = FALSE
     )

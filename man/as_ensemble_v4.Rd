@@ -7,7 +7,9 @@
 as_ensemble_v4(d, id_cols, time_col = "isoyearweek", n_sim = 1000L)
 }
 \arguments{
-\item{d}{A data.table from \code{\link[=ens_compress_v4]{ens_compress_v4()}}.}
+\item{d}{The table from \code{\link[=ens_compress_v4]{ens_compress_v4()}}, as a data.table or a
+data.frame. A DBI read returns a data.frame. The function converts a copy,
+so the object of the caller does not change.}
 
 \item{id_cols}{The identity columns that define one series.}
 

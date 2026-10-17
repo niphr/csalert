@@ -142,7 +142,58 @@ test_that("the rebuild has one rule, and no function takes a rule argument", {
   expect_false("rule" %in% names(formals(.v4_as_ensemble)))
   expect_false("rule" %in% names(formals(.v4_draw_u)))
   expect_false("rule" %in% names(formals(as_ensemble_v4)))
-  expect_identical(.V4_REBUILD_RULES, "independent")
+})
+
+# The pattern of rebuild-rule state: the old constant, the `$rule` slot, and
+# a `rule =` argument.
+v4c_rule_state <- "V4_REBUILD_RULES|\\$rule\\b|\\brule\\s*="
+
+test_that("a compressed ensemble has no rule slot, and no v4 function reads one", {
+  y <- as_ensemble_v4(ens_compress_v4(v4c_cont()), "location_code")
+  expect_false("rule" %in% names(y))
+  ns <- asNamespace("csalert")
+  expect_false(exists(".V4_REBUILD_RULES", envir = ns, inherits = FALSE))
+  v4 <- grep("^\\.v4_|_v4$", ls(ns, all.names = TRUE), value = TRUE)
+  fns <- v4[vapply(v4, function(f) is.function(ns[[f]]), logical(1))]
+  expect_gt(length(fns), 50)
+  reads <- vapply(
+    fns,
+    function(f) {
+      return(any(grepl(v4c_rule_state, deparse(ns[[f]]))))
+    },
+    logical(1)
+  )
+  expect_identical(fns[reads], character(0))
+})
+
+test_that("no R/v4_*.R file defines or reads rebuild-rule state", {
+  r_dir <- testthat::test_path("..", "..", "R")
+  skip_if_not(dir.exists(r_dir), "R/ is not in a built package")
+  files <- list.files(r_dir, pattern = "^v4_.*\\.R$", full.names = TRUE)
+  expect_gt(length(files), 5)
+  hits <- unlist(lapply(files, function(f) {
+    L <- readLines(f, warn = FALSE)
+    return(sprintf("%s:%d", basename(f), grep(v4c_rule_state, L)))
+  }))
+  expect_identical(as.character(hits), character(0))
+})
+
+test_that("as_ensemble_v4 takes a data.frame, and does not change it", {
+  tab <- ens_compress_v4(v4c_cont())
+  df <- as.data.frame(tab)
+  before <- data.table::copy(df)
+  from_dt <- as_ensemble_v4(tab, "location_code", n_sim = 300L)
+  from_df <- tryCatch(
+    as_ensemble_v4(df, "location_code", n_sim = 300L),
+    error = function(e) e
+  )
+  expect_s3_class(from_df, "csfmt_ensemble_v4")
+  expect_identical(df, before)
+  expect_identical(class(df), "data.frame")
+  skip_if_not(inherits(from_df, "csfmt_ensemble_v4"))
+  expect_identical(from_df$data, from_dt$data)
+  expect_identical(.v4_draws(from_df, "cases"), .v4_draws(from_dt, "cases"))
+  expect_identical(.v4_draws(from_df, "other"), .v4_draws(from_dt, "other"))
 })
 
 test_that("compress, as_ensemble_v4 and every step leave .Random.seed unchanged", {
@@ -381,8 +432,12 @@ test_that("a list, matrix or factor column of $data is an error", {
 test_that("as_ensemble_v4 checks its arguments", {
   tab <- ens_compress_v4(v4c_cont())
   expect_error(
-    as_ensemble_v4(as.data.frame(tab), "location_code"),
-    "must be a data.table"
+    as_ensemble_v4(as.list(tab), "location_code"),
+    "must be a data.frame or a data.table"
+  )
+  expect_error(
+    as_ensemble_v4(as.matrix(tab), "location_code"),
+    "must be a data.frame or a data.table"
   )
   expect_error(
     as_ensemble_v4(tab, "location_code", n_sim = 0),

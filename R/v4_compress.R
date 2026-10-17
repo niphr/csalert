@@ -5,11 +5,6 @@
 # The seed of the rebuild.
 .V4_REBUILD_SEED <- 4L
 
-# The rule of the rebuild: one u per row and draw, so the weeks of a series
-# are independent. The luftvei validation of 2026-10-16 chose it over one u
-# per series. .v4_validate_state() checks $rule against this value.
-.V4_REBUILD_RULES <- "independent"
-
 #' Compress a csfmt_ensemble_v4 into a table to store
 #'
 #' @description
@@ -104,7 +99,9 @@ ens_compress_v4 <- function(x) {
 #' the draws of its numerator and denominator. Before a step on a rate, you
 #' MUST add the rate again from its parts with [ens_add_rate_v4()]. The step
 #' then reads the recomputed rate.
-#' @param d A data.table from [ens_compress_v4()].
+#' @param d The table from [ens_compress_v4()], as a data.table or a
+#'   data.frame. A DBI read returns a data.frame. The function converts a copy,
+#'   so the object of the caller does not change.
 #' @param id_cols The identity columns that define one series.
 #' @param time_col The column that orders time within a series.
 #' @param n_sim The number of draws in each rebuilt draw matrix.
@@ -139,9 +136,11 @@ as_ensemble_v4 <- function(
 
 # The work of as_ensemble_v4().
 .v4_as_ensemble <- function(d, id_cols, time_col, n_sim) {
-  if (!data.table::is.data.table(d)) {
-    stop("`d` must be a data.table", call. = FALSE)
+  if (!is.data.frame(d)) {
+    stop("`d` must be a data.frame or a data.table", call. = FALSE)
   }
+  # A copy, so that the object of the caller does not change.
+  d <- data.table::as.data.table(d)
   if (!.v4_is_whole_number(n_sim) || n_sim < 1) {
     stop("`n_sim` must be one whole number of at least 1", call. = FALSE)
   }
@@ -164,7 +163,6 @@ as_ensemble_v4 <- function(
   x <- csfmt_ensemble_v4(d, id_cols = id_cols, time_col = time_col)
   x$state <- "compressed"
   x$n_sim <- as.integer(n_sim)
-  x$rule <- .V4_REBUILD_RULES
   x$cache <- new.env(parent = emptyenv())
   return(.v4_validate_ensemble(x))
 }
