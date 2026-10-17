@@ -22,9 +22,10 @@ adds these columns to \verb{$data}:
 \item \verb{<measure>_hlm_thr}: the limit.
 \item \verb{<measure>_hlm_prob_null} and \verb{<measure>_hlm_prob_high}: the share of
 the draws at each level, which is \code{NaN} when every draw is \code{NA}.
-\item \verb{<measure>_hlm_q02x5} to \verb{<measure>_hlm_q97x5}: the ordinal percentiles
-2.5 to 97.5 of the level codes.
 }
+
+The shares give every ordinal percentile of the level codes, so the step
+writes no percentile column.
 
 Each new name MUST be at most 63 bytes. A rerun on the same \code{measure}
 replaces the draw matrix and the columns. The input \code{x} does not change.

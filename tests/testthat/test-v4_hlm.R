@@ -96,20 +96,24 @@ V4H_Q <- c(
 # column of $data in v4, and of the ens_collapse() output in v3.
 v4h_map <- function(m3, m4) {
   return(data.frame(
-    where = c("draws", rep("data", 12)),
+    where = c("draws", rep("data", 3)),
     v3 = c(
       paste0(m3, "_hlmstatus"),
       "hlm_threshold",
-      paste0(m3, "_hlmstatus_prob_", c("null", "high")),
-      paste0(m3, "_hlmstatus_", V4H_Q)
+      paste0(m3, "_hlmstatus_prob_", c("null", "high"))
     ),
     v4 = c(
       paste0(m4, "_hlm"),
       paste0(m4, "_hlm_thr"),
-      paste0(m4, "_hlm_prob_", c("null", "high")),
-      paste0(m4, "_hlm_", V4H_Q)
+      paste0(m4, "_hlm_prob_", c("null", "high"))
     )
   ))
+}
+
+# The v3 outputs that v4 deliberately does not carry. The ordinal percentiles
+# of the level codes follow from the per-level shares.
+v4h_not_carried <- function(m3) {
+  return(list(ordinal_percentiles = paste0(m3, "_hlmstatus_", V4H_Q)))
 }
 
 # Run v3 and v4 on the pair, and expect every v3 output to have a v4 name in
@@ -127,11 +131,13 @@ v4h_expect_equivalent <- function(pair, ...) {
   h4 <- signal_detection_hlm_v4(e4, measure = "numerator", ...)
   c3 <- ens_collapse(h3)
   map <- v4h_map("numerator_nowcasted", "numerator")
+  not_carried <- unlist(v4h_not_carried("numerator_nowcasted"))
 
-  # No v3 output is left unmapped, and v4 adds nothing outside the map.
+  # Each v3 output is in the map or deliberately not carried, and v4 adds
+  # nothing outside the map.
   expect_setequal(
     c(setdiff(names(c3), in3_data), setdiff(names(h3$draws), in3_draws)),
-    map$v3
+    c(map$v3, not_carried)
   )
   expect_identical(
     setdiff(names(h4$data), names(e4$data)),
@@ -203,6 +209,37 @@ v4h_small <- function(measure = "cases") {
     draws = draws
   ))
 }
+
+test_that("HLM and MEM write no percentile columns", {
+  ens <- v4h_small()
+  h <- signal_detection_hlm_v4(ens, "cases")
+  m <- suppressMessages(mem_thresholds_v4(ens, "cases"))
+  pct <- "_q[0-9]{2}x[0-9]$"
+  expect_identical(grep(pct, names(h$data), value = TRUE), character(0))
+  expect_identical(grep(pct, names(m$data), value = TRUE), character(0))
+  # Each step adds exactly its limits or thresholds and its shares.
+  expect_identical(
+    setdiff(names(h$data), names(ens$data)),
+    paste0("cases_hlm_", c("thr", "prob_null", "prob_high"))
+  )
+  expect_identical(
+    setdiff(names(m$data), names(ens$data)),
+    c(
+      paste0("cases_mem_thr_", c("preepidemic", "medium", "high", "veryhigh")),
+      "cases_mem_n_seasons",
+      paste0(
+        "cases_mem_prob_",
+        c("preepidemic", "low", "medium", "high", "veryhigh")
+      )
+    )
+  )
+  # The level-code draws stay.
+  expect_identical(attr(h$draws$cases_hlm, "levels"), c("null", "high"))
+  expect_identical(
+    attr(m$draws$cases_mem, "levels"),
+    c("preepidemic", "low", "medium", "high", "veryhigh")
+  )
+})
 
 test_that("a rerun on the same measure replaces the columns and the draws", {
   ens <- v4h_small()

@@ -60,15 +60,16 @@ test_that("the MEM helpers match the v3 MEM helpers", {
   expect_null(.v4_mem_fit(NULL))
 })
 
-test_that(".v4_collapse_status_into matches collapse_status_into", {
+test_that(".v4_collapse_status_into matches the probabilities of collapse_status_into", {
   set.seed(3)
   M <- matrix(sample(c(1:5, NA), 6 * 40, replace = TRUE), nrow = 6)
   levs <- c("preepidemic", "low", "medium", "high", "veryhigh")
   probs <- c(0.05, 0.5, 0.95)
   a <- data.table::data.table(isoyearweek = sprintf("2023-%02d", 1:6))
   b <- data.table::copy(a)
-  .v4_collapse_status_into(a, "cases_mem", M, levs, probs)
+  .v4_collapse_status_into(a, "cases_mem", M, levs)
   csalert:::collapse_status_into(b, "cases_mem", M, levs, probs)
-  expect_identical(a, b)
-  expect_true("cases_mem_prob_veryhigh" %in% names(a))
+  # v4 writes the probabilities, and not the ordinal percentiles.
+  expect_identical(names(a), c("isoyearweek", paste0("cases_mem_prob_", levs)))
+  expect_identical(a, b[, names(a), with = FALSE])
 })

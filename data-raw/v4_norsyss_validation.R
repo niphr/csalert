@@ -11,10 +11,12 @@
 # - v1: short_term_trend() and signal_detection_hlm() on the csfmt_rts_data_v1
 #   table of each group, as the norsyss.cs9 tasks call them. The MEM fit of
 #   r80_estimate_mem_thresholds_fit() in norsyss.cs9, copied here.
-# - v4, as the specs say: nowcast_passthrough_v4() and ens_add_rate_v4(), then
-#   ens_compress_v4(), a save, a read and as_ensemble_v4(). Then
-#   short_term_trend_v4(), signal_detection_hlm_v4() and mem_thresholds_v4(),
-#   on the full ensemble and on the compressed form that was read back.
+# - v4, as the specs say: csfmt_ensemble_v4() on the weekly rows, with one
+#   draw per measure, and ens_add_rate_v4(). Then short_term_trend_v4(),
+#   signal_detection_hlm_v4() and mem_thresholds_v4().
+# - The compressed form, which no task stores: ens_compress_v4() of the v4
+#   ensemble, a save, a read and as_ensemble_v4(), then the same steps. This
+#   checks csalert, not a spec.
 #
 # The script first installs this working tree with R CMD INSTALL into
 # C:/Users/RIWH/AppData/Local/Temp/lt/v4_norsyss/lib, puts that library first
@@ -36,9 +38,17 @@
 #    measures, its summaries and its rebuilt draws are identical() to those
 #    before the save. The steps on it give identical() step columns to the
 #    steps on the full ensemble.
-# 5. The doc: every table, partition and column name is at most 63 bytes, and
-#    each table has the columns, types, NOT NULL columns and unique key of the
-#    v4 output.
+# 5. The doc: every table, partition and column name is at most 63 bytes, the
+#    doc creates no index, and each table has the columns, types, NOT NULL
+#    columns and unique key of the v4 output. cs9 adds the column
+#    auto_last_updated_datetime, and in a partitioned table the partition
+#    column icpc2grp_tag allows NULL and is not in the unique key.
+# 6. The HLM write: the HLM table holds no row without a limit, and one row
+#    for each row of the ensemble with a limit.
+# 7. The denominator: in each group, the v4 denominator and the v1
+#    denominator and rate are the columns that the spec rule names, from the
+#    flag includes_influenza_covid19 of the group in norsyss.cs9. At least one
+#    group has the flag FALSE, so the check sees both sides of the rule.
 
 stopifnot(
   file.exists("DESCRIPTION"),
@@ -77,6 +87,9 @@ CFG <- list(
     "C:/Users/RIWH/AppData/Local/Temp/lt/v4_norsyss/norsyss_respiratory_v1_2026-10-13.csv"
   },
   doc = "data-raw/v4-norsyss-tasks.md",
+  # norsyss.cs9 sets icpc2$includes_influenza_covid19 in this file. The
+  # script parses it and never runs or changes it.
+  flag_source = "C:/Users/RIWH/GitHub/norsyss.cs9/R/00_data_icpc2.R",
   groups = c("covid19", "r71", "r80", "r992", "respiratory_infections"),
   id_cols = c(
     "granularity_geo",
@@ -100,7 +113,6 @@ CFG <- list(
   mem_exclude_seasons = c("2009/2010", "2019/2020", "2020/2021", "2021/2022"),
   max_mem_rel = 0.005,
   seed = 4L,
-  max_delay_days = 7L,
   rate = "numerator_vs_denominator_pr100",
   # The columns that as_ensemble_v4() rebuilds, so the store leaves them out.
   rebuilt_cols = c(
@@ -109,12 +121,16 @@ CFG <- list(
     "time_series_internal_id"
   ),
   tables = c(
-    nowcast = "anon_lss_nowcast_v4",
     trend = "anon_lss_short_term_trends_v4",
     hlm = "anon_lss_signals_v4",
     mem = "anon_r80_mem_v4"
   ),
-  partitioned = c("nowcast", "trend", "hlm"),
+  partitioned = c("trend", "hlm"),
+  # cs9 adds the partition column of a partitioned table itself, and keys
+  # each partition on the other key columns.
+  partition_col = "icpc2grp_tag",
+  # cs9 adds this column to every table.
+  cs9_cols = c(auto_last_updated_datetime = "TIMESTAMP WITHOUT TIME ZONE"),
   # The longest ICPC-2 group tag in norsyss.cs9, which names a partition.
   longest_partition_tag = "respiratory_infections",
   min_trend_pct = 95,
@@ -184,33 +200,99 @@ print(d[,
   keyby = icpc2grp_tag
 ])
 
-# The v1 input, renamed as norsyss.cs9 renames it. Each of the 5 groups
-# includes influenza and COVID-19, so the denominator is all consultations.
-v1_in <- copy(d)
-setnames(
-  v1_in,
-  c(
-    "consultations_icpc2group_n",
-    "consultations_all_n",
-    "consultations_icpc2group_vs_all_pr100"
-  ),
-  c("numerator_n", "denominator_n", CFG$rate)
+# The groups whose icpc2$includes_influenza_covid19 is TRUE in norsyss.cs9.
+# The flag is set by one expression in CFG$flag_source:
+#   icpc2[, includes_influenza_covid19 := icpc2group_tag %in% c(...)]
+# The script takes the c(...) of that expression, which holds strings only.
+flag_exprs <- Filter(
+  function(e) {
+    return(
+      is.call(e) &&
+        identical(e[[1]], as.name("[")) &&
+        length(e) == 4L &&
+        is.call(e[[4]]) &&
+        identical(e[[4]][[1]], as.name(":=")) &&
+        identical(e[[4]][[2]], as.name("includes_influenza_covid19"))
+    )
+  },
+  as.list(parse(CFG$flag_source, keep.source = FALSE, encoding = "UTF-8"))
 )
+stopifnot(length(flag_exprs) == 1L)
+flag_rhs <- flag_exprs[[1]][[4]][[3]]
+stopifnot(
+  identical(flag_rhs[[1]], as.name("%in%")),
+  identical(flag_rhs[[2]], as.name("icpc2group_tag")),
+  identical(flag_rhs[[3]][[1]], as.name("c")),
+  all(vapply(as.list(flag_rhs[[3]])[-1], is.character, logical(1)))
+)
+flu_groups <- eval(flag_rhs[[3]], baseenv())
+cat(
+  "flag source:",
+  CFG$flag_source,
+  "md5",
+  unname(tools::md5sum(CFG$flag_source)),
+  "\n"
+)
+cat("groups with includes_influenza_covid19 TRUE:", flu_groups, "\n")
 
-# The v4 input: one reporting triangle with one report per week, on the
-# Sunday that ends the week.
-tri_in <- d[, .(
+# The denominator of each group, by the rule of the spec and of the v1 tasks.
+den_rule <- data.table(icpc2grp_tag = CFG$groups)
+den_rule[, includes_influenza_covid19 := icpc2grp_tag %in% flu_groups]
+den_rule[,
+  denominator_col := fifelse(
+    includes_influenza_covid19,
+    "consultations_all_n",
+    "consultations_without_influenza_covid19_n"
+  )
+]
+den_rule[,
+  rate_col := fifelse(
+    includes_influenza_covid19,
+    "consultations_icpc2group_vs_all_pr100",
+    "consultations_icpc2group_vs_without_influenza_covid19_pr100"
+  )
+]
+cat("\n== denominator of each group, for v1 and v4\n")
+print(den_rule)
+
+# The v1 input, renamed as norsyss.cs9 renames it, with the denominator and
+# the rate of den_rule.
+v1_in <- rbindlist(lapply(CFG$groups, function(g) {
+  z <- d[icpc2grp_tag == g]
+  r <- den_rule[icpc2grp_tag == g]
+  z[, `:=`(
+    numerator_n = consultations_icpc2group_n,
+    denominator_n = get(r$denominator_col)
+  )]
+  z[, (CFG$rate) := get(r$rate_col)]
+  return(z)
+}))
+
+# The v4 input: the weekly rows, with the counts of v1_in, so that v1 and v4
+# share the denominator. The counts are doubles, so that a rebuilt draw is
+# identical() to a full one.
+v4_in <- v1_in[, .(
   granularity_geo,
   location_code,
   age,
   sex,
   tariffgroup_tag,
   icpc2grp_tag,
-  isoyearweek_reference = isoyearweek,
-  reporting_date = date,
-  numerator = as.numeric(consultations_icpc2group_n),
-  denominator = as.numeric(consultations_all_n)
+  isoyearweek,
+  numerator = as.numeric(numerator_n),
+  denominator = as.numeric(denominator_n)
 )]
+# The ensemble of the spec rules: one draw per measure.
+v4_ensemble <- function(z) {
+  return(csalert::csfmt_ensemble_v4(
+    z[, c(CFG$id_cols, "isoyearweek"), with = FALSE],
+    id_cols = CFG$id_cols,
+    draws = list(
+      numerator = as.matrix(z$numerator),
+      denominator = as.matrix(z$denominator)
+    )
+  ))
+}
 
 # PART 2 -- ANALYSIS ====
 ## v1 trend and HLM, as norsyss.cs9 calls them ----
@@ -321,38 +403,23 @@ mem_v1 <- timed(
   }))
 )
 
-## v4 task 1: the passthrough nowcast, compressed and stored ----
-tri <- timed(
-  "v4 csfmt_reporting_triangle_v4",
-  csalert::csfmt_reporting_triangle_v4(
-    tri_in,
-    id_cols = CFG$id_cols,
-    value_col = "numerator"
-  )
-)
-pt <- timed(
-  "v4 nowcast_passthrough_v4",
-  csalert::nowcast_passthrough_v4(
-    tri,
-    max_delay_days = CFG$max_delay_days,
-    denominator_col = "denominator"
-  )
-)
+## v4: the ensemble of the specs, and its compressed form, stored ----
+ens <- timed("v4 csfmt_ensemble_v4", v4_ensemble(v4_in))
 ens <- timed(
   "v4 ens_add_rate_v4",
   csalert::ens_add_rate_v4(
-    pt,
+    ens,
     numerator = "numerator",
     denominator = "denominator",
     per = 100,
     name = CFG$rate
   )
 )
-nowcast_table <- timed("v4 ens_compress_v4", csalert::ens_compress_v4(ens))
-nowcast_table[, (CFG$rebuilt_cols) := NULL]
+stored_table <- timed("v4 ens_compress_v4", csalert::ens_compress_v4(ens))
+stored_table[, (CFG$rebuilt_cols) := NULL]
 
 fmt <- if (requireNamespace("qs2", quietly = TRUE)) "qs2" else "rds"
-store_path <- file.path(CFG$out_dir, paste0("v4_norsyss_nowcast.", fmt))
+store_path <- file.path(CFG$out_dir, paste0("v4_norsyss_compressed.", fmt))
 cat("store format:", fmt, "at", store_path, "\n")
 if (fmt == "rds") {
   cat("qs2 is not installed, so the store is .rds\n")
@@ -360,9 +427,9 @@ if (fmt == "rds") {
 timed(
   paste("v4 save", fmt),
   if (fmt == "qs2") {
-    qs2::qs_save(nowcast_table, store_path)
+    qs2::qs_save(stored_table, store_path)
   } else {
-    saveRDS(nowcast_table, store_path)
+    saveRDS(stored_table, store_path)
   }
 )
 read <- timed(
@@ -375,9 +442,9 @@ back <- timed(
   "v4 as_ensemble_v4",
   csalert::as_ensemble_v4(read, id_cols = CFG$id_cols)
 )
-pre <- csalert::as_ensemble_v4(copy(nowcast_table), id_cols = CFG$id_cols)
+pre <- csalert::as_ensemble_v4(copy(stored_table), id_cols = CFG$id_cols)
 
-## v4 tasks 2 to 4 on the full ensemble ----
+## v4 tasks 1 to 3 on the full ensemble ----
 cols <- names(ens$data)
 ens <- timed(
   "v4 short_term_trend_v4",
@@ -403,14 +470,12 @@ ens <- timed(
 )
 step_cols$hlm <- setdiff(names(ens$data), cols)
 
-# MEM, as norsyss.cs9 fits it: r80, and ISO weeks 1 to 20 and 40 to 52.
-in_mem <- pt$data$icpc2grp_tag == CFG$mem_group &
-  as.integer(substr(pt$data$isoyearweek, 6, 7)) %in% CFG$mem_isoweeks
-mem_full <- csalert::csfmt_ensemble_v4(
-  pt$data[in_mem, !CFG$rebuilt_cols, with = FALSE],
-  id_cols = CFG$id_cols,
-  draws = lapply(pt$draws, function(M) M[in_mem, , drop = FALSE])
-)
+# MEM, as norsyss.cs9 fits it: r80, and ISO weeks 1 to 20 and 40 to 52. The
+# rows are filtered before the ensemble, as the spec says.
+mem_full <- v4_ensemble(v4_in[
+  icpc2grp_tag == CFG$mem_group &
+    as.integer(substr(isoyearweek, 6, 7)) %in% CFG$mem_isoweeks
+])
 mem_full <- csalert::ens_add_rate_v4(
   mem_full,
   numerator = "numerator",
@@ -431,7 +496,7 @@ mem_full <- timed(
 )
 step_cols$mem <- setdiff(names(mem_full$data), cols)
 
-## v4 tasks 2 to 4 on the compressed form, as the specs run them ----
+## v4 tasks 1 to 3 on the compressed form, which no spec stores ----
 cx <- timed(
   "v4 compressed: as_ensemble_v4 (n_sim = 1)",
   csalert::as_ensemble_v4(read, id_cols = CFG$id_cols, n_sim = 1L)
@@ -499,6 +564,55 @@ by_group_and_pooled <- function(z, f) {
     cbind(data.table(icpc2grp_tag = "pooled"), f(z))
   ))
 }
+
+## The denominator ----
+# The spec rule, applied to the csv apart from den_rule: all consultations
+# where the flag is TRUE, and the consultations without influenza and
+# COVID-19 where it is FALSE.
+want <- d[, .(
+  icpc2grp_tag,
+  isoyearweek,
+  den = as.numeric(fifelse(
+    icpc2grp_tag %in% flu_groups,
+    consultations_all_n,
+    consultations_without_influenza_covid19_n
+  )),
+  rate = fifelse(
+    icpc2grp_tag %in% flu_groups,
+    consultations_icpc2group_vs_all_pr100,
+    consultations_icpc2group_vs_without_influenza_covid19_pr100
+  )
+)]
+got <- ens$data[, .(icpc2grp_tag, isoyearweek)]
+got[, v4_den := ens$draws$denominator[, 1]]
+got[
+  v1_in,
+  on = c("icpc2grp_tag", "isoyearweek"),
+  `:=`(v1_den = as.numeric(i.denominator_n), v1_rate = get(paste0("i.", CFG$rate)))
+]
+got <- got[want, on = c("icpc2grp_tag", "isoyearweek")]
+den_tab <- got[,
+  .(
+    weeks = .N,
+    v4_den_ok = all(v4_den == den),
+    v1_den_ok = all(v1_den == den),
+    v1_rate_ok = all(v1_rate == rate | (is.na(v1_rate) & is.na(rate)))
+  ),
+  keyby = icpc2grp_tag
+]
+print(den_tab)
+check(
+  nrow(got) == nrow(ens$data) &&
+    !anyNA(got[, .(v4_den, v1_den, den)]) &&
+    isTRUE(all(den_tab$v4_den_ok & den_tab$v1_den_ok & den_tab$v1_rate_ok)) &&
+    any(!CFG$groups %in% flu_groups),
+  sprintf(
+    "denominator: v4 and v1 use the denominator of the spec rule in each of the %d groups (%d with the flag FALSE: %s)",
+    length(CFG$groups),
+    sum(!CFG$groups %in% flu_groups),
+    paste(setdiff(CFG$groups, flu_groups), collapse = ", ")
+  )
+)
 
 ## The trend ----
 v4_trend <- ens$data[, .(
@@ -661,10 +775,10 @@ check(
 check(
   setequal(csalert:::.v4_measures(back), csalert:::.v4_measures(pre)) &&
     identical(names(back$data), names(pre$data)) &&
-    identical(names(read), names(nowcast_table)) &&
+    identical(names(read), names(stored_table)) &&
     all(vapply(
       names(read),
-      function(v) identical(read[[v]], nowcast_table[[v]]),
+      function(v) identical(read[[v]], stored_table[[v]]),
       logical(1)
     )) &&
     all(vapply(
@@ -709,13 +823,42 @@ check(
   )
 )
 
-## The doc ----
+## The HLM write ----
+# The HLM task writes only the rows with a limit, as the spec says.
+hlm_thr_col <- paste0(CFG$rate, "_hlm_thr")
 out_tables <- list(
-  nowcast = nowcast_table,
   trend = ens$data[, c(CFG$keys, step_cols$trend), with = FALSE],
-  hlm = ens$data[, c(CFG$keys, step_cols$hlm), with = FALSE],
+  hlm = ens$data[
+    !is.na(get(hlm_thr_col)),
+    c(CFG$keys, step_cols$hlm),
+    with = FALSE
+  ],
   mem = mem_full$data[, c(CFG$keys, step_cols$mem), with = FALSE]
 )
+n_limit <- sum(!is.na(ens$data[[hlm_thr_col]]))
+cat(sprintf(
+  "\n== HLM write: %d rows of %d have a limit, %d per series\n",
+  n_limit,
+  nrow(ens$data),
+  n_limit %/% uniqueN(ens$data$time_series_id)
+))
+print(ens$data[,
+  .(rows = .N, with_limit = sum(!is.na(get(hlm_thr_col)))),
+  keyby = icpc2grp_tag
+])
+check(
+  n_limit > 0L &&
+    n_limit < nrow(ens$data) &&
+    !anyNA(out_tables$hlm[[hlm_thr_col]]) &&
+    nrow(out_tables$hlm) == n_limit,
+  sprintf(
+    "HLM write: the %d rows written are the %d rows with a limit, and none has no limit",
+    nrow(out_tables$hlm),
+    n_limit
+  )
+)
+
+## The doc ----
 L <- readLines(CFG$doc, encoding = "UTF-8", warn = FALSE)
 opens <- which(L == "```sql")
 closes <- which(L == "```")
@@ -726,7 +869,7 @@ doc <- rbindlist(lapply(opens, function(i) {
   co <- regmatches(
     block,
     regexec(
-      "^  ([^ ]+) (TEXT|INTEGER|DOUBLE PRECISION)( NOT NULL)?,?$",
+      "^  ([^ ]+) (CHARACTER VARYING|INTEGER|DOUBLE PRECISION|TIMESTAMP WITHOUT TIME ZONE)( NOT NULL)?,?$",
       block
     )
   )
@@ -777,10 +920,14 @@ check(
   )
 )
 
+check(
+  !any(grepl("CREATE( UNIQUE)? INDEX", L, ignore.case = TRUE)),
+  "doc: no table has an index other than its unique index"
+)
 sql_type <- function(v) {
   return(switch(
     class(v)[1],
-    character = "TEXT",
+    character = "CHARACTER VARYING",
     integer = "INTEGER",
     numeric = "DOUBLE PRECISION",
     class(v)[1]
@@ -793,9 +940,16 @@ check(
 for (k in names(CFG$tables)) {
   spec <- doc[table == CFG$tables[[k]]]
   out <- out_tables[[k]]
+  # The output columns, then the columns that cs9 adds.
+  cols_out <- c(names(out), names(CFG$cs9_cols))
   type_out <- vapply(
     spec$column,
-    function(v) sql_type(out[[v]]),
+    function(v) {
+      if (v %in% names(CFG$cs9_cols)) {
+        return(CFG$cs9_cols[[v]])
+      }
+      return(sql_type(out[[v]]))
+    },
     character(1)
   )
   na_in_not_null <- vapply(
@@ -804,8 +958,13 @@ for (k in names(CFG$tables)) {
     logical(1)
   )
   key <- trimws(strsplit(spec$unique_key[1], ",")[[1]])
-  missing <- setdiff(names(out), spec$column)
-  extra <- setdiff(spec$column, names(out))
+  key_want <- if (k %in% CFG$partitioned) {
+    setdiff(CFG$keys, CFG$partition_col)
+  } else {
+    CFG$keys
+  }
+  missing <- setdiff(cols_out, spec$column)
+  extra <- setdiff(spec$column, cols_out)
   if (length(missing) || length(extra)) {
     cat(
       k,
@@ -822,13 +981,13 @@ for (k in names(CFG$tables)) {
       !length(extra) &&
       all(type_out == spec$type) &&
       !any(na_in_not_null) &&
-      setequal(key, CFG$keys) &&
-      setequal(spec$column[spec$not_null], CFG$keys) &&
+      setequal(key, key_want) &&
+      setequal(spec$column[spec$not_null], key_want) &&
       !anyDuplicated(out[, CFG$keys, with = FALSE]),
     sprintf(
-      "doc: %s has the %d columns, the types, the NOT NULL keys and the unique key of the output (%d rows)",
+      "doc: %s has the %d columns, the types, the NOT NULL keys and the unique key of the output and cs9 (%d rows)",
       CFG$tables[[k]],
-      ncol(out),
+      length(cols_out),
       nrow(out)
     )
   )

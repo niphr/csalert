@@ -169,10 +169,11 @@
   return(list(thr_all = thr_all, provisional = provisional))
 }
 
-# A copy of collapse_status_into(): reduce an ordinal status code matrix,
-# codes 1 to K, to one probability column per level and one ordinal quantile
-# column per probability, added to `d` by reference.
-.v4_collapse_status_into <- function(d, measure, M, levs, probs) {
+# A copy of the probability part of collapse_status_into(). It reduces a
+# matrix of the ordinal status codes 1 to K to one probability column per
+# level. It adds the columns to `d` by reference. It writes no ordinal
+# percentile, because the probabilities of the levels give every percentile.
+.v4_collapse_status_into <- function(d, measure, M, levs) {
   K <- length(levs)
   n <- nrow(M)
   prob <- vapply(
@@ -190,26 +191,6 @@
     character(1)
   )
   d[, (pcols) := data.table::as.data.table(prob)]
-
-  # the ordinal p-quantile is the lowest level whose cumulative probability
-  # reaches p
-  cum <- matrixStats::rowCumsums(prob)
-  qmat <- vapply(
-    probs,
-    function(p) {
-      return(pmin(rowSums(cum < p) + 1L, K))
-    },
-    numeric(n)
-  )
-  qmat <- matrix(qmat, nrow = n, ncol = length(probs))
-  qcols <- vapply(
-    probs,
-    function(p) {
-      return(.v4_var(measure, q = p))
-    },
-    character(1)
-  )
-  d[, (qcols) := data.table::as.data.table(qmat)]
   return(invisible(d))
 }
 
@@ -233,11 +214,7 @@
 }
 
 # The names that .v4_collapse_status_into() writes for the status `stem` with
-# the levels `levs`: one probability per level, then one ordinal quantile per
-# probability in .V4_PROBS. The HLM and MEM steps use it.
+# the levels `levs`: one probability per level. The HLM and MEM steps use it.
 .v4_status_names <- function(stem, levs) {
-  return(c(
-    paste0(stem, "_prob_", levs),
-    paste0(stem, "_", .v4_q_label(.V4_PROBS))
-  ))
+  return(paste0(stem, "_prob_", levs))
 }

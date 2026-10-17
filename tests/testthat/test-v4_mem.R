@@ -98,22 +98,26 @@ V4M_LEVELS <- c("preepidemic", "low", "medium", "high", "veryhigh")
 # column of $data in v4, and of the ens_collapse() output in v3.
 v4m_map <- function(m3, m4) {
   return(data.frame(
-    where = c("draws", rep("data", 19)),
+    where = c("draws", rep("data", 10)),
     v3 = c(
       paste0(m3, "_status"),
       paste0("mem_", c("preepidemic", "medium", "high", "veryhigh")),
       "mem_n_seasons",
-      paste0(m3, "_status_prob_", V4M_LEVELS),
-      paste0(m3, "_status_", V4M_Q)
+      paste0(m3, "_status_prob_", V4M_LEVELS)
     ),
     v4 = c(
       paste0(m4, "_mem"),
       paste0(m4, "_mem_thr_", c("preepidemic", "medium", "high", "veryhigh")),
       paste0(m4, "_mem_n_seasons"),
-      paste0(m4, "_mem_prob_", V4M_LEVELS),
-      paste0(m4, "_mem_", V4M_Q)
+      paste0(m4, "_mem_prob_", V4M_LEVELS)
     )
   ))
+}
+
+# The v3 outputs that v4 deliberately does not carry. The ordinal percentiles
+# of the level codes follow from the per-level shares.
+v4m_not_carried <- function(m3) {
+  return(list(ordinal_percentiles = paste0(m3, "_status_", V4M_Q)))
 }
 
 # The messages of `expr`, with the function name of v3 written as that of v4,
@@ -144,11 +148,13 @@ v4m_expect_equivalent <- function(pair, ...) {
   expect_identical(msg4, msg3)
   c3 <- ens_collapse(h3)
   map <- v4m_map("numerator_nowcasted", "numerator")
+  not_carried <- unlist(v4m_not_carried("numerator_nowcasted"))
 
-  # No v3 output is left unmapped, and v4 adds nothing outside the map.
+  # Each v3 output is in the map or deliberately not carried, and v4 adds
+  # nothing outside the map.
   expect_setequal(
     c(setdiff(names(c3), in3_data), setdiff(names(h3$draws), in3_draws)),
-    map$v3
+    c(map$v3, not_carried)
   )
   expect_identical(
     setdiff(names(h4$data), names(e4$data)),

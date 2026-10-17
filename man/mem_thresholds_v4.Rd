@@ -45,9 +45,10 @@ thresholds of the season of the week.
 \item \verb{<measure>_mem_prob_preepidemic} to \verb{<measure>_mem_prob_veryhigh}: the
 share of the draws at each level, which is \code{NaN} when every draw is
 \code{NA}.
-\item \verb{<measure>_mem_q02x5} to \verb{<measure>_mem_q97x5}: the ordinal percentiles
-2.5 to 97.5 of the level codes.
 }
+
+The shares give every ordinal percentile of the level codes, so the step
+writes no percentile column.
 
 Each new name MUST be at most 63 bytes. A rerun on the same \code{measure}
 replaces the draw matrix and the columns. The input \code{x} does not change.

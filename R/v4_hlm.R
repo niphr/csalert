@@ -38,8 +38,9 @@
 #'   - `<measure>_hlm_thr`: the limit.
 #'   - `<measure>_hlm_prob_null` and `<measure>_hlm_prob_high`: the share of
 #'     the draws at each level, which is `NaN` when every draw is `NA`.
-#'   - `<measure>_hlm_q02x5` to `<measure>_hlm_q97x5`: the ordinal percentiles
-#'     2.5 to 97.5 of the level codes.
+#'
+#'   The shares give every ordinal percentile of the level codes, so the step
+#'   writes no percentile column.
 #'
 #'   Each new name MUST be at most 63 bytes. A rerun on the same `measure`
 #'   replaces the draw matrix and the columns. The input `x` does not change.
@@ -75,7 +76,7 @@ signal_detection_hlm_v4 <- function(x, measure, baseline_isoyears = 5) {
 
   d <- data.table::copy(x$data)
   d[, (nm$thr) := thr]
-  .v4_collapse_status_into(d, nm$status, code, .V4_HLM_LEVELS, .V4_PROBS)
+  .v4_collapse_status_into(d, nm$status, code, .V4_HLM_LEVELS)
   x$data <- d
   x$draws[[nm$status]] <- code
   .v4_validate_ensemble(x)

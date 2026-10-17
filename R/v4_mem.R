@@ -60,8 +60,9 @@
 #'   - `<measure>_mem_prob_preepidemic` to `<measure>_mem_prob_veryhigh`: the
 #'     share of the draws at each level, which is `NaN` when every draw is
 #'     `NA`.
-#'   - `<measure>_mem_q02x5` to `<measure>_mem_q97x5`: the ordinal percentiles
-#'     2.5 to 97.5 of the level codes.
+#'
+#'   The shares give every ordinal percentile of the level codes, so the step
+#'   writes no percentile column.
 #'
 #'   Each new name MUST be at most 63 bytes. A rerun on the same `measure`
 #'   replaces the draw matrix and the columns. The input `x` does not change.
@@ -155,7 +156,7 @@ mem_thresholds_v4 <- function(
   out <- data.table::copy(x$data)
   out[, (nm$thr) := thr[, paste0("mem_", .V4_MEM_THRESHOLDS), with = FALSE]]
   out[, (nm$n_seasons) := thr$mem_n_seasons]
-  .v4_collapse_status_into(out, nm$status, code, .V4_MEM_LEVELS, .V4_PROBS)
+  .v4_collapse_status_into(out, nm$status, code, .V4_MEM_LEVELS)
   x$data <- out
   x$draws[[nm$status]] <- code
   .v4_validate_ensemble(x)
