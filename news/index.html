@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.17</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.18</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -20,6 +20,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/pipeline.html">The pipeline: from incomplete counts to published numbers</a></li>
+    <li><a class="dropdown-item" href="../articles/v4.html">v4: one ensemble, full or compressed</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item dropdown">
@@ -51,6 +52,30 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.18" id="version-20261018">Version 2026.10.18<a class="anchor" aria-label="anchor" href="#version-20261018"></a></h2>
+<ul><li>New: a v4 layer that carries one ensemble, <code><a href="../reference/csfmt_ensemble_v4.html">csfmt_ensemble_v4()</a></code>, through every step. A full ensemble holds the draws in memory, and a compressed ensemble holds a point value and 9 percentiles for each base measure. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows the state.</li>
+<li>
+<code><a href="../articles/v4.html">vignette("v4", package = "csalert")</a></code> runs the v4 layer from weekly counts to a stored table and back.</li>
+<li>
+<code><a href="../reference/ens_compress_v4.html">ens_compress_v4()</a></code> returns the compressed ensemble as a plain table to store, such as in PostgreSQL. It stops with an error when a name is longer than 63 bytes, the limit of a PostgreSQL name.</li>
+<li>
+<code><a href="../reference/as_ensemble_v4.html">as_ensemble_v4()</a></code> reads a stored table back as a compressed ensemble. A step that needs draws rebuilds them from the percentiles, with seed 4 and an independent draw for each week.</li>
+<li>The rebuild draws each week independently, because that rule gave the higher arrow agreement on a replay of luftvei data. On that replay, the trend arrow from rebuilt draws agreed with the arrow from full draws in 99.98% of 6,360 indicator-weeks. The replay covered 24 indicators, 53 as-of dates and 5 horizons.</li>
+<li>
+<code><a href="../reference/csfmt_reporting_triangle_v4.html">csfmt_reporting_triangle_v4()</a></code>, <code><a href="../reference/nowcast_ecdf_v4.html">nowcast_ecdf_v4()</a></code> and <code><a href="../reference/nowcast_passthrough_v4.html">nowcast_passthrough_v4()</a></code> build the triangle and nowcast it. With the same seed, their draws are identical to those of <code><a href="../reference/nowcast_delay_ecdf_v1.html">nowcast_delay_ecdf_v1()</a></code> and <code><a href="../reference/nowcast_passthrough_to_ensemble_v1.html">nowcast_passthrough_to_ensemble_v1()</a></code>.</li>
+<li>
+<code><a href="../reference/ens_add_rate_v4.html">ens_add_rate_v4()</a></code> adds a rate draw by draw. On a compressed ensemble, it rebuilds the numerator and the denominator with paired draws.</li>
+<li>
+<code><a href="../reference/short_term_trend_v4.html">short_term_trend_v4()</a></code> fits the trend on the quasi-Poisson kernel of 2026.10.17, with the denominator as an offset for a rate. It computes P(increasing) exactly from the fits, with no simulation.</li>
+<li>
+<code><a href="../reference/signal_detection_hlm_v4.html">signal_detection_hlm_v4()</a></code> and <code><a href="../reference/mem_thresholds_v4.html">mem_thresholds_v4()</a></code> write the share of the draws at each level, as <code>&lt;measure&gt;_hlm_prob_&lt;level&gt;</code> and <code>&lt;measure&gt;_mem_prob_&lt;level&gt;</code>.</li>
+<li>On 5 national NorSySS groups, a <code><a href="../reference/short_term_trend_v4.html">short_term_trend_v4()</a></code> P(increasing) of at least 0.95 agreed with the v1 status “increasing” in 100% of 5,398 weeks.</li>
+<li>On the same 5 groups, HLM “high” agreed with v1 in 99.90% of 3,150 weeks. In 965 other weeks the rate and the limit were both 0. v4 flags these weeks “high”, as v3 does, and v1 does not.</li>
+<li>On the r80 national NorSySS series, the 68 MEM thresholds of the 17 seasons that both versions fit were within 0.019% of the v1 thresholds.</li>
+<li>On synthetic data in the production shape of NorSySS, the v4 trend and HLM together took 0.53 times the v1 run time. The measurement used 3 groups of 614,628 rows.</li>
+<li>The v1 and v3 functions do not change.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.17" id="version-20261017">Version 2026.10.17<a class="anchor" aria-label="anchor" href="#version-20261017"></a></h2>
 <ul><li>The <code>csfmt_rts_data_v1</code> method of <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> fits all rolling windows of a series in one vectorised step, and it no longer calls <code>glm2</code>. On a synthetic group of 252 series of 1,000 weeks, it took 34 s, against 1,180 s before.</li>
