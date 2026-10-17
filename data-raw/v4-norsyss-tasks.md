@@ -9,8 +9,15 @@ These are the specs of the 3 v4 tasks that norsyss.cs9 wires: the short-term tre
 - The identity columns of a series are `granularity_geo`, `location_code`, `age`, `sex`, `tariffgroup_tag` and `icpc2grp_tag`. Pass them as `id_cols`.
 - Each task builds its ensemble with `csfmt_ensemble_v4()`, with one draw per measure. `csfmt_ensemble_v4()` needs a data.table, so a table that DBI reads MUST go through `data.table::setDT()` first.
 
+The R blocks of the rules and the 3 tasks run as written on 2 inputs. They are `d`, the rows of the plan from `anon_norsyss_data`, and `icpc2`, the ICPC-2 group table of norsyss.cs9. An HTML comment above each of the 4 blocks names it, and `data-raw/v4_norsyss_validation.R` runs them. Tasks 1 and 2 run after the rules block. The task 3 block runs alone.
+
+<!-- task:rules -->
 ```r
+id_cols <- c("granularity_geo", "location_code", "age", "sex", "tariffgroup_tag", "icpc2grp_tag")
 d <- data.table::setDT(d)
+flu <- d$icpc2grp_tag %in% icpc2[includes_influenza_covid19 == TRUE]$icpc2group_tag
+d[, numerator := as.numeric(consultations_icpc2group_n)]
+d[, denominator := as.numeric(data.table::fifelse(flu, consultations_all_n, consultations_without_influenza_covid19_n))]
 x <- csfmt_ensemble_v4(
   d[, c(id_cols, "isoyearweek"), with = FALSE],
   id_cols = id_cols,
@@ -52,8 +59,11 @@ The counts per series are measured on the national series of the csv. The maxima
 
 The trend fits the count with the denominator as the offset, so it models the rate. The window is 5 weeks, as in the current task. A week is increasing when `numerator_vs_denominator_pr100_trend_pinc >= 0.95`, which is `1 - alpha / 2` with the current `alpha = 0.10`. With one draw, the step gives the growth-rate percentiles in closed form.
 
+<!-- task:trend -->
 ```r
+cols <- names(x$data)
 x <- short_term_trend_v4(x, measure = "numerator", width = 5, denominator = "denominator", name = "numerator_vs_denominator_pr100", seed = 4)
+new_cols <- setdiff(names(x$data), cols)
 out <- x$data[, c(id_cols, "isoyearweek", new_cols), with = FALSE]
 ```
 
@@ -90,9 +100,12 @@ HLM compares the rate with the limit of a 5-year baseline, as in the current tas
 
 A week has no limit when its baseline is not complete. The first 261 weeks of a series have no limit: 5 years of 52 weeks, and 1 more week. The task drops every row without a limit before the write, as v1 does. It drops them from the output only. The ensemble keeps them, because the limit of a later week uses them.
 
+<!-- task:hlm -->
 ```r
 x <- ens_add_rate_v4(x, numerator = "numerator", denominator = "denominator", per = 100, name = "numerator_vs_denominator_pr100")
+cols <- names(x$data)
 x <- signal_detection_hlm_v4(x, measure = "numerator_vs_denominator_pr100", baseline_isoyears = 5)
+new_cols <- setdiff(names(x$data), cols)
 out <- x$data[!is.na(numerator_vs_denominator_pr100_hlm_thr), c(id_cols, "isoyearweek", new_cols), with = FALSE]
 ```
 
@@ -117,13 +130,25 @@ CREATE TABLE anon_lss_signals_v4 (
 
 ## Task 3: MEM
 
-MEM reads the `r80` partition of `anon_norsyss_data` in ISO weeks 1 to 20 and 40 to 52, the weeks of `r80_estimate_mem_thresholds`. Filter the rows before `csfmt_ensemble_v4()`. On all weeks of the national series, the v4 pre-epidemic threshold differs from the v1 fit by up to 16%. The other arguments are those of `r80_estimate_mem_thresholds`: `i.seasons = 10` and the 4 excluded seasons.
+MEM reads the `r80` partition of `anon_norsyss_data` in ISO weeks 1 to 20 and 40 to 52, the weeks of `r80_estimate_mem_thresholds`. The block filters the rows before `csfmt_ensemble_v4()`. On all weeks of the national series, the v4 pre-epidemic threshold differs from the v1 fit by up to 16%. The other arguments are those of `r80_estimate_mem_thresholds`: `i.seasons = 10` and the 4 excluded seasons.
 
+The denominator is `consultations_all_n`, the denominator of the v1 `fhi` tables. The rules give the same column, because `includes_influenza_covid19` is `TRUE` for `r80`.
+
+<!-- task:mem -->
 ```r
-d <- data.table::setDT(d)[as.integer(substr(isoyearweek, 6, 7)) %in% c(1:20, 40:52)]
-# then build x from d as the rules say
+id_cols <- c("granularity_geo", "location_code", "age", "sex", "tariffgroup_tag", "icpc2grp_tag")
+d <- data.table::setDT(d)[icpc2grp_tag == "r80" & as.integer(substr(isoyearweek, 6, 7)) %in% c(1:20, 40:52)]
+d[, numerator := as.numeric(consultations_icpc2group_n)]
+d[, denominator := as.numeric(consultations_all_n)]
+x <- csfmt_ensemble_v4(
+  d[, c(id_cols, "isoyearweek"), with = FALSE],
+  id_cols = id_cols,
+  draws = list(numerator = as.matrix(d$numerator), denominator = as.matrix(d$denominator))
+)
 x <- ens_add_rate_v4(x, numerator = "numerator", denominator = "denominator", per = 100, name = "numerator_vs_denominator_pr100")
+cols <- names(x$data)
 x <- mem_thresholds_v4(x, measure = "numerator_vs_denominator_pr100", min_seasons = 2, i.seasons = 10, exclude_seasons = c("2009/2010", "2019/2020", "2020/2021", "2021/2022"))
+new_cols <- setdiff(names(x$data), cols)
 out <- x$data[, c(id_cols, "isoyearweek", new_cols), with = FALSE]
 ```
 

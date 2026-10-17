@@ -259,6 +259,16 @@ test_that("a rerun on the same measure replaces the columns and the draws", {
   expect_identical(rerun$draws, fresh$draws)
 })
 
+test_that("mem_thresholds_v4 writes no percentile columns", {
+  ens <- v4m_small()
+  m <- suppressMessages(mem_thresholds_v4(ens, "cases"))
+  # The shares of the 5 levels replace the percentiles of the level codes.
+  expect_identical(
+    grep("_q[0-9]{2}x[0-9]$", names(m$data), value = TRUE),
+    character(0)
+  )
+})
+
 test_that("the 63-byte check of the new names runs before the fit", {
   # The fit stops, so only the name check can give the 63-byte error.
   testthat::local_mocked_bindings(

@@ -11,9 +11,12 @@
 # - v1: short_term_trend() and signal_detection_hlm() on the csfmt_rts_data_v1
 #   table of each group, as the norsyss.cs9 tasks call them. The MEM fit of
 #   r80_estimate_mem_thresholds_fit() in norsyss.cs9, copied here.
-# - v4, as the specs say: csfmt_ensemble_v4() on the weekly rows, with one
-#   draw per measure, and ens_add_rate_v4(). Then short_term_trend_v4(),
-#   signal_detection_hlm_v4() and mem_thresholds_v4().
+# - v4 tasks 1 to 3: the script runs the R blocks of the spec, marked
+#   <!-- task:rules -->, <!-- task:trend -->, <!-- task:hlm --> and
+#   <!-- task:mem -->, as written. Tasks 1 and 2 run after the rules block,
+#   and task 3 runs alone. The script binds only their input: d, the csv rows,
+#   and icpc2, the flag of each group. The checks use the ensemble x and the
+#   table out of each task.
 # - The compressed form, which no task stores: ens_compress_v4() of the v4
 #   ensemble, a save, a read and as_ensemble_v4(), then the same steps. This
 #   checks csalert, not a spec.
@@ -31,8 +34,8 @@
 #    pooled. A week is eligible when its v1 label is not "training" or
 #    "forecast", and v4 has a limit. The weeks where the v4 value equals the
 #    v4 limit are counted apart, because v1 uses `>` and v4 `>=`.
-# 3. MEM: in each r80 season that both fit, each of the 4 v4 thresholds is
-#    within 0.5% of the v1 fit. The tolerance covers the csv rate, which is
+# 3. MEM: in each r80 season that both fit, each of the 4 v4 thresholds in
+#    the table out of the MEM block is within 0.5% of the v1 fit. The tolerance covers the csv rate, which is
 #    rounded to 3 decimals.
 # 4. The round trip: every percentile is NA, and the table read back, its
 #    measures, its summaries and its rebuilt draws are identical() to those
@@ -43,9 +46,10 @@
 #    columns and unique key of the v4 output. cs9 adds the column
 #    auto_last_updated_datetime, and in a partitioned table the partition
 #    column icpc2grp_tag allows NULL and is not in the unique key.
-# 6. The HLM write: the HLM table holds no row without a limit, and one row
-#    for each row of the ensemble with a limit.
-# 7. The denominator: in each group, the v4 denominator and the v1
+# 6. The HLM write: the table out of the HLM block holds no row without a
+#    limit, and one row for each row of its ensemble with a limit.
+# 7. The denominator: in each group, the denominator of the trend and HLM
+#    blocks, and the v1
 #    denominator and rate are the columns that the spec rule names, from the
 #    flag includes_influenza_covid19 of the group in norsyss.cs9. At least one
 #    group has the flag FALSE, so the check sees both sides of the rule.
@@ -77,6 +81,8 @@ stopifnot(
   )
 )
 library(data.table)
+# The spec blocks call csalert functions without csalert::.
+library(csalert, lib.loc = lib)
 
 # CFG ====
 args <- commandArgs(trailingOnly = TRUE)
@@ -268,31 +274,39 @@ v1_in <- rbindlist(lapply(CFG$groups, function(g) {
   return(z)
 }))
 
-# The v4 input: the weekly rows, with the counts of v1_in, so that v1 and v4
-# share the denominator. The counts are doubles, so that a rebuilt draw is
-# identical() to a full one.
-v4_in <- v1_in[, .(
-  granularity_geo,
-  location_code,
-  age,
-  sex,
-  tariffgroup_tag,
-  icpc2grp_tag,
-  isoyearweek,
-  numerator = as.numeric(numerator_n),
-  denominator = as.numeric(denominator_n)
-)]
-# The ensemble of the spec rules: one draw per measure.
-v4_ensemble <- function(z) {
-  return(csalert::csfmt_ensemble_v4(
-    z[, c(CFG$id_cols, "isoyearweek"), with = FALSE],
-    id_cols = CFG$id_cols,
-    draws = list(
-      numerator = as.matrix(z$numerator),
-      denominator = as.matrix(z$denominator)
-    )
-  ))
+# The input of the spec blocks: the csv rows, as anon_norsyss_data holds
+# them, and the flag of each group, as icpc2 of norsyss.cs9 holds it.
+spec_d <- copy(d)
+spec_icpc2 <- data.table(
+  icpc2group_tag = CFG$groups,
+  includes_influenza_covid19 = CFG$groups %in% flu_groups
+)
+# The R block under the marker <!-- task:<task> --> of the spec, parsed.
+spec_block <- function(task) {
+  L <- readLines(CFG$doc, encoding = "UTF-8", warn = FALSE)
+  at <- which(L == sprintf("<!-- task:%s -->", task))
+  stopifnot(length(at) == 1L, identical(L[at + 1L], "```r"))
+  end <- min(which(L == "```" & seq_along(L) > at + 1L))
+  return(parse(text = L[(at + 2L):(end - 1L)], keep.source = FALSE))
 }
+# Run the blocks of `tasks` in turn, in an environment that holds only the
+# input. Its parent is the search path without the global environment, so a
+# block cannot see an object of this script.
+run_spec <- function(tasks) {
+  e <- new.env(parent = parent.env(globalenv()))
+  e$d <- copy(spec_d)
+  e$icpc2 <- copy(spec_icpc2)
+  for (k in tasks) {
+    cat(sprintf("spec block %s of %s:
+", k, CFG$doc))
+    b <- spec_block(k)
+    print(b)
+    eval(b, e)
+  }
+  return(e)
+}
+cat("doc:", CFG$doc, "md5", unname(tools::md5sum(CFG$doc)), "
+")
 
 # PART 2 -- ANALYSIS ====
 ## v1 trend and HLM, as norsyss.cs9 calls them ----
@@ -403,8 +417,8 @@ mem_v1 <- timed(
   }))
 )
 
-## v4: the ensemble of the specs, and its compressed form, stored ----
-ens <- timed("v4 csfmt_ensemble_v4", v4_ensemble(v4_in))
+## v4: the ensemble of the spec rules, and its compressed form, stored ----
+ens <- timed("v4 spec rules", run_spec("rules")$x)
 ens <- timed(
   "v4 ens_add_rate_v4",
   csalert::ens_add_rate_v4(
@@ -445,56 +459,19 @@ back <- timed(
 pre <- csalert::as_ensemble_v4(copy(stored_table), id_cols = CFG$id_cols)
 
 ## v4 tasks 1 to 3 on the full ensemble ----
-cols <- names(ens$data)
-ens <- timed(
-  "v4 short_term_trend_v4",
-  csalert::short_term_trend_v4(
-    ens,
-    measure = "numerator",
-    width = CFG$width,
-    denominator = "denominator",
-    name = CFG$rate,
-    seed = CFG$seed
-  )
+# The spec blocks, as written. The MEM block filters r80 and ISO weeks 1 to 20
+# and 40 to 52 itself.
+task_trend <- timed("v4 spec task 1, trend", run_spec(c("rules", "trend")))
+task_hlm <- timed("v4 spec task 2, HLM", run_spec(c("rules", "hlm")))
+task_mem <- timed("v4 spec task 3, MEM", run_spec("mem"))
+ens_trend <- task_trend$x
+ens_hlm <- task_hlm$x
+mem_full <- task_mem$x
+step_cols <- list(
+  trend = task_trend$new_cols,
+  hlm = task_hlm$new_cols,
+  mem = task_mem$new_cols
 )
-step_cols <- list(trend = setdiff(names(ens$data), cols))
-
-cols <- names(ens$data)
-ens <- timed(
-  "v4 signal_detection_hlm_v4",
-  csalert::signal_detection_hlm_v4(
-    ens,
-    measure = CFG$rate,
-    baseline_isoyears = CFG$baseline_isoyears
-  )
-)
-step_cols$hlm <- setdiff(names(ens$data), cols)
-
-# MEM, as norsyss.cs9 fits it: r80, and ISO weeks 1 to 20 and 40 to 52. The
-# rows are filtered before the ensemble, as the spec says.
-mem_full <- v4_ensemble(v4_in[
-  icpc2grp_tag == CFG$mem_group &
-    as.integer(substr(isoyearweek, 6, 7)) %in% CFG$mem_isoweeks
-])
-mem_full <- csalert::ens_add_rate_v4(
-  mem_full,
-  numerator = "numerator",
-  denominator = "denominator",
-  per = 100,
-  name = CFG$rate
-)
-cols <- names(mem_full$data)
-mem_full <- timed(
-  "v4 mem_thresholds_v4",
-  csalert::mem_thresholds_v4(
-    mem_full,
-    measure = CFG$rate,
-    min_seasons = CFG$mem_min_seasons,
-    i.seasons = CFG$mem_i_seasons,
-    exclude_seasons = CFG$mem_exclude_seasons
-  )
-)
-step_cols$mem <- setdiff(names(mem_full$data), cols)
 
 ## v4 tasks 1 to 3 on the compressed form, which no spec stores ----
 cx <- timed(
@@ -583,8 +560,13 @@ want <- d[, .(
     consultations_icpc2group_vs_without_influenza_covid19_pr100
   )
 )]
-got <- ens$data[, .(icpc2grp_tag, isoyearweek)]
-got[, v4_den := ens$draws$denominator[, 1]]
+got <- ens_trend$data[, .(icpc2grp_tag, isoyearweek)]
+got[, v4_den := ens_trend$draws$denominator[, 1]]
+got[
+  ens_hlm$data[, .(icpc2grp_tag, isoyearweek, d = ens_hlm$draws$denominator[, 1])],
+  on = c("icpc2grp_tag", "isoyearweek"),
+  v4_hlm_den := i.d
+]
 got[
   v1_in,
   on = c("icpc2grp_tag", "isoyearweek"),
@@ -594,7 +576,7 @@ got <- got[want, on = c("icpc2grp_tag", "isoyearweek")]
 den_tab <- got[,
   .(
     weeks = .N,
-    v4_den_ok = all(v4_den == den),
+    v4_den_ok = all(v4_den == den & v4_hlm_den == den),
     v1_den_ok = all(v1_den == den),
     v1_rate_ok = all(v1_rate == rate | (is.na(v1_rate) & is.na(rate)))
   ),
@@ -602,12 +584,13 @@ den_tab <- got[,
 ]
 print(den_tab)
 check(
-  nrow(got) == nrow(ens$data) &&
-    !anyNA(got[, .(v4_den, v1_den, den)]) &&
+  nrow(got) == nrow(ens_trend$data) &&
+    nrow(got) == nrow(ens_hlm$data) &&
+    !anyNA(got[, .(v4_den, v4_hlm_den, v1_den, den)]) &&
     isTRUE(all(den_tab$v4_den_ok & den_tab$v1_den_ok & den_tab$v1_rate_ok)) &&
     any(!CFG$groups %in% flu_groups),
   sprintf(
-    "denominator: v4 and v1 use the denominator of the spec rule in each of the %d groups (%d with the flag FALSE: %s)",
+    "denominator: the v4 trend and HLM blocks and v1 use the denominator of the spec rule in each of the %d groups (%d with the flag FALSE: %s)",
     length(CFG$groups),
     sum(!CFG$groups %in% flu_groups),
     paste(setdiff(CFG$groups, flu_groups), collapse = ", ")
@@ -615,7 +598,7 @@ check(
 )
 
 ## The trend ----
-v4_trend <- ens$data[, .(
+v4_trend <- ens_trend$data[, .(
   icpc2grp_tag,
   isoyearweek,
   pinc = get(paste0(CFG$rate, "_trend_pinc"))
@@ -663,13 +646,13 @@ check(
 )
 
 ## HLM ----
-v4_hlm <- ens$data[, .(
+v4_hlm <- ens_hlm$data[, .(
   icpc2grp_tag,
   isoyearweek,
   v4_thr = get(paste0(CFG$rate, "_hlm_thr")),
   v4_p_high = get(paste0(CFG$rate, "_hlm_prob_high"))
 )]
-v4_hlm[, v4_value := ens$draws[[CFG$rate]][, 1]]
+v4_hlm[, v4_value := ens_hlm$draws[[CFG$rate]][, 1]]
 hl <- v4_hlm[v1_hlm, on = c("icpc2grp_tag", "isoyearweek")]
 hl[, eligible := !v1_status %in% c("training", "forecast") & !is.na(v4_thr)]
 hl[, at_limit := eligible & v4_value == v4_thr]
@@ -709,12 +692,13 @@ check(
 
 ## MEM ----
 thr_names <- c("preepidemic", "medium", "high", "veryhigh")
-v4_mem <- mem_full$data[,
+# The table out of the MEM block, as the task writes it.
+v4_mem <- task_mem$out[,
   paste0(CFG$rate, "_mem_thr_", thr_names),
   with = FALSE
 ]
 setnames(v4_mem, paste0("v4_", thr_names))
-v4_mem[, season := cstime::isoyearweek_to_season_c(mem_full$data$isoyearweek)]
+v4_mem[, season := cstime::isoyearweek_to_season_c(task_mem$out$isoyearweek)]
 v4_mem <- unique(v4_mem)
 stopifnot(!anyDuplicated(v4_mem$season))
 mm <- merge(mem_v1, v4_mem, by = "season", all = TRUE)
@@ -815,7 +799,8 @@ compare_steps <- function(a, b, v) {
   return(all(same))
 }
 check(
-  compare_steps(cx, ens, c(step_cols$trend, step_cols$hlm)) &&
+  compare_steps(cx, ens_trend, step_cols$trend) &&
+    compare_steps(cx, ens_hlm, step_cols$hlm) &&
     compare_steps(mem_cx, mem_full, step_cols$mem),
   sprintf(
     "the steps on the compressed form give the %d step columns of the full ensemble",
@@ -824,35 +809,34 @@ check(
 )
 
 ## The HLM write ----
-# The HLM task writes only the rows with a limit, as the spec says.
+# The table out of the HLM block holds only the rows with a limit, as the
+# spec says.
 hlm_thr_col <- paste0(CFG$rate, "_hlm_thr")
 out_tables <- list(
-  trend = ens$data[, c(CFG$keys, step_cols$trend), with = FALSE],
-  hlm = ens$data[
-    !is.na(get(hlm_thr_col)),
-    c(CFG$keys, step_cols$hlm),
-    with = FALSE
-  ],
-  mem = mem_full$data[, c(CFG$keys, step_cols$mem), with = FALSE]
+  trend = task_trend$out,
+  hlm = task_hlm$out,
+  mem = task_mem$out
 )
-n_limit <- sum(!is.na(ens$data[[hlm_thr_col]]))
+n_limit <- sum(!is.na(ens_hlm$data[[hlm_thr_col]]))
 cat(sprintf(
-  "\n== HLM write: %d rows of %d have a limit, %d per series\n",
+  "
+== HLM write: %d rows of %d have a limit, %d per series
+",
   n_limit,
-  nrow(ens$data),
-  n_limit %/% uniqueN(ens$data$time_series_id)
+  nrow(ens_hlm$data),
+  n_limit %/% uniqueN(ens_hlm$data$time_series_id)
 ))
-print(ens$data[,
+print(ens_hlm$data[,
   .(rows = .N, with_limit = sum(!is.na(get(hlm_thr_col)))),
   keyby = icpc2grp_tag
 ])
 check(
   n_limit > 0L &&
-    n_limit < nrow(ens$data) &&
+    n_limit < nrow(ens_hlm$data) &&
     !anyNA(out_tables$hlm[[hlm_thr_col]]) &&
     nrow(out_tables$hlm) == n_limit,
   sprintf(
-    "HLM write: the %d rows written are the %d rows with a limit, and none has no limit",
+    "HLM write: the %d rows out of the HLM block are the %d rows with a limit, and none has no limit",
     nrow(out_tables$hlm),
     n_limit
   )
