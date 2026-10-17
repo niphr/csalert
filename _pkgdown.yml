@@ -53,6 +53,23 @@ reference:
       - signal_detection_hlm
       - ens_collapse
 
+  - title: "v4: one ensemble, full or compressed"
+    desc: >
+      One ensemble that holds the draws in memory, or a table of percentiles to
+      store, and the steps that take it in either state.
+    contents:
+      - csfmt_ensemble_v4
+      - print.csfmt_ensemble_v4
+      - csfmt_reporting_triangle_v4
+      - nowcast_ecdf_v4
+      - nowcast_passthrough_v4
+      - ens_add_rate_v4
+      - short_term_trend_v4
+      - signal_detection_hlm_v4
+      - mem_thresholds_v4
+      - ens_compress_v4
+      - as_ensemble_v4
+
   - title: "Nowcast diagnostics"
     desc: >
       Replay a method on past dates and score it, and measure how fast counts

@@ -1,3 +1,20 @@
+# Version 2026.10.18
+
+- New: a v4 layer that carries one ensemble, `csfmt_ensemble_v4()`, through every step. A full ensemble holds the draws in memory, and a compressed ensemble holds a point value and 9 percentiles for each base measure. `print()` shows the state.
+- `vignette("v4", package = "csalert")` runs the v4 layer from weekly counts to a stored table and back.
+- `ens_compress_v4()` returns the compressed ensemble as a plain table to store, such as in PostgreSQL. It stops with an error when a name is longer than 63 bytes, the limit of a PostgreSQL name.
+- `as_ensemble_v4()` reads a stored table back as a compressed ensemble. A step that needs draws rebuilds them from the percentiles, with seed 4 and an independent draw for each week.
+- The rebuild draws each week independently, because that rule gave the higher arrow agreement on a replay of luftvei data. On that replay, the trend arrow from rebuilt draws agreed with the arrow from full draws in 99.98% of 6,360 indicator-weeks. The replay covered 24 indicators, 53 as-of dates and 5 horizons.
+- `csfmt_reporting_triangle_v4()`, `nowcast_ecdf_v4()` and `nowcast_passthrough_v4()` build the triangle and nowcast it. With the same seed, their draws are identical to those of `nowcast_delay_ecdf_v1()` and `nowcast_passthrough_to_ensemble_v1()`.
+- `ens_add_rate_v4()` adds a rate draw by draw. On a compressed ensemble, it rebuilds the numerator and the denominator with paired draws.
+- `short_term_trend_v4()` fits the trend on the quasi-Poisson kernel of 2026.10.17, with the denominator as an offset for a rate. It computes P(increasing) exactly from the fits, with no simulation.
+- `signal_detection_hlm_v4()` and `mem_thresholds_v4()` write the share of the draws at each level, as `<measure>_hlm_prob_<level>` and `<measure>_mem_prob_<level>`.
+- On 5 national NorSySS groups, a `short_term_trend_v4()` P(increasing) of at least 0.95 agreed with the v1 status "increasing" in 100% of 5,398 weeks.
+- On the same 5 groups, HLM "high" agreed with v1 in 99.90% of 3,150 weeks. In 965 other weeks the rate and the limit were both 0. v4 flags these weeks "high", as v3 does, and v1 does not.
+- On the r80 national NorSySS series, the 68 MEM thresholds of the 17 seasons that both versions fit were within 0.019% of the v1 thresholds.
+- On synthetic data in the production shape of NorSySS, the v4 trend and HLM together took 0.53 times the v1 run time. The measurement used 3 groups of 614,628 rows.
+- The v1 and v3 functions do not change.
+
 # Version 2026.10.17
 
 - The `csfmt_rts_data_v1` method of `short_term_trend()` fits all rolling windows of a series in one vectorised step, and it no longer calls `glm2`. On a synthetic group of 252 series of 1,000 weeks, it took 34 s, against 1,180 s before.

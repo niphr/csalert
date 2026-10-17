@@ -1,0 +1,137 @@
+---
+title: "v4: one ensemble, full or compressed"
+author: "Richard Aubrey White"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{v4: one ensemble, full or compressed}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+The v4 nowcasts return a `csfmt_ensemble_v4`. The rate, trend, HLM and MEM
+steps take one and return it with their results added. A full ensemble holds
+draws in memory. A compressed ensemble holds a table with a point value and 9
+percentiles for each base measure, and you store that table.
+
+This vignette takes one simulated series from weekly counts to a stored table,
+and back again.
+
+## Build a full ensemble
+
+The series has 320 weeks of positive tests out of all tests. Each week has 100
+draws. Here they are simulated, but in a real run they come from a nowcast
+such as `nowcast_ecdf_v4()`.
+
+```{r build}
+library(data.table)
+library(csalert)
+
+w <- cstime::dates_by_isoyearweek$isoyearweek
+iyw <- w[match("2018-01", w) + 0:319]
+season_week <- cstime::isoyearweek_to_seasonweek_n(iyw)
+share <- 0.05 + 0.15 * exp(-(season_week - 25)^2 / 40)
+set.seed(1)
+tested <- matrix(rpois(320 * 100, 2000), nrow = 320)
+positive <- matrix(rbinom(length(tested), tested, share), nrow = 320)
+
+ens <- csfmt_ensemble_v4(
+  data.table(location_code = "nation", isoyearweek = iyw),
+  id_cols = "location_code",
+  draws = list(positive = positive, tested = tested)
+)
+ens
+```
+
+Each draw matrix has one row per week and one column per draw. Column `j` is
+the same draw in every measure.
+
+## Add a rate, then run the trend and HLM
+
+```{r steps}
+ens <- ens_add_rate_v4(
+  ens,
+  numerator = "positive",
+  denominator = "tested",
+  per = 100,
+  name = "positive_pr100"
+)
+ens <- short_term_trend_v4(
+  ens,
+  measure = "positive",
+  denominator = "tested",
+  name = "positive_pr100",
+  seed = 4
+)
+ens <- signal_detection_hlm_v4(ens, measure = "positive_pr100")
+ens$data[
+  316:320,
+  .(isoyearweek, positive_pr100_trend_pinc, positive_pr100_hlm_prob_high)
+]
+```
+
+The trend models the counts of `positive` in a quasi-Poisson regression, with
+the log of `tested` as the offset. `positive_pr100_trend_pinc` is
+P(increasing). The HLM step compares each draw of the rate with a limit from
+the 5 earlier years. `positive_pr100_hlm_prob_high` is the share of the draws
+at or above that limit.
+
+## Compress to a table
+
+```{r compress}
+stored <- ens_compress_v4(ens)
+dim(stored)
+max(nchar(names(stored), type = "bytes"))
+```
+
+The table holds the columns of `$data`. It also holds a median and 9
+percentiles for each of the 3 base measures, `positive`, `tested` and
+`positive_pr100`. It holds no draws, and each column is a plain vector.
+`ens_compress_v4()` stops with an error when a name is longer than 63 bytes,
+the limit of a PostgreSQL name. So you can write the table to PostgreSQL.
+
+## Read the table back and run a step again
+
+```{r rebuild}
+back <- as_ensemble_v4(stored, id_cols = "location_code", n_sim = 100)
+back
+back <- short_term_trend_v4(
+  back,
+  measure = "positive",
+  denominator = "tested",
+  name = "positive_pr100",
+  seed = 4
+)
+pinc <- data.table(
+  isoyearweek = iyw,
+  full = ens$data$positive_pr100_trend_pinc,
+  rebuilt = back$data$positive_pr100_trend_pinc
+)
+pinc[316:320]
+max(abs(pinc$full - pinc$rebuilt), na.rm = TRUE)
+```
+
+Each step rebuilds the draws of the base measures that it reads, from the
+stored percentiles, with seed 4. `n_sim = 100` gives the same number of draws
+as the full ensemble. The rebuild is an approximation. On this series, the two
+P(increasing) values differ by at most 0.11 over the 318 weeks that have a
+trend.
+
+Before a step on a rate, add the rate again from its parts. A step that
+rebuilds the rate from its own percentiles loses the pairing of its draws with
+the draws of `positive` and `tested`.
+
+```{r rate-again}
+back <- ens_add_rate_v4(
+  back,
+  numerator = "positive",
+  denominator = "tested",
+  per = 100,
+  name = "positive_pr100"
+)
+back <- signal_detection_hlm_v4(back, measure = "positive_pr100")
+back
+```
