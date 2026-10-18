@@ -1,6 +1,7 @@
 # mem_thresholds_v4 is a copy of mem_thresholds_v1.csfmt_ensemble_v3. On the
 # same draws, its values and its messages MUST be identical() to those of v3.
-# Only the names differ.
+# The names differ, v4 adds 3 fit fields, and v4 writes NA where v3 writes
+# NaN.
 
 # The ISO weeks of a series: `n` weeks that end in `last`.
 v4m_weeks <- function(n = 370L, last = "2023-03") {
@@ -114,6 +115,15 @@ v4m_map <- function(m3, m4) {
   ))
 }
 
+# The columns that v4 adds and v3 does not have: the 3 fit fields.
+v4m_v4_only <- function(m4) {
+  return(paste0(
+    m4,
+    "_mem_",
+    c("thr_postepidemic", "season_start", "season_weeks")
+  ))
+}
+
 # The v3 outputs that v4 deliberately does not carry. The ordinal percentiles
 # of the level codes follow from the per-level shares.
 v4m_not_carried <- function(m3) {
@@ -129,8 +139,9 @@ v4m_messages <- function(expr) {
 }
 
 # Run v3 and v4 on the pair, and expect every v3 output to have a v4 name in
-# the map with identical values, no output outside the map, and the same
-# messages.
+# the map with identical values, no output outside the map and the 3 fit
+# fields, and the same messages. The one allowed difference in a value is NA
+# in v4 where v3 has NaN.
 v4m_expect_equivalent <- function(pair, ...) {
   e3 <- pair$e3
   e4 <- pair$e4
@@ -156,15 +167,21 @@ v4m_expect_equivalent <- function(pair, ...) {
     c(setdiff(names(c3), in3_data), setdiff(names(h3$draws), in3_draws)),
     c(map$v3, not_carried)
   )
+  in_data <- map$v4[map$where == "data"]
   expect_identical(
     setdiff(names(h4$data), names(e4$data)),
-    map$v4[map$where == "data"]
+    c(
+      in_data[!grepl("_prob_", in_data)],
+      v4m_v4_only("numerator"),
+      in_data[grepl("_prob_", in_data)]
+    )
   )
   expect_identical(
     setdiff(names(h4$draws), names(e4$draws)),
     map$v4[map$where == "draws"]
   )
 
+  n_nan <- list()
   for (i in seq_len(nrow(map))) {
     if (map$where[i] == "draws") {
       expect_identical(
@@ -173,11 +190,27 @@ v4m_expect_equivalent <- function(pair, ...) {
         label = map$v4[i]
       )
     } else {
-      expect_identical(h4$data[[map$v4[i]]], c3[[map$v3[i]]], label = map$v4[i])
+      # v3 writes NaN in a share where every draw is NA, and v4 writes NA.
+      # Map NaN to NA on the v3 side of a share. The values are then
+      # identical, so the two differ only at the NaN positions of v3. Every
+      # other column is compared as it is.
+      v3_value <- c3[[map$v3[i]]]
+      if (grepl("_prob_", map$v4[i])) {
+        nan <- is.nan(v3_value)
+        v3_value[nan] <- NA
+        expect_false(any(is.nan(h4$data[[map$v4[i]]])), label = map$v4[i])
+        n_nan[[map$v4[i]]] <- sum(nan)
+      }
+      expect_identical(h4$data[[map$v4[i]]], v3_value, label = map$v4[i])
     }
   }
   expect_identical(h4$data[, names(e4$data), with = FALSE], e4_before)
   expect_identical(e4$data, e4_before)
+  # The NaN-to-NA difference is real: v3 has NaN in every share, at the weeks
+  # without a fit and the NA weeks.
+  for (L in V4M_LEVELS) {
+    expect_gt(n_nan[[paste0("numerator_mem_prob_", L)]], 0L)
+  }
   return(list(h4 = h4, msg = msg4))
 }
 
@@ -257,6 +290,83 @@ test_that("a rerun on the same measure replaces the columns and the draws", {
     expect_identical(rerun$data[[col]], fresh$data[[col]], label = col)
   }
   expect_identical(rerun$draws, fresh$draws)
+})
+
+test_that("the 3 fit fields equal the fields of the fit, and are NA without one", {
+  # Keep each fit that .v4_mem_fit() returns, in the order of the seasons.
+  fit <- .v4_mem_fit
+  fits <- list()
+  testthat::local_mocked_bindings(
+    .v4_mem_fit = function(...) {
+      f <- fit(...)
+      if (!is.null(f)) {
+        fits[[length(fits) + 1L]] <<- f
+      }
+      return(f)
+    },
+    .package = "csalert"
+  )
+  m <- suppressMessages(mem_thresholds_v4(v4m_small(), "cases"))
+  d <- m$data
+  expect_type(d$cases_mem_thr_postepidemic, "double")
+  expect_type(d$cases_mem_season_start, "integer")
+  expect_type(d$cases_mem_season_weeks, "integer")
+
+  season <- cstime::isoyearweek_to_season_c(d$isoyearweek)
+  fitted <- !is.na(d$cases_mem_n_seasons)
+  seasons <- sort(unique(season[fitted]))
+  expect_identical(length(seasons), length(fits))
+  expect_gt(length(seasons), 2L)
+  for (k in seq_along(seasons)) {
+    rows <- season == seasons[k]
+    expect_identical(
+      unique(d$cases_mem_thr_postepidemic[rows]),
+      fits[[k]]$epidemic.thresholds[2],
+      label = seasons[k]
+    )
+    expect_identical(
+      unique(d$cases_mem_season_start[rows]),
+      as.integer(fits[[k]]$mean.start),
+      label = seasons[k]
+    )
+    expect_identical(
+      unique(d$cases_mem_season_weeks[rows]),
+      as.integer(fits[[k]]$mean.length),
+      label = seasons[k]
+    )
+  }
+  # The post-epidemic threshold differs from the pre-epidemic one, so the
+  # column does not repeat it.
+  expect_false(isTRUE(all.equal(
+    d$cases_mem_thr_postepidemic[fitted],
+    d$cases_mem_thr_preepidemic[fitted]
+  )))
+  # The seasons without a fit get NA in all 3.
+  expect_gt(sum(!fitted), 0L)
+  expect_true(all(is.na(d$cases_mem_thr_postepidemic[!fitted])))
+  expect_true(all(is.na(d$cases_mem_season_start[!fitted])))
+  expect_true(all(is.na(d$cases_mem_season_weeks[!fitted])))
+})
+
+test_that("the 3 fit fields pass through the name check", {
+  checked <- list()
+  testthat::local_mocked_bindings(
+    .v4_check_names = function(x) {
+      checked[[length(checked) + 1L]] <<- x
+      return(invisible(x))
+    },
+    .package = "csalert"
+  )
+  suppressMessages(mem_thresholds_v4(v4m_small(), "cases"))
+  # One call checks the 3 names with the other new names of the step.
+  new_names <- c(v4m_v4_only("cases"), "cases_mem_prob_preepidemic")
+  expect_true(any(vapply(
+    checked,
+    function(z) {
+      return(all(new_names %in% z))
+    },
+    logical(1)
+  )))
 })
 
 test_that("mem_thresholds_v4 writes no percentile columns", {

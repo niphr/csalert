@@ -42,10 +42,20 @@ codes 1 to 5 with a \code{levels} attribute. It adds these columns to \verb{$dat
 \verb{<measure>_mem_thr_high} and \verb{<measure>_mem_thr_veryhigh}: the
 thresholds of the season of the week.
 \item \verb{<measure>_mem_n_seasons}: the number of training seasons of the fit.
+\item \verb{<measure>_mem_thr_postepidemic}: the post-epidemic threshold of the
+season, \code{epidemic.thresholds[2]} of the fit. It classifies no draw.
+\item \verb{<measure>_mem_season_start} and \verb{<measure>_mem_season_weeks}, both
+integer: \code{mean.start} and \code{mean.length} of the fit. The start is the
+rounded mean position of the first epidemic week among the season weeks
+of the fit, counted from 1. The length is the rounded mean epidemic
+length in weeks.
 \item \verb{<measure>_mem_prob_preepidemic} to \verb{<measure>_mem_prob_veryhigh}: the
-share of the draws at each level, which is \code{NaN} when every draw is
+share of the draws at each level, which is \code{NA} when every draw is
 \code{NA}.
 }
+
+Each threshold and each fit field repeats on every week of the season,
+and is \code{NA} in a season with no fit.
 
 The shares give every ordinal percentile of the level codes, so the step
 writes no percentile column.

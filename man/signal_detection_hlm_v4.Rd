@@ -21,7 +21,7 @@ adds these columns to \verb{$data}:
 \itemize{
 \item \verb{<measure>_hlm_thr}: the limit.
 \item \verb{<measure>_hlm_prob_null} and \verb{<measure>_hlm_prob_high}: the share of
-the draws at each level, which is \code{NaN} when every draw is \code{NA}.
+the draws at each level, which is \code{NA} when every draw is \code{NA}.
 }
 
 The shares give every ordinal percentile of the level codes, so the step

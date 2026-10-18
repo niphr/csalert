@@ -36,7 +36,10 @@
 #    v4 limit are counted apart, because v1 uses `>` and v4 `>=`.
 # 3. MEM: in each r80 season that both fit, each of the 4 v4 thresholds in
 #    the table out of the MEM block is within 0.5% of the v1 fit. The tolerance covers the csv rate, which is
-#    rounded to 3 decimals.
+#    rounded to 3 decimals. The table holds the 3 fit fields of v1. In each
+#    season that both fit, the season start and the season length are
+#    identical to v1. The post-epidemic threshold is within 0.5% of v1. An NA
+#    threshold or field in a season that both fit fails the check.
 # 4. The round trip: every percentile is NA, and the table read back, its
 #    measures, its summaries and its rebuilt draws are identical() to those
 #    before the save. The steps on it give identical() step columns to the
@@ -412,7 +415,18 @@ mem_v1 <- timed(
       v1_preepidemic = el(fit$pre.post.intervals, 1, 3),
       v1_medium = el(fit$epi.intervals, 1, 4),
       v1_high = el(fit$epi.intervals, 2, 4),
-      v1_veryhigh = el(fit$epi.intervals, 3, 4)
+      v1_veryhigh = el(fit$epi.intervals, 3, 4),
+      v1_postepidemic = el(fit$pre.post.intervals, 2, 3),
+      v1_season_start = if (length(fit$mean.start) == 1L) {
+        fit$mean.start
+      } else {
+        NA_real_
+      },
+      v1_season_weeks = if (length(fit$mean.length) == 1L) {
+        fit$mean.length
+      } else {
+        NA_real_
+      }
     ))
   }))
 )
@@ -611,8 +625,8 @@ trend_tab <- by_group_and_pooled(tr, function(z) {
   return(data.table(
     weeks = nrow(z),
     both_not_na = sum(both),
-    agree_pct = round(100 * mean(z$v1_inc[both] == z$v4_inc[both]), 2),
-    na_agree_pct = round(100 * mean(is.na(z$v1_inc) == is.na(z$v4_inc)), 2),
+    agree_pct = 100 * mean(z$v1_inc[both] == z$v4_inc[both]),
+    na_agree_pct = 100 * mean(is.na(z$v1_inc) == is.na(z$v4_inc)),
     v1_increasing = sum(z$v1_inc, na.rm = TRUE),
     v4_increasing = sum(z$v4_inc, na.rm = TRUE),
     v1_only = sum(z$v1_inc[both] & !z$v4_inc[both]),
@@ -624,7 +638,11 @@ cat(sprintf(
   "\n== trend: v1 'increasing' against v4 pinc >= %.2f (base: v1 weeks, series x week)\n",
   CFG$cutoff
 ))
-print(trend_tab)
+# Each check compares the unrounded value. Only the printed copy is rounded.
+print(copy(trend_tab)[, `:=`(
+  agree_pct = round(agree_pct, 2),
+  na_agree_pct = round(na_agree_pct, 2)
+)][])
 pooled <- trend_tab[icpc2grp_tag == "pooled"]
 check(
   pooled$agree_pct >= CFG$min_trend_pct,
@@ -666,7 +684,7 @@ hlm_tab <- by_group_and_pooled(hl, function(z) {
     at_limit = sum(z$at_limit),
     at_limit_disagree = sum(z$at_limit & z$v1_high != z$v4_high),
     base = sum(b),
-    agree_pct = round(100 * mean(z$v1_high[b] == z$v4_high[b]), 2),
+    agree_pct = 100 * mean(z$v1_high[b] == z$v4_high[b]),
     v1_high = sum(z$v1_high[b]),
     v4_high = sum(z$v4_high[b]),
     v1_only = sum(z$v1_high[b] & !z$v4_high[b]),
@@ -677,7 +695,7 @@ hlm_tab <- by_group_and_pooled(hl, function(z) {
 cat(
   "\n== HLM: v1 'high' against v4 'high' (base: eligible weeks that are not at the limit)\n"
 )
-print(hlm_tab)
+print(copy(hlm_tab)[, agree_pct := round(agree_pct, 2)][])
 pooled <- hlm_tab[icpc2grp_tag == "pooled"]
 check(
   pooled$agree_pct >= CFG$min_hlm_pct,
@@ -704,37 +722,140 @@ stopifnot(!anyDuplicated(v4_mem$season))
 mm <- merge(mem_v1, v4_mem, by = "season", all = TRUE)
 for (k in thr_names) {
   mm[,
-    (paste0("rel_", k)) := signif(
-      get(paste0("v4_", k)) / get(paste0("v1_", k)) - 1,
-      3
-    )
+    (paste0("rel_", k)) := get(paste0("v4_", k)) / get(paste0("v1_", k)) - 1
   ]
 }
-v1_fits <- !is.na(mm$v1_preepidemic)
-v4_fits <- !is.na(mm$v4_preepidemic)
+# A side fits a season when one of its 4 thresholds is not NA. In a season
+# that both fit, all 4 thresholds MUST be not NA on both sides, or the check
+# fails: no fitted season goes unchecked.
+v1_fits <- rowSums(!is.na(mm[, paste0("v1_", thr_names), with = FALSE])) > 0
+v4_fits <- rowSums(!is.na(mm[, paste0("v4_", thr_names), with = FALSE])) > 0
 both <- mm[v1_fits & v4_fits]
+thr_complete <- !anyNA(
+  both[, paste0(rep(c("v1_", "v4_"), each = 4), thr_names), with = FALSE]
+)
 max_rel <- max(abs(unlist(both[, paste0("rel_", thr_names), with = FALSE])))
 cat(sprintf(
   "\n== MEM: v4 thresholds against the norsyss.cs9 v1 fit, %s, national, total age, ISO weeks 1-20 and 40-52\n",
   CFG$mem_group
 ))
-print(both[,
+# The check compares the unrounded differences. Only the printed copy is
+# rounded.
+both_print <- both[,
   c("season", paste0(c("v1_", "v4_", "rel_"), rep(thr_names, each = 3))),
   with = FALSE
-])
+]
+for (k in paste0("rel_", thr_names)) {
+  set(both_print, j = k, value = signif(both_print[[k]], 3))
+}
+print(both_print)
 cat("seasons only v1 fits:", mm[v1_fits & !v4_fits, season], "\n")
 cat("seasons only v4 fits:", mm[v4_fits & !v1_fits, season], "\n")
 cat(sprintf("largest relative difference: %.3g\n", max_rel))
 check(
-  nrow(both) > 0 && max_rel <= CFG$max_mem_rel,
+  nrow(both) > 0 && thr_complete && max_rel <= CFG$max_mem_rel,
   sprintf(
-    "MEM: the %d thresholds of the %d seasons that both fit are within %.1f%% of v1 (largest %.3g%%)",
+    "MEM: the %d thresholds of the %d seasons that both fit are not NA and within %.1f%% of v1 (largest %.4g%%)",
     4L * nrow(both),
     nrow(both),
     100 * CFG$max_mem_rel,
     100 * max_rel
   )
 )
+
+# The 3 fit fields that v1 publishes: the post-epidemic threshold, and the
+# season start and length.
+fit_fields <- c(
+  postepidemic = "thr_postepidemic",
+  season_start = "season_start",
+  season_weeks = "season_weeks"
+)
+fit_cols <- paste0(CFG$rate, "_mem_", fit_fields)
+has_fields <- check(
+  all(fit_cols %in% names(task_mem$out)),
+  sprintf(
+    "MEM: the table out of the MEM block has the 3 fit fields %s",
+    paste(fit_cols, collapse = ", ")
+  )
+)
+if (has_fields) {
+  v4_fields <- task_mem$out[, fit_cols, with = FALSE]
+  setnames(v4_fields, paste0("v4_", names(fit_fields)))
+  v4_fields[,
+    season := cstime::isoyearweek_to_season_c(task_mem$out$isoyearweek)
+  ]
+  v4_fields <- unique(v4_fields)
+  stopifnot(!anyDuplicated(v4_fields$season))
+  # Every season that both fit by their 4 thresholds, with no season
+  # removed. A field that is NA on either side fails the checks below.
+  mf <- merge(
+    data.table(season = both$season),
+    mem_v1[, c("season", paste0("v1_", names(fit_fields))), with = FALSE],
+    by = "season",
+    all.x = TRUE
+  )
+  mf <- merge(mf, v4_fields, by = "season", all.x = TRUE)
+  field_cols <- paste0(rep(c("v1_", "v4_"), each = 3), names(fit_fields))
+  fields_na <- mf[, rowSums(is.na(.SD)) > 0, .SDcols = field_cols]
+  fields_complete <- nrow(mf) == nrow(both) && !any(fields_na)
+  check(
+    nrow(mf) > 0 && fields_complete,
+    sprintf(
+      "MEM: the 3 fit fields are not NA on either side in each of the %d seasons that both fit (%d compared; NA in: %s)",
+      nrow(both),
+      sum(!fields_na),
+      if (any(fields_na)) paste(mf$season[fields_na], collapse = ", ") else "none"
+    )
+  )
+  # The check compares the unrounded difference. Only the print rounds it.
+  mf[, rel_postepidemic := v4_postepidemic / v1_postepidemic - 1]
+  cat(sprintf(
+    "
+== MEM: the 3 v4 fit fields against the norsyss.cs9 v1 fit, %s, national, total age
+",
+    CFG$mem_group
+  ))
+  print(mf[, .(
+    season,
+    v1_postepidemic,
+    v4_postepidemic,
+    rel_postepidemic = signif(rel_postepidemic, 3),
+    v1_season_start,
+    v4_season_start,
+    v1_season_weeks,
+    v4_season_weeks
+  )])
+  max_rel_post <- max(abs(mf$rel_postepidemic))
+  check(
+    nrow(mf) > 0 &&
+      fields_complete &&
+      is.integer(mf$v4_season_start) &&
+      isTRUE(all(mf$v4_season_start == mf$v1_season_start)),
+    sprintf(
+      "MEM: the season start is identical to v1 in each of the %d seasons that both fit",
+      nrow(mf)
+    )
+  )
+  check(
+    nrow(mf) > 0 &&
+      fields_complete &&
+      is.integer(mf$v4_season_weeks) &&
+      isTRUE(all(mf$v4_season_weeks == mf$v1_season_weeks)),
+    sprintf(
+      "MEM: the season length is identical to v1 in each of the %d seasons that both fit",
+      nrow(mf)
+    )
+  )
+  check(
+    nrow(mf) > 0 && fields_complete && max_rel_post <= CFG$max_mem_rel,
+    sprintf(
+      "MEM: the post-epidemic threshold is within %.1f%% of v1 in each of the %d seasons that both fit (largest %.4g%%)",
+      100 * CFG$max_mem_rel,
+      nrow(mf),
+      100 * max_rel_post
+    )
+  )
+}
 
 ## The round trip ----
 base_measures <- csalert:::.v4_stored_measures(names(read))

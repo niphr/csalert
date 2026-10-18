@@ -57,9 +57,19 @@
 #'     `<measure>_mem_thr_high` and `<measure>_mem_thr_veryhigh`: the
 #'     thresholds of the season of the week.
 #'   - `<measure>_mem_n_seasons`: the number of training seasons of the fit.
+#'   - `<measure>_mem_thr_postepidemic`: the post-epidemic threshold of the
+#'     season, `epidemic.thresholds[2]` of the fit. It classifies no draw.
+#'   - `<measure>_mem_season_start` and `<measure>_mem_season_weeks`, both
+#'     integer: `mean.start` and `mean.length` of the fit. The start is the
+#'     rounded mean position of the first epidemic week among the season weeks
+#'     of the fit, counted from 1. The length is the rounded mean epidemic
+#'     length in weeks.
 #'   - `<measure>_mem_prob_preepidemic` to `<measure>_mem_prob_veryhigh`: the
-#'     share of the draws at each level, which is `NaN` when every draw is
+#'     share of the draws at each level, which is `NA` when every draw is
 #'     `NA`.
+#'
+#'   Each threshold and each fit field repeats on every week of the season,
+#'   and is `NA` in a season with no fit.
 #'
 #'   The shares give every ordinal percentile of the level codes, so the step
 #'   writes no percentile column.
@@ -156,6 +166,9 @@ mem_thresholds_v4 <- function(
   out <- data.table::copy(x$data)
   out[, (nm$thr) := thr[, paste0("mem_", .V4_MEM_THRESHOLDS), with = FALSE]]
   out[, (nm$n_seasons) := thr$mem_n_seasons]
+  out[, (nm$postepidemic) := thr$mem_postepidemic]
+  out[, (nm$season_start) := thr$mem_season_start]
+  out[, (nm$season_weeks) := thr$mem_season_weeks]
   .v4_collapse_status_into(out, nm$status, code, .V4_MEM_LEVELS)
   x$data <- out
   x$draws[[nm$status]] <- code
@@ -171,23 +184,31 @@ mem_thresholds_v4 <- function(
     status = status,
     thr = paste0(status, "_thr_", .V4_MEM_THRESHOLDS),
     n_seasons = paste0(status, "_n_seasons"),
+    postepidemic = paste0(status, "_thr_postepidemic"),
+    season_start = paste0(status, "_season_start"),
+    season_weeks = paste0(status, "_season_weeks"),
     summary = .v4_status_names(status, .V4_MEM_LEVELS)
   ))
 }
 
-# The thresholds and the number of training seasons of each row of `d`, from
-# the fits in `thr`, one row per series and season. A row whose season has no
-# fit gets NA.
+# The thresholds, the number of training seasons and the fit fields of each
+# row of `d`. They come from the fits in `thr`, one row per series and
+# season. A row whose season has no fit gets NA.
 .v4_mem_week_thresholds <- function(d, thr) {
   # NSE column names, declared so R CMD check does not read them as undefined globals
   mem_n_seasons <- i.mem_preepidemic <- i.mem_medium <- i.mem_high <- NULL
   i.mem_veryhigh <- i.mem_n_seasons <- NULL
+  mem_postepidemic <- mem_season_start <- mem_season_weeks <- NULL
+  i.mem_postepidemic <- i.mem_season_start <- i.mem_season_weeks <- NULL
   w <- data.table::data.table(
     time_series_id = d$time_series_id,
     season = d$season
   )
   w[, (paste0("mem_", .V4_MEM_THRESHOLDS)) := NA_real_]
   w[, mem_n_seasons := NA_integer_]
+  w[, mem_postepidemic := NA_real_]
+  w[, mem_season_start := NA_integer_]
+  w[, mem_season_weeks := NA_integer_]
   if (nrow(thr)) {
     w[
       thr,
@@ -197,7 +218,10 @@ mem_thresholds_v4 <- function(
         mem_medium = i.mem_medium,
         mem_high = i.mem_high,
         mem_veryhigh = i.mem_veryhigh,
-        mem_n_seasons = i.mem_n_seasons
+        mem_n_seasons = i.mem_n_seasons,
+        mem_postepidemic = i.mem_postepidemic,
+        mem_season_start = i.mem_season_start,
+        mem_season_weeks = i.mem_season_weeks
       )
     ]
   }

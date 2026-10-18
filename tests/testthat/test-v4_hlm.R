@@ -1,6 +1,6 @@
 # signal_detection_hlm_v4 is a copy of signal_detection_hlm.csfmt_ensemble_v3.
-# On the same draws, its values MUST be identical() to those of v3. Only the
-# names differ.
+# On the same draws, its values MUST be identical() to those of v3. The names
+# differ, and v4 writes NA where v3 writes NaN.
 
 # The ISO weeks of a series: `n` weeks that end in `last`.
 v4h_weeks <- function(n = 370L, last = "2023-03") {
@@ -117,7 +117,8 @@ v4h_not_carried <- function(m3) {
 }
 
 # Run v3 and v4 on the pair, and expect every v3 output to have a v4 name in
-# the map with identical values, and no output outside the map.
+# the map with identical values, and no output outside the map. The one
+# allowed difference in a value is NA in v4 where v3 has NaN.
 v4h_expect_equivalent <- function(pair, ...) {
   e3 <- pair$e3
   e4 <- pair$e4
@@ -148,6 +149,7 @@ v4h_expect_equivalent <- function(pair, ...) {
     map$v4[map$where == "draws"]
   )
 
+  n_nan <- list()
   for (i in seq_len(nrow(map))) {
     if (map$where[i] == "draws") {
       expect_identical(
@@ -156,9 +158,24 @@ v4h_expect_equivalent <- function(pair, ...) {
         label = map$v4[i]
       )
     } else {
-      expect_identical(h4$data[[map$v4[i]]], c3[[map$v3[i]]], label = map$v4[i])
+      # v3 writes NaN in a share where every draw is NA, and v4 writes NA.
+      # Map NaN to NA on the v3 side of a share. The values are then
+      # identical, so the two differ only at the NaN positions of v3. Every
+      # other column is compared as it is.
+      v3_value <- c3[[map$v3[i]]]
+      if (grepl("_prob_", map$v4[i])) {
+        nan <- is.nan(v3_value)
+        v3_value[nan] <- NA
+        expect_false(any(is.nan(h4$data[[map$v4[i]]])), label = map$v4[i])
+        n_nan[[map$v4[i]]] <- sum(nan)
+      }
+      expect_identical(h4$data[[map$v4[i]]], v3_value, label = map$v4[i])
     }
   }
+  # The NaN-to-NA difference is real: v3 has NaN in both shares, at the weeks
+  # without a limit and the NA weeks.
+  expect_gt(n_nan$numerator_hlm_prob_null, 0L)
+  expect_gt(n_nan$numerator_hlm_prob_high, 0L)
   # The columns that were there keep their values, and the input does not
   # change.
   expect_identical(h4$data[, names(e4$data), with = FALSE], e4_before)
@@ -228,6 +245,10 @@ test_that("HLM and MEM write no percentile columns", {
       paste0("cases_mem_thr_", c("preepidemic", "medium", "high", "veryhigh")),
       "cases_mem_n_seasons",
       paste0(
+        "cases_mem_",
+        c("thr_postepidemic", "season_start", "season_weeks")
+      ),
+      paste0(
         "cases_mem_prob_",
         c("preepidemic", "low", "medium", "high", "veryhigh")
       )
@@ -239,6 +260,26 @@ test_that("HLM and MEM write no percentile columns", {
     attr(m$draws$cases_mem, "levels"),
     c("preepidemic", "low", "medium", "high", "veryhigh")
   )
+})
+
+test_that("no share of HLM or MEM is NaN on a week with no draw", {
+  ens <- v4h_small()
+  # Week 300 is a filled-in week: every draw is NA.
+  ens$draws$cases[300, ] <- NA_real_
+  h <- signal_detection_hlm_v4(ens, "cases")
+  m <- suppressMessages(mem_thresholds_v4(ens, "cases"))
+  # The week has a limit and MEM thresholds, so only the draws are missing.
+  expect_false(is.na(h$data$cases_hlm_thr[300]))
+  expect_false(is.na(m$data$cases_mem_thr_high[300]))
+  for (r in list(h, m)) {
+    probs <- grep("_prob_", names(r$data), value = TRUE)
+    expect_gt(length(probs), 1L)
+    for (col in probs) {
+      expect_false(any(is.nan(r$data[[col]])), label = col)
+      expect_true(is.na(r$data[[col]][300]), label = col)
+      expect_false(anyNA(r$data[[col]][299]), label = col)
+    }
+  }
 })
 
 test_that("a rerun on the same measure replaces the columns and the draws", {

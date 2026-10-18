@@ -52,13 +52,18 @@
 }
 
 # A copy of mem_extract_thresholds(): the four thresholds of a fitted
-# mem::memmodel object.
+# mem::memmodel object. v4 adds three fields that norsyss.cs9 publishes: the
+# post-epidemic threshold, and the mean start and the mean length of the
+# epidemic in weeks.
 .v4_mem_extract_thresholds <- function(fit) {
   return(data.table::data.table(
     mem_preepidemic = fit$epidemic.thresholds[1],
     mem_medium = fit$epi.intervals[1, 4],
     mem_high = fit$epi.intervals[2, 4],
-    mem_veryhigh = fit$epi.intervals[3, 4]
+    mem_veryhigh = fit$epi.intervals[3, 4],
+    mem_postepidemic = fit$epidemic.thresholds[2],
+    mem_season_start = as.integer(fit$mean.start),
+    mem_season_weeks = as.integer(fit$mean.length)
   ))
 }
 
@@ -171,7 +176,8 @@
 
 # A copy of the probability part of collapse_status_into(). It reduces a
 # matrix of the ordinal status codes 1 to K to one probability column per
-# level. It adds the columns to `d` by reference. It writes no ordinal
+# level, which is NA where every draw of the row is NA. v3 writes NaN there.
+# It adds the columns to `d` by reference. It writes no ordinal
 # percentile, because the probabilities of the levels give every percentile.
 .v4_collapse_status_into <- function(d, measure, M, levs) {
   K <- length(levs)
@@ -183,6 +189,8 @@
     },
     numeric(n)
   )
+  # The mean of no draws is NaN. It is NA, so a row with every draw NA gets NA.
+  prob[is.nan(prob)] <- NA_real_
   pcols <- vapply(
     levs,
     function(L) {

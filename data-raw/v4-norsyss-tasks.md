@@ -152,7 +152,7 @@ new_cols <- setdiff(names(x$data), cols)
 out <- x$data[, c(id_cols, "isoyearweek", new_cols), with = FALSE]
 ```
 
-Here `new_cols` are the 10 columns that the step adds, as below. On the national series, each of the 4 thresholds is within 0.02% of the v1 fit in each of the 17 seasons that both fit. The v1 rate is rounded to 3 decimals, and the v4 rate is not. v4 also fits 2008/2009 and 2009/2010, which norsyss.cs9 leaves out as the first 5 seasons of the data.
+Here `new_cols` are the 13 columns that the step adds, as below. On the national series, each of the 4 thresholds is within 0.02% of the v1 fit in each of the 17 seasons that both fit. The step also writes the 3 fit fields of v1: the post-epidemic threshold, and the season start and length. In each of the 17 seasons, the start and the length are identical to v1, and the post-epidemic threshold is within 0.02%. The v1 rate is rounded to 3 decimals, and the v4 rate is not. v4 also fits 2008/2009 and 2009/2010, which norsyss.cs9 leaves out as the first 5 seasons of the data.
 
 The task covers only `r80` and the rate of the v1 `fhi` tables. That rate is the share of all consultations, on the 9 ages of the 189 series. The task does not cover these outputs of v1:
 
@@ -172,6 +172,9 @@ CREATE TABLE anon_r80_mem_v4 (
   numerator_vs_denominator_pr100_mem_thr_high DOUBLE PRECISION,
   numerator_vs_denominator_pr100_mem_thr_veryhigh DOUBLE PRECISION,
   numerator_vs_denominator_pr100_mem_n_seasons INTEGER,
+  numerator_vs_denominator_pr100_mem_thr_postepidemic DOUBLE PRECISION,
+  numerator_vs_denominator_pr100_mem_season_start INTEGER,
+  numerator_vs_denominator_pr100_mem_season_weeks INTEGER,
   numerator_vs_denominator_pr100_mem_prob_preepidemic DOUBLE PRECISION,
   numerator_vs_denominator_pr100_mem_prob_low DOUBLE PRECISION,
   numerator_vs_denominator_pr100_mem_prob_medium DOUBLE PRECISION,
