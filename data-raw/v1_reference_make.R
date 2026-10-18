@@ -1,15 +1,28 @@
 # Build the v1 short_term_trend() reference fixture.
 #
 # Run it from the package root, on an unchanged checkout:
-#   Rscript data-raw/v1_reference_make.R
+#   Rscript data-raw/v1_reference_make.R \
+#     --csv=<share>/data_til_trendmodell/norsyss_respiratory_v1_2026-10-13.csv
 #
 # The script loads this checkout with pkgload::load_all() and runs today's v1
 # method on each input. It saves the inputs, the arguments and the outputs to
 # tests/testthat/fixtures/v1_reference.rds. A case where v1 stops
 # stores the error message as its expected outcome.
 #
-# The real-data cases read the norsyss export on the FHI file share. They keep
-# only aggregated national weekly counts.
+# The real-data cases read the norsyss export that --csv names. They keep
+# only aggregated national weekly counts. The script stops before it reads a
+# file when --csv is missing.
+
+usage <- paste(
+  "usage: Rscript data-raw/v1_reference_make.R",
+  "--csv=<path to norsyss_respiratory_v1_*.csv>"
+)
+cli_args <- commandArgs(trailingOnly = TRUE)
+cli_csv <- cli_args[startsWith(cli_args, "--csv=")]
+if (length(cli_csv) != 1L) {
+  stop("give the argument --csv exactly once\n", usage, call. = FALSE)
+}
+real_csv <- substring(cli_csv, nchar("--csv=") + 1L)
 
 stopifnot(
   file.exists("DESCRIPTION"),
@@ -19,10 +32,6 @@ pkgload::load_all(".", quiet = TRUE)
 library(data.table)
 
 fixture <- file.path("tests", "testthat", "fixtures", "v1_reference.rds")
-real_csv <- paste0(
-  "//fhi.no/Fil/Styrt/fra_norsyss_til_luftveisovervaking/_interactive/",
-  "data_til_trendmodell/norsyss_respiratory_v1_2026-10-13.csv"
-)
 
 # Run v1 on a copy of `input`. Record every warning, and the error message if
 # v1 stops.

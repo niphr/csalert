@@ -2,9 +2,15 @@
 # the norsyss.cs9 task specs in data-raw/v4-norsyss-tasks.md.
 #
 # Run it from the package root:
-#   Rscript data-raw/v4_norsyss_validation.R [csv]
+#   Rscript data-raw/v4_norsyss_validation.R \
+#     --csv=<local copy>/norsyss_respiratory_v1_2026-10-13.csv \
+#     --lib=<throwaway library> \
+#     --icpc2=<norsyss.cs9>/R/00_data_icpc2.R
 #
-# The csv is a local copy of norsyss_respiratory_v1_2026-10-13.csv from the
+# The script needs all 3 arguments and has no defaults. It stops with a
+# usage line when one is missing.
+#
+# --csv is a local copy of norsyss_respiratory_v1_2026-10-13.csv from the
 # share. Copy it first: the script never reads the share. It holds 5 ICPC-2
 # groups, national and total age. The script runs v1 and v4 with the
 # arguments of norsyss.cs9:
@@ -22,9 +28,9 @@
 #   checks csalert, not a spec.
 #
 # The script first installs this working tree with R CMD INSTALL into
-# C:/Users/RIWH/AppData/Local/Temp/lt/v4_norsyss/lib, puts that library first
-# on .libPaths(), and loads csalert from it. It never installs into the user
-# library.
+# the library that --lib names, puts that library first on .libPaths(), and
+# loads csalert from it. It never installs into the user library. --icpc2 is
+# the norsyss.cs9 file that sets the flag of each group.
 #
 # It exits with status 1 when one of these checks fails:
 # 1. trend: v4 pinc >= 1 - alpha / 2 agrees with v1 "increasing" in >= 95% of
@@ -57,11 +63,31 @@
 #    flag includes_influenza_covid19 of the group in norsyss.cs9. At least one
 #    group has the flag FALSE, so the check sees both sides of the rule.
 
+# ARGUMENTS ====
+usage <- paste(
+  "usage: Rscript data-raw/v4_norsyss_validation.R",
+  "--csv=<csv> --lib=<throwaway library> --icpc2=<R/00_data_icpc2.R>"
+)
+cli_args <- commandArgs(trailingOnly = TRUE)
+cli_arg <- function(name) {
+  prefix <- paste0("--", name, "=")
+  hit <- cli_args[startsWith(cli_args, prefix)]
+  if (length(hit) != 1L) {
+    stop("give the argument --", name, " exactly once\n", usage, call. = FALSE)
+  }
+  return(substring(hit, nchar(prefix) + 1L))
+}
+cli <- list(
+  csv = cli_arg("csv"),
+  lib = cli_arg("lib"),
+  icpc2 = cli_arg("icpc2")
+)
+
 stopifnot(
   file.exists("DESCRIPTION"),
   read.dcf("DESCRIPTION")[, "Package"] == "csalert"
 )
-lib <- "C:/Users/RIWH/AppData/Local/Temp/lt/v4_norsyss/lib"
+lib <- cli$lib
 dir.create(lib, recursive = TRUE, showWarnings = FALSE)
 install_log <- file.path(dirname(lib), "install.log")
 status <- system2(
@@ -88,17 +114,12 @@ library(data.table)
 library(csalert, lib.loc = lib)
 
 # CFG ====
-args <- commandArgs(trailingOnly = TRUE)
 CFG <- list(
-  csv = if (length(args)) {
-    args[[1]]
-  } else {
-    "C:/Users/RIWH/AppData/Local/Temp/lt/v4_norsyss/norsyss_respiratory_v1_2026-10-13.csv"
-  },
+  csv = cli$csv,
   doc = "data-raw/v4-norsyss-tasks.md",
   # norsyss.cs9 sets icpc2$includes_influenza_covid19 in this file. The
   # script parses it and never runs or changes it.
-  flag_source = "C:/Users/RIWH/GitHub/norsyss.cs9/R/00_data_icpc2.R",
+  flag_source = cli$icpc2,
   groups = c("covid19", "r71", "r80", "r992", "respiratory_infections"),
   id_cols = c(
     "granularity_geo",
@@ -300,16 +321,26 @@ run_spec <- function(tasks) {
   e$d <- copy(spec_d)
   e$icpc2 <- copy(spec_icpc2)
   for (k in tasks) {
-    cat(sprintf("spec block %s of %s:
-", k, CFG$doc))
+    cat(sprintf(
+      "spec block %s of %s:
+",
+      k,
+      CFG$doc
+    ))
     b <- spec_block(k)
     print(b)
     eval(b, e)
   }
   return(e)
 }
-cat("doc:", CFG$doc, "md5", unname(tools::md5sum(CFG$doc)), "
-")
+cat(
+  "doc:",
+  CFG$doc,
+  "md5",
+  unname(tools::md5sum(CFG$doc)),
+  "
+"
+)
 
 # PART 2 -- ANALYSIS ====
 ## v1 trend and HLM, as norsyss.cs9 calls them ----
@@ -577,14 +608,21 @@ want <- d[, .(
 got <- ens_trend$data[, .(icpc2grp_tag, isoyearweek)]
 got[, v4_den := ens_trend$draws$denominator[, 1]]
 got[
-  ens_hlm$data[, .(icpc2grp_tag, isoyearweek, d = ens_hlm$draws$denominator[, 1])],
+  ens_hlm$data[, .(
+    icpc2grp_tag,
+    isoyearweek,
+    d = ens_hlm$draws$denominator[, 1]
+  )],
   on = c("icpc2grp_tag", "isoyearweek"),
   v4_hlm_den := i.d
 ]
 got[
   v1_in,
   on = c("icpc2grp_tag", "isoyearweek"),
-  `:=`(v1_den = as.numeric(i.denominator_n), v1_rate = get(paste0("i.", CFG$rate)))
+  `:=`(
+    v1_den = as.numeric(i.denominator_n),
+    v1_rate = get(paste0("i.", CFG$rate))
+  )
 ]
 got <- got[want, on = c("icpc2grp_tag", "isoyearweek")]
 den_tab <- got[,
@@ -804,7 +842,11 @@ if (has_fields) {
       "MEM: the 3 fit fields are not NA on either side in each of the %d seasons that both fit (%d compared; NA in: %s)",
       nrow(both),
       sum(!fields_na),
-      if (any(fields_na)) paste(mf$season[fields_na], collapse = ", ") else "none"
+      if (any(fields_na)) {
+        paste(mf$season[fields_na], collapse = ", ")
+      } else {
+        "none"
+      }
     )
   )
   # The check compares the unrounded difference. Only the print rounds it.
