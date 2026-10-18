@@ -13,7 +13,7 @@ the values are identical."><meta property="og:image" content="https://niphr.gith
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.18</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -123,10 +123,19 @@ codes 1 to 5 with a <code>levels</code> attribute. It adds these columns to <cod
 <code>&lt;measure&gt;_mem_thr_high</code> and <code>&lt;measure&gt;_mem_thr_veryhigh</code>: the
 thresholds of the season of the week.</p></li>
 <li><p><code>&lt;measure&gt;_mem_n_seasons</code>: the number of training seasons of the fit.</p></li>
+<li><p><code>&lt;measure&gt;_mem_thr_postepidemic</code>: the post-epidemic threshold of the
+season, <code>epidemic.thresholds[2]</code> of the fit. It classifies no draw.</p></li>
+<li><p><code>&lt;measure&gt;_mem_season_start</code> and <code>&lt;measure&gt;_mem_season_weeks</code>, both
+integer: <code>mean.start</code> and <code>mean.length</code> of the fit. The start is the
+rounded mean position of the first epidemic week among the season weeks
+of the fit, counted from 1. The length is the rounded mean epidemic
+length in weeks.</p></li>
 <li><p><code>&lt;measure&gt;_mem_prob_preepidemic</code> to <code>&lt;measure&gt;_mem_prob_veryhigh</code>: the
-share of the draws at each level, which is <code>NaN</code> when every draw is
+share of the draws at each level, which is <code>NA</code> when every draw is
 <code>NA</code>.</p></li>
-</ul><p>The shares give every ordinal percentile of the level codes, so the step
+</ul><p>Each threshold and each fit field repeats on every week of the season,
+and is <code>NA</code> in a season with no fit.</p>
+<p>The shares give every ordinal percentile of the level codes, so the step
 writes no percentile column.</p>
 <p>Each new name MUST be at most 63 bytes. A rerun on the same <code>measure</code>
 replaces the draw matrix and the columns. The input <code>x</code> does not change.</p>

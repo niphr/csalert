@@ -67,9 +67,21 @@ codes 1 to 5 with a `levels` attribute. It adds these columns to
 
 - `<measure>_mem_n_seasons`: the number of training seasons of the fit.
 
+- `<measure>_mem_thr_postepidemic`: the post-epidemic threshold of the
+  season, `epidemic.thresholds[2]` of the fit. It classifies no draw.
+
+- `<measure>_mem_season_start` and `<measure>_mem_season_weeks`, both
+  integer: `mean.start` and `mean.length` of the fit. The start is the
+  rounded mean position of the first epidemic week among the season
+  weeks of the fit, counted from 1. The length is the rounded mean
+  epidemic length in weeks.
+
 - `<measure>_mem_prob_preepidemic` to `<measure>_mem_prob_veryhigh`: the
-  share of the draws at each level, which is `NaN` when every draw is
+  share of the draws at each level, which is `NA` when every draw is
   `NA`.
+
+Each threshold and each fit field repeats on every week of the season,
+and is `NA` in a season with no fit.
 
 The shares give every ordinal percentile of the level codes, so the step
 writes no percentile column.

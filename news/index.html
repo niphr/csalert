@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.18</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,12 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.19" id="version-20261019">Version 2026.10.19<a class="anchor" aria-label="anchor" href="#version-20261019"></a></h2>
+<ul><li>
+<code><a href="../reference/mem_thresholds_v4.html">mem_thresholds_v4()</a></code> writes the post-epidemic threshold, the season start and the season length, as <code>&lt;measure&gt;_mem_thr_postepidemic</code>, <code>&lt;measure&gt;_mem_season_start</code> and <code>&lt;measure&gt;_mem_season_weeks</code>. These are the fields that norsyss.cs9 uses from its v1 MEM fit. On the 17 national r80 seasons that both versions fit, the start and the length equal v1. The post-epidemic threshold is within 0.017% of v1.</li>
+<li>The probability columns of <code><a href="../reference/signal_detection_hlm_v4.html">signal_detection_hlm_v4()</a></code> and <code><a href="../reference/mem_thresholds_v4.html">mem_thresholds_v4()</a></code> are NA, not NaN, in a row where every draw is NA.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.18" id="version-20261018">Version 2026.10.18<a class="anchor" aria-label="anchor" href="#version-20261018"></a></h2>
 <ul><li>New: a v4 layer that carries one ensemble, <code><a href="../reference/csfmt_ensemble_v4.html">csfmt_ensemble_v4()</a></code>, through every step. A full ensemble holds the draws in memory, and a compressed ensemble holds a point value and 9 percentiles for each base measure. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows the state.</li>

@@ -78,7 +78,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.10.18
+#> csalert 2026.10.19
 #> https://niphr.github.io/csalert/
 ```
 

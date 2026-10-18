@@ -36,7 +36,7 @@ these columns to `$data`:
 - `<measure>_hlm_thr`: the limit.
 
 - `<measure>_hlm_prob_null` and `<measure>_hlm_prob_high`: the share of
-  the draws at each level, which is `NaN` when every draw is `NA`.
+  the draws at each level, which is `NA` when every draw is `NA`.
 
 The shares give every ordinal percentile of the level codes, so the step
 writes no percentile column.
