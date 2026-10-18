@@ -1,3 +1,8 @@
+# Version 2026.10.19
+
+- `mem_thresholds_v4()` writes the post-epidemic threshold, the season start and the season length, as `<measure>_mem_thr_postepidemic`, `<measure>_mem_season_start` and `<measure>_mem_season_weeks`. These are the fields that norsyss.cs9 uses from its v1 MEM fit. On the 17 national r80 seasons that both versions fit, the start and the length equal v1. The post-epidemic threshold is within 0.017% of v1.
+- The probability columns of `signal_detection_hlm_v4()` and `mem_thresholds_v4()` are NA, not NaN, in a row where every draw is NA.
+
 # Version 2026.10.18
 
 - New: a v4 layer that carries one ensemble, `csfmt_ensemble_v4()`, through every step. A full ensemble holds the draws in memory, and a compressed ensemble holds a point value and 9 percentiles for each base measure. `print()` shows the state.
