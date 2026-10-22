@@ -37,12 +37,9 @@ the denominator, so the rate is capped at \code{per}. A draw with a numerator
 above its denominator gives a warning.
 
 On a compressed ensemble from \code{\link[=as_ensemble_v4]{as_ensemble_v4()}}, the function rebuilds the
-numerator and the denominator. The two share their u, so their draws stay
-paired. It then writes the median and the 9 percentiles of the rate to
-\verb{$data}, as \code{\link[=ens_compress_v4]{ens_compress_v4()}} does. A rate that \code{as_ensemble_v4()} reads
-from a stored table is rebuilt from its own percentiles, which loses that
-pairing. Before a step on a rate after a rebuild, you MUST add the rate
-again from its parts with this function.
+numerator and the denominator. Their draws are independent, as in a full
+ensemble from \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}}. It then writes the median and the 9
+percentiles of the rate to \verb{$data}, as \code{\link[=ens_compress_v4]{ens_compress_v4()}} does.
 }
 \examples{
 d <- data.table::data.table(

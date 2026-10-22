@@ -87,18 +87,21 @@ ens_compress_v4 <- function(x) {
 #' The table holds no other metadata, so a table with every attribute removed
 #' gives the same ensemble.
 #'
-#' The rebuild draws one u from U(0, 1) per row and draw, with seed 4, and
-#' then puts back the random-number state of the caller. Every base measure of
-#' a row uses that u, and the weeks of a series get independent u. The value
-#' of a draw is u through the quantile function of the row. That function
+#' The rebuild draws one u from U(0, 1) per row and draw for each base
+#' measure. It then puts back the random-number state of the caller. The seed
+#' of a measure comes from its name and seed 4, so it does not depend on the
+#' order of the rebuilds. Two measures, and two weeks of a series, get
+#' independent u, as the numerator and the denominator of [nowcast_ecdf_v4()]
+#' are independent. The value of a draw is u through the quantile function of
+#' the row. That function
 #' interpolates linearly between the 9 stored percentiles, and it is flat
 #' below 2.5% and above 97.5%. A row with `NA` percentiles gets its point
 #' value in every draw.
 #'
-#' A rate rebuilt from its own percentiles loses the pairing of its draws with
-#' the draws of its numerator and denominator. Before a step on a rate, you
-#' MUST add the rate again from its parts with [ens_add_rate_v4()]. The step
-#' then reads the recomputed rate.
+#' A rate rebuilt from its own percentiles keeps the stored distribution of
+#' the rate. A rate added again from its rebuilt parts with [ens_add_rate_v4()]
+#' is the ratio of independent draws, as in a full ensemble from
+#' [nowcast_ecdf_v4()].
 #' @param d The table from [ens_compress_v4()], as a data.table or a
 #'   data.frame. A DBI read returns a data.frame. The function converts a copy,
 #'   so the object of the caller does not change.
@@ -178,7 +181,7 @@ as_ensemble_v4 <- function(
   if (!measure %in% .v4_measures(x)) {
     stop("`measure` must name one matrix in $draws", call. = FALSE)
   }
-  u <- .v4_rebuild_u(x)
+  u <- .v4_rebuild_u(x, measure)
   q <- as.matrix(x$data[, .v4_summary_names(measure)[-1], with = FALSE])
   return(.v4_quantile_map(x$data[[measure]], q, u))
 }
@@ -243,18 +246,29 @@ as_ensemble_v4 <- function(
   return(invisible(d))
 }
 
-# The u matrix of the rebuild of `x`: one row per row of $data and one column
-# per draw. It is drawn once, under seed 4, and kept in x$cache, so that it
-# does not depend on which measure is rebuilt first. All base measures share
-# it, so a numerator and its denominator keep their pairing.
-.v4_rebuild_u <- function(x) {
+# The u matrix of the rebuild of `measure` in `x`: one row per row of $data
+# and one column per draw. It is drawn once per measure and kept in x$cache.
+# Its seed comes from the name of the measure and seed 4, so it does not
+# depend on which measure is rebuilt first. Each measure has its own u, so
+# the draws of a numerator and its denominator are independent, as they are
+# in nowcast_ecdf_v4().
+.v4_rebuild_u <- function(x, measure) {
   if (is.null(x$cache$u)) {
-    x$cache$u <- .v4_with_seed(
-      .V4_REBUILD_SEED,
+    x$cache$u <- list()
+  }
+  if (is.null(x$cache$u[[measure]])) {
+    x$cache$u[[measure]] <- .v4_with_seed(
+      .v4_rebuild_seed(measure),
       .v4_draw_u(x$data, x$time_col, x$n_sim)
     )
   }
-  return(x$cache$u)
+  return(x$cache$u[[measure]])
+}
+
+# The seed of the rebuild of `measure`: a whole number from its name and
+# seed 4.
+.v4_rebuild_seed <- function(measure) {
+  return(digest::digest2int(measure, seed = .V4_REBUILD_SEED))
 }
 
 # Draw one u per row and draw, in a fixed order: the series sorted by

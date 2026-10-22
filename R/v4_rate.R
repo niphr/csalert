@@ -14,12 +14,9 @@
 #' above its denominator gives a warning.
 #'
 #' On a compressed ensemble from [as_ensemble_v4()], the function rebuilds the
-#' numerator and the denominator. The two share their u, so their draws stay
-#' paired. It then writes the median and the 9 percentiles of the rate to
-#' `$data`, as [ens_compress_v4()] does. A rate that `as_ensemble_v4()` reads
-#' from a stored table is rebuilt from its own percentiles, which loses that
-#' pairing. Before a step on a rate after a rebuild, you MUST add the rate
-#' again from its parts with this function.
+#' numerator and the denominator. Their draws are independent, as in a full
+#' ensemble from [nowcast_ecdf_v4()]. It then writes the median and the 9
+#' percentiles of the rate to `$data`, as [ens_compress_v4()] does.
 #' @param x The `csfmt_ensemble_v4`, full or compressed, that holds both
 #'   measures.
 #' @param numerator,denominator The names of two draw matrices in `$draws`.

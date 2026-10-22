@@ -133,3 +133,55 @@ test_that("nowcast_ecdf_v4 needs a v4 triangle and a whole-number seed", {
     "one whole number"
   )
 })
+
+test_that("the compressed rebuild keeps the ECDF numerator and denominator independent", {
+  # nowcast_ecdf_v4() draws the numerator and the denominator independently.
+  # The rebuild from the stored percentiles MUST do the same, or the rate of a
+  # compressed ensemble has another distribution than the rate of the full
+  # one. The draws cannot be identical, because the rebuild interpolates
+  # percentiles, so the test compares the dependence and the spread of the
+  # rate. At n_sim = 2,000 the standard error of a Spearman correlation of 0
+  # is about 0.022.
+  raw <- v4_ecdf_raw()
+  tri <- csfmt_reporting_triangle_v4(raw, id_cols = V4_ECDF_ID)
+  full <- nowcast_ecdf_v4(
+    tri,
+    max_delay_days = 35,
+    seed = 4,
+    n_sim = 2000,
+    denominator_col = "denominator"
+  )
+  spread <- function(M) {
+    return(apply(M, 1, function(r) diff(range(r))) > 0)
+  }
+  rows <- which(spread(full$draws$numerator) & spread(full$draws$denominator))
+  expect_gt(length(rows), 4L)
+  rho <- function(A, B) {
+    return(vapply(
+      rows,
+      function(i) stats::cor(A[i, ], B[i, ], method = "spearman"),
+      numeric(1)
+    ))
+  }
+  expect_true(all(abs(rho(full$draws$numerator, full$draws$denominator)) < 0.1))
+
+  back <- as_ensemble_v4(
+    ens_compress_v4(full),
+    id_cols = V4_ECDF_ID,
+    n_sim = 2000L
+  )
+  expect_true(all(
+    abs(rho(.v4_draws(back, "numerator"), .v4_draws(back, "denominator"))) < 0.1
+  ))
+  # The full ensemble draws the numerator and the denominator independently.
+  # In the newest week (row 60) their spreads overlap, so some draws have a
+  # numerator above the denominator. The rebuild has no such draw here.
+  expect_warning(
+    rate_full <- ens_add_rate_v4(full, "numerator", "denominator", name = "r"),
+    "numerator > denominator"
+  )
+  rate_back <- ens_add_rate_v4(back, "numerator", "denominator", name = "r")
+  ratio <- matrixStats::rowIQRs(rate_back$draws$r[rows, ]) /
+    matrixStats::rowIQRs(rate_full$draws$r[rows, ])
+  expect_true(all(ratio > 0.8 & ratio < 1.25))
+})

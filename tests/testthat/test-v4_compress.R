@@ -246,7 +246,10 @@ test_that("two weeks of a series have absolute Spearman correlation below 0.1 at
   expect_true(all(abs(rho) < 0.1))
 })
 
-test_that("the measures of one week share their u", {
+test_that("the measures of one week have independent u", {
+  # Each measure has its own u, as the numerator and the denominator of
+  # nowcast_ecdf_v4() are independent. At n_sim = 2,000 the standard error
+  # of a Spearman correlation of 0 is about 0.022.
   tab <- ens_compress_v4(v4c_cont())
   y <- as_ensemble_v4(tab, "location_code", n_sim = 2000L)
   C <- .v4_draws(y, "cases")
@@ -259,7 +262,8 @@ test_that("the measures of one week share their u", {
     },
     numeric(1)
   )
-  expect_equal(rho, rep(1, 10))
+  expect_length(rho, 10)
+  expect_true(all(abs(rho) < 0.1))
 })
 
 test_that("the rebuilt tails are flat at the stored 2.5% and 97.5%, and the quartiles hold at n_sim = 20,000", {
@@ -275,7 +279,7 @@ test_that("the rebuilt tails are flat at the stored 2.5% and 97.5%, and the quar
   expect_identical(matrixStats::rowMaxs(R), unname(stored[, 9]))
 })
 
-test_that("a rate on a compressed ensemble keeps rank correlation 1 with its parts", {
+test_that("a rate on a compressed ensemble is the ratio of its rebuilt parts", {
   set.seed(13)
   n <- 4L
   z <- matrix(stats::rgamma(n * 1000, shape = 5, rate = 0.1), n, 1000)
@@ -287,15 +291,6 @@ test_that("a rate on a compressed ensemble keeps rank correlation 1 with its par
     id_cols = "location_code",
     draws = list(positive = 10 + z, tested = 1000 + 10 * z)
   )
-  # The parts of the full ensemble are perfectly rank-correlated.
-  expect_equal(
-    stats::cor(
-      full$draws$positive[1, ],
-      full$draws$tested[1, ],
-      method = "spearman"
-    ),
-    1
-  )
   y <- as_ensemble_v4(
     ens_compress_v4(full),
     id_cols = "location_code",
@@ -305,10 +300,6 @@ test_that("a rate on a compressed ensemble keeps rank correlation 1 with its par
   rate <- y$draws$pos_pr100
   P <- .v4_draws(y, "positive")
   Te <- .v4_draws(y, "tested")
-  for (i in seq_len(n)) {
-    expect_equal(stats::cor(rate[i, ], P[i, ], method = "spearman"), 1)
-    expect_equal(stats::cor(rate[i, ], Te[i, ], method = "spearman"), 1)
-  }
   expect_equal(rate, 100 * P / Te, tolerance = 1e-12)
   # The median and the percentiles of the rate are in $data.
   expect_equal(y$data$pos_pr100, matrixStats::rowMedians(rate))

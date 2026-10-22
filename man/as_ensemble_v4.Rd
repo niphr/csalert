@@ -32,18 +32,21 @@ A base measure is a column \verb{<m>} that has the 9 percentile columns
 The table holds no other metadata, so a table with every attribute removed
 gives the same ensemble.
 
-The rebuild draws one u from U(0, 1) per row and draw, with seed 4, and
-then puts back the random-number state of the caller. Every base measure of
-a row uses that u, and the weeks of a series get independent u. The value
-of a draw is u through the quantile function of the row. That function
+The rebuild draws one u from U(0, 1) per row and draw for each base
+measure. It then puts back the random-number state of the caller. The seed
+of a measure comes from its name and seed 4, so it does not depend on the
+order of the rebuilds. Two measures, and two weeks of a series, get
+independent u, as the numerator and the denominator of \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}}
+are independent. The value of a draw is u through the quantile function of
+the row. That function
 interpolates linearly between the 9 stored percentiles, and it is flat
 below 2.5\% and above 97.5\%. A row with \code{NA} percentiles gets its point
 value in every draw.
 
-A rate rebuilt from its own percentiles loses the pairing of its draws with
-the draws of its numerator and denominator. Before a step on a rate, you
-MUST add the rate again from its parts with \code{\link[=ens_add_rate_v4]{ens_add_rate_v4()}}. The step
-then reads the recomputed rate.
+A rate rebuilt from its own percentiles keeps the stored distribution of
+the rate. A rate added again from its rebuilt parts with \code{\link[=ens_add_rate_v4]{ens_add_rate_v4()}}
+is the ratio of independent draws, as in a full ensemble from
+\code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}}.
 }
 \examples{
 d <- data.table::data.table(
