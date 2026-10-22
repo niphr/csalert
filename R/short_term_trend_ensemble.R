@@ -53,9 +53,11 @@
 #' @param rate_denominator The denominators of a rate, a matrix the shape of
 #'   `Y` or with one column. Only `family = "identity"` takes it. It turns on
 #'   the variance floor, see the return value. For a count, give a denominator
-#'   of 1 and `per = 1`.
+#'   of 1 and `per = 1`. Each value MUST be above 0 and finite, or `NA`. An `NA`
+#'   week gives `NA` in the windows that hold it, and in no other window.
 #' @param per The scale of the rate in `Y`, such as `100` for a percentage.
-#'   Only used with `rate_denominator`.
+#'   Only used with `rate_denominator`. It MUST be one number above 0 and
+#'   finite.
 #' @returns A list of four matrices, each the shape of `Y`: `beta0`, `beta1`,
 #'   `se` and `converged`. `se` is the standard error of `beta1`, a Wald
 #'   standard error under IRLS. Under `"identity"` with `rate_denominator`,
@@ -112,6 +114,9 @@ rolling_slope_matrix <- function(
       call. = FALSE
     )
   }
+  if (!is.null(rate_denominator)) {
+    stt_check_rate(rate_denominator, per)
+  }
   if (family != "identity") {
     return(rolling_irls_slope(Y, width, family, prior_weights, tol, maxit))
   }
@@ -155,7 +160,14 @@ rolling_slope_matrix <- function(
   sigma2 <- RSS / (n - 2)
   if (!is.null(rate_denominator)) {
     N <- stt_rate_denominator(rate_denominator, W, D)
+    # A cumulative sum carries an NA into every later row, so an NA week would
+    # remove every later window. Sum with 0 for NA, and count the NA weeks of
+    # each window: only a window that holds one gets NA.
+    N_na <- is.na(N)
+    N[N_na] <- 0
     SN <- roll(rbind(z, matrixStats::colCumsums(N)), n)
+    n_na <- roll(rbind(z, matrixStats::colCumsums(N_na + 0)), n)
+    SN[n_na > 0] <- NA_real_
     sigma2 <- pmax(sigma2, Sx * per / SN)
   }
   se <- sqrt(sigma2 / SS_t)
@@ -165,6 +177,24 @@ rolling_slope_matrix <- function(
   converged <- matrix(NA, W, D)
   converged[n:W, ] <- TRUE
   return(list(beta0 = beta0, beta1 = beta1, se = se, converged = converged))
+}
+
+# Stop unless every denominator that is not NA is above 0 and finite, and
+# `per` is one number above 0 and finite. A zero or negative denominator has
+# no Poisson variance, and Inf gives a floor of 0 without a sign.
+stt_check_rate <- function(rate_denominator, per) {
+  v <- rate_denominator[!is.na(rate_denominator)]
+  if (!is.numeric(v) || any(!is.finite(v) | v <= 0)) {
+    stop(
+      "`rate_denominator` must be above 0 and finite, or NA. ",
+      "Set a week with a denominator of 0 to NA.",
+      call. = FALSE
+    )
+  }
+  if (!is.numeric(per) || length(per) != 1L || !is.finite(per) || per <= 0) {
+    stop("`per` must be one number above 0 and finite", call. = FALSE)
+  }
+  return(invisible(NULL))
 }
 
 # The denominators of a rate, recycled to one column per draw of `Y`.

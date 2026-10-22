@@ -489,6 +489,59 @@ test_that("the identity floor on a rate does not bind on overdispersed rates", {
 })
 
 
+test_that("an NA denominator affects only the windows that hold its week", {
+  # Week 3 of 20 has an NA denominator. At width 3 the windows that end on
+  # weeks 3, 4 and 5 hold it, so only those get NA. Every other window keeps
+  # the standard error of the complete denominator.
+  set.seed(1)
+  Y <- matrix(stats::rpois(20, 30), ncol = 1)
+  N <- matrix(200, 20, 1)
+  N_na <- N
+  N_na[3, 1] <- NA
+  full <- rolling_slope_matrix(Y, 3, rate_denominator = N, per = 100)
+  hole <- rolling_slope_matrix(Y, 3, rate_denominator = N_na, per = 100)
+  expect_identical(which(is.na(hole$se[, 1])), 1:5)
+  expect_identical(hole$se[6:20, 1], full$se[6:20, 1])
+})
+
+test_that("a denominator or per that is not positive and finite is an error", {
+  y <- matrix(c(10, 12, 14, 16, 14, 12), ncol = 1)
+  bad_n <- list(0, -5, Inf, -Inf)
+  for (v in bad_n) {
+    N <- matrix(200, 6, 1)
+    N[4, 1] <- v
+    expect_error(
+      rolling_slope_matrix(y, 3, rate_denominator = N, per = 100),
+      "`rate_denominator` must be above 0 and finite",
+      fixed = TRUE
+    )
+  }
+  for (v in list(0, -1, Inf, NA_real_, c(100, 100), "100")) {
+    expect_error(
+      rolling_slope_matrix(
+        y,
+        3,
+        rate_denominator = matrix(200, 6, 1),
+        per = v
+      ),
+      "`per` must be one number above 0 and finite",
+      fixed = TRUE
+    )
+  }
+  # the method checks the same before it fits
+  expect_error(
+    short_term_trend(
+      ens_1draw(c(10, 12, 14, 16, 14, 12), c(200, 200, 0, 200, 200, 200)),
+      measure = "cases",
+      trend_isoyearweeks = 3,
+      denominator = "tested",
+      per = 100
+    ),
+    "`rate_denominator` must be above 0 and finite",
+    fixed = TRUE
+  )
+})
+
 test_that("identity without a denominator has no variance floor", {
   # The documented behaviour: with no denominator, `se` is the OLS standard
   # error. The window 39, 36, 33 is an exact line, so its `se` is 0, and its

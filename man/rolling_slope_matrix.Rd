@@ -35,10 +35,12 @@ did not converge.}
 \item{rate_denominator}{The denominators of a rate, a matrix the shape of
 \code{Y} or with one column. Only \code{family = "identity"} takes it. It turns on
 the variance floor, see the return value. For a count, give a denominator
-of 1 and \code{per = 1}.}
+of 1 and \code{per = 1}. Each value MUST be above 0 and finite, or \code{NA}. An \code{NA}
+week gives \code{NA} in the windows that hold it, and in no other window.}
 
 \item{per}{The scale of the rate in \code{Y}, such as \code{100} for a percentage.
-Only used with \code{rate_denominator}.}
+Only used with \code{rate_denominator}. It MUST be one number above 0 and
+finite.}
 }
 \value{
 A list of four matrices, each the shape of \code{Y}: \code{beta0}, \code{beta1},
