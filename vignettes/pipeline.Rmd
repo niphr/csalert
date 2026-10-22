@@ -844,11 +844,9 @@ tail(trend, 10)
 ```
 
 The last four rows are the nowcast weeks, and every one of their point
-estimates is negative. The bands widen toward the right-hand edge. Three of the
-four lie entirely below zero, and the newest runs from -31.17 to 5.14, with
-`p_increasing` at 0.138. The series is past its winter peak, on the way into
-spring. Only in the newest week is the nowcast uncertainty wide enough to allow
-a rise.
+estimates is negative. Each of their bands reaches above zero. The newest band
+is the widest, from -40.18 to 8.87, with `p_increasing` at 0.246. The series is
+past its winter peak, on the way into spring.
 
 That result says the *completed* rate fell over each six-week window, given
 this nowcast. It does not say that the fall will continue. It depends on the
@@ -886,10 +884,10 @@ data.table(
 )
 ```
 
-Every settled week has a real interval, and most have a `p_increasing`
-strictly between 0 and 1. The rest sit at exactly 0 or 1, for a different
-reason. Their windows have a slope so many standard errors from zero that every
-draw falls on the same side. That is a probability of 1 at the Monte-Carlo
+Every settled week has a real interval, and each of the 236 has a
+`p_increasing` strictly between 0 and 1. A week can still get exactly 0 or 1.
+Its window then has a slope so many standard errors from zero that every draw
+falls on the same side. That is a probability of 1 at the Monte-Carlo
 resolution that the number of draws buys, not a sign. Raise `n_sim` to tell
 0.999 from 1.
 
@@ -923,7 +921,9 @@ pipeline built on `stats::confint()`.
 Width 2 is an error for those two families. Both estimate a dispersion from
 `width - 2` residual degrees of freedom, so at width 2 there are none and `se`
 has no value. The quasi-Poisson dispersion is floored at 1, so its `se` is
-never smaller than the Poisson one. `family = "binomial"` fixes the dispersion
+never smaller than the Poisson one. The identity residual variance is floored
+at the mean of the window, the Poisson variance of a count. On a rate, that
+floor is on the scale of the rate. `family = "binomial"` fixes the dispersion
 at 1, and accepts width 2.
 
 The ensemble method is not the same estimator as `short_term_trend()` on a

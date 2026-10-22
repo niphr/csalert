@@ -33,8 +33,9 @@ did not converge.}
 \value{
 A list of four matrices, each the shape of \code{Y}: \code{beta0}, \code{beta1},
 \code{se} and \code{converged}. \code{se} is the standard error of \code{beta1}, a Wald
-standard error under IRLS. The logical \code{converged} is \code{NA} on the first
-\code{width - 1} rows.
+standard error under IRLS. Under \code{"identity"}, the residual variance of
+\code{se} is at least the mean of the window, the Poisson variance of a count.
+The logical \code{converged} is \code{NA} on the first \code{width - 1} rows.
 }
 \description{
 Fits \code{y ~ 1 + t}, with \code{t} from 1 to \code{width}, to each window of \code{width} rows in
@@ -69,7 +70,8 @@ head(rs$beta1, 3)
 # the later rows find the slope, one estimate per draw
 round(rs$beta1[8:10, ], 2)
 
-# `se` is the OLS standard error of the slope
+# `se` is the standard error of the slope. Here the residual variance is
+# below the window mean, so the floor sets it.
 round(rs$se[10, ], 2)
 
 # a log link: counts that rise by 0.2 per week on the log scale

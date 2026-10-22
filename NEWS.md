@@ -1,3 +1,8 @@
+# Version 2026.10.22
+
+- The identity family of the ensemble `short_term_trend()` floors the residual variance at the mean of the window, the Poisson variance of a count. Before, counts on an exact line got a standard error of 0, and P(increasing) of exactly 0 or 1.
+- On a rate, that floor is on the scale of the rate. On the percent-positive rate of `vignette("pipeline")`, it set the standard error in 99.99% of the window-draws, and it raised the median standard error 2.2 times.
+
 # Version 2026.10.19
 
 - `mem_thresholds_v4()` writes the post-epidemic threshold, the season start and the season length, as `<measure>_mem_thr_postepidemic`, `<measure>_mem_season_start` and `<measure>_mem_season_weeks`. These are the fields that norsyss.cs9 uses from its v1 MEM fit. On the 17 national r80 seasons that both versions fit, the start and the length equal v1. The post-epidemic threshold is within 0.017% of v1.

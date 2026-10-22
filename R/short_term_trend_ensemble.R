@@ -52,8 +52,9 @@
 #'   did not converge.
 #' @returns A list of four matrices, each the shape of `Y`: `beta0`, `beta1`,
 #'   `se` and `converged`. `se` is the standard error of `beta1`, a Wald
-#'   standard error under IRLS. The logical `converged` is `NA` on the first
-#'   `width - 1` rows.
+#'   standard error under IRLS. Under `"identity"`, the residual variance of
+#'   `se` is at least the mean of the window, the Poisson variance of a count.
+#'   The logical `converged` is `NA` on the first `width - 1` rows.
 #' @section One deliberate difference from glm:
 #' The function agrees with `stats::glm()` except on an all-zero window. There it
 #' returns `NA`, and `stats::glm()` returns a slope of 0. `stats::glm()` stops on
@@ -75,7 +76,8 @@
 #' # the later rows find the slope, one estimate per draw
 #' round(rs$beta1[8:10, ], 2)
 #'
-#' # `se` is the OLS standard error of the slope
+#' # `se` is the standard error of the slope. Here the residual variance is
+#' # below the window mean, so the floor sets it.
 #' round(rs$se[10, ], 2)
 #'
 #' # a log link: counts that rise by 0.2 per week on the log scale
@@ -122,7 +124,12 @@ rolling_slope_matrix <- function(
   beta1 <- (Stx - t_bar * Sx) / SS_t
   beta0 <- Sx / n - beta1 * t_bar
   RSS <- pmax(Sx2 - Sx^2 / n - beta1^2 * SS_t, 0)
-  se <- sqrt(RSS / ((n - 2) * SS_t))
+  # The residual variance is floored at the Poisson variance, the mean count of
+  # the window. Counts on an exact line have an RSS of 0. Without the floor
+  # their `se` is 0, and P(increasing) is exactly 0 or 1. The quasi-Poisson
+  # family has the same floor, a dispersion of at least 1.
+  sigma2 <- pmax(RSS / (n - 2), Sx / n)
+  se <- sqrt(sigma2 / SS_t)
   # The closed form solves each complete window in one step, so there is no
   # iteration to fail. `converged` exists so that the return shape does not
   # depend on the family.
@@ -437,7 +444,9 @@ stt_error_reference <- function(family, error_reference, width) {
 #'   `"binomial"` a normal. At width 3 that t is a Cauchy, with heavy tails. Use
 #'   `"normal"` to match `stats::confint()`, which profiles the deviance against
 #'   an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
-#'   its standard error is never smaller than the Poisson one.
+#'   its standard error is never smaller than the Poisson one. The identity
+#'   residual variance is floored at the mean of the window, the Poisson
+#'   variance of a count. On a rate, that floor is on the scale of the rate.
 #' @returns The ensemble method returns `x` with the draw matrices
 #'   `<measure>_trend_beta1`, the slope per week, and `<measure>_trend_gr`, the
 #'   growth rate. It adds `<measure>_trend_increasing_pr`, the share of draws with
