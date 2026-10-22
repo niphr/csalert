@@ -62,7 +62,7 @@ families run iteratively reweighted least squares (IRLS) on every window at
 once. A window with complete or quasi-complete separation cannot converge: its
 \code{beta0}, \code{beta1} and \code{se} are \code{NA}, and one warning gives the count.
 In every family, an \code{NA} in \code{Y} gives \code{NA} in the windows that hold it, and
-in no other window.
+in no other window. Under \code{"identity"}, \code{Inf} and \code{-Inf} count as \code{NA}.
 }
 \section{One deliberate difference from glm}{
 

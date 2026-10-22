@@ -41,7 +41,7 @@
 #' once. A window with complete or quasi-complete separation cannot converge: its
 #' `beta0`, `beta1` and `se` are `NA`, and one warning gives the count.
 #' In every family, an `NA` in `Y` gives `NA` in the windows that hold it, and
-#' in no other window.
+#' in no other window. Under `"identity"`, `Inf` and `-Inf` count as `NA`.
 #' @param Y A numeric matrix, rows = weeks in time order, columns = draws.
 #' @param width The window width in rows, at least 2.
 #' @param family `"identity"` is ordinary least squares. `"quasipoisson"` is a log
@@ -140,8 +140,9 @@ rolling_slope_matrix <- function(
   # A cumulative sum carries an NA into every later row, and so into every
   # later window, also of the next series stacked in `Y`. Sum with 0 for NA,
   # and count the NA weeks of each window: only a window that holds one gets
-  # NA, as under IRLS.
-  Y_na <- is.na(Y)
+  # NA, as under IRLS. Inf and -Inf count as NA: the sums would turn them into
+  # Inf - Inf = NaN in every later window.
+  Y_na <- !is.finite(Y)
   Y[Y_na] <- 0
   y_na_win <- roll(rbind(z, matrixStats::colCumsums(Y_na + 0)), n) > 0
   CY0 <- rbind(z, matrixStats::colCumsums(Y)) # (W+1) x D, CY0[k]=sum Y[1..k-1]

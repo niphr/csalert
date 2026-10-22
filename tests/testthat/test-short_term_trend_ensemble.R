@@ -513,6 +513,26 @@ test_that("an NA count affects only the windows that hold its week", {
   }
 })
 
+test_that("an Inf or -Inf count is treated as NA, local to its windows", {
+  # A cumulative sum turns Inf into Inf - Inf = NaN in every later window.
+  # The kernel treats a count that is not finite as NA.
+  set.seed(1)
+  Y <- matrix(stats::rpois(20 * 2, 30), nrow = 20)
+  full <- rolling_slope_matrix(Y, 3)
+  for (v in c(Inf, -Inf, NaN)) {
+    Y_bad <- Y
+    Y_bad[3, 1] <- v
+    hole <- rolling_slope_matrix(Y_bad, 3)
+    for (k in c("beta0", "beta1", "se")) {
+      expect_identical(which(is.na(hole[[k]][, 1])), 1:5, label = k)
+      expect_false(any(is.nan(hole[[k]][, 1])), label = k)
+      expect_identical(hole[[k]][6:20, 1], full[[k]][6:20, 1], label = k)
+      expect_identical(hole[[k]][, 2], full[[k]][, 2], label = k)
+    }
+    expect_identical(hole$converged[3:5, 1], rep(FALSE, 3))
+  }
+})
+
 test_that("an NA count in one stacked series leaves the next series untouched", {
   wk <- cstime::dates_by_isoyearweek[isoyear == 2020]$isoyearweek
   n1 <- length(wk)
