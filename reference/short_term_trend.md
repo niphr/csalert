@@ -40,6 +40,7 @@ short_term_trend(
   family = c("identity", "quasipoisson", "binomial"),
   denominator = NULL,
   error_reference = c("auto", "normal", "t"),
+  per = 100,
   ...
 )
 ```
@@ -61,9 +62,13 @@ short_term_trend(
 - denominator:
 
   For `csfmt_rts_data_v1`, an optional denominator column. For
-  `csfmt_ensemble_v3`, the draw matrix of the binomial denominator,
-  which `family = "binomial"` needs and the other families reject.
-  `measure` MUST then be a proportion.
+  `csfmt_ensemble_v3`, the name of the draw matrix of the denominator.
+  `family = "binomial"` needs it, and `measure` MUST then be a
+  proportion. With `family = "identity"`, it turns on the variance
+  floor: give the denominator of a rate from
+  [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md).
+  For a count, give a draw matrix of 1 and `per = 1`.
+  `family = "quasipoisson"` rejects it.
 
 - prX:
 
@@ -148,7 +153,18 @@ short_term_trend(
   [`stats::confint()`](https://rdrr.io/r/stats/confint.html), which
   profiles the deviance against an asymptotic chi-squared. The
   quasi-Poisson dispersion is floored at 1, so its standard error is
-  never smaller than the Poisson one.
+  never smaller than the Poisson one. With a `denominator`, the identity
+  residual variance is floored at the Poisson variance,
+  `mean(rate) * per / mean(denominator)` over the window. Without one,
+  it has no floor, so values on an exact line get a P(increasing) of
+  exactly 0 or 1.
+
+- per:
+
+  For `csfmt_ensemble_v3` with `family = "identity"` and a
+  `denominator`: the scale of the rate, as in
+  [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md).
+  Use 1 for a count.
 
 ## Value
 

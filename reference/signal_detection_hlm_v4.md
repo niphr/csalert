@@ -54,7 +54,13 @@ week that lacks any of them, or has an `NA` in them, gets no limit. A
 year back is 52 rows, so across a 53-week ISO year the baseline is one
 week off.
 
-A draw at or above the limit is `high`, and otherwise `null`. A draw
+Each series MUST have one row per ISO week, from its first week to its
+last. A week with no count MUST be a row with `NA`. The function stops
+on a missing or repeated week, as
+[`short_term_trend_v4()`](https://niphr.github.io/csalert/reference/short_term_trend_v4.md)
+does.
+
+A draw above the limit is `high`, and otherwise `null`, as in v1. A draw
 with no limit, or an `NA` draw, gets `NA`. The share of draws at a level
 describes the nowcast uncertainty. It is not a p-value, a posterior
 probability or a false-alarm rate.

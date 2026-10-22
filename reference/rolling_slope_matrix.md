@@ -13,7 +13,9 @@ rolling_slope_matrix(
   family = c("identity", "quasipoisson", "binomial"),
   prior_weights = NULL,
   tol = 1e-10,
-  maxit = 25L
+  maxit = 25L,
+  rate_denominator = NULL,
+  per = 100
 )
 ```
 
@@ -47,12 +49,30 @@ rolling_slope_matrix(
   The most iterations. A window that still moves more than `tol` did not
   converge.
 
+- rate_denominator:
+
+  The denominators of a rate, a matrix the shape of `Y` or with one
+  column. Only `family = "identity"` takes it. It turns on the variance
+  floor, see the return value. For a count, give a denominator of 1 and
+  `per = 1`. Each value MUST be 0 or more and finite, or `NA`. A 0
+  counts as `NA`. An `NA` week gives `NA` in the windows that hold it,
+  and in no other window.
+
+- per:
+
+  The scale of the rate in `Y`, such as `100` for a percentage. Only
+  used with `rate_denominator`. It MUST be one number above 0 and
+  finite.
+
 ## Value
 
 A list of four matrices, each the shape of `Y`: `beta0`, `beta1`, `se`
 and `converged`. `se` is the standard error of `beta1`, a Wald standard
-error under IRLS. The logical `converged` is `NA` on the first
-`width - 1` rows.
+error under IRLS. Under `"identity"` with `rate_denominator`, the
+residual variance of `se` has a floor at the Poisson variance,
+`mean(Y) * per / mean(rate_denominator)` over the window. Without
+`rate_denominator`, `se` is the OLS standard error, with no floor. The
+logical `converged` is `NA` on the first `width - 1` rows.
 
 ## Details
 

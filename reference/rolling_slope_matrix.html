@@ -9,7 +9,7 @@ every column. It is the kernel of the ensemble method of short_term_trend()."><m
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,9 @@ every column. It is the kernel of the ensemble method of <code><a href="short_te
 <span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"identity"</span>, <span class="st">"quasipoisson"</span>, <span class="st">"binomial"</span><span class="op">)</span>,</span>
 <span>  prior_weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tol <span class="op">=</span> <span class="fl">1e-10</span>,</span>
-<span>  maxit <span class="op">=</span> <span class="fl">25L</span></span>
+<span>  maxit <span class="op">=</span> <span class="fl">25L</span>,</span>
+<span>  rate_denominator <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  per <span class="op">=</span> <span class="fl">100</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -103,13 +105,30 @@ with one column. Only <code>family = "binomial"</code> takes it, and it needs it
 <dd><p>The most iterations. A window that still moves more than <code>tol</code>
 did not converge.</p></dd>
 
+
+<dt id="arg-rate-denominator">rate_denominator<a class="anchor" aria-label="anchor" href="#arg-rate-denominator"></a></dt>
+<dd><p>The denominators of a rate, a matrix the shape of
+<code>Y</code> or with one column. Only <code>family = "identity"</code> takes it. It turns on
+the variance floor, see the return value. For a count, give a denominator
+of 1 and <code>per = 1</code>. Each value MUST be 0 or more and finite, or <code>NA</code>. A 0 counts as <code>NA</code>. An <code>NA</code>
+week gives <code>NA</code> in the windows that hold it, and in no other window.</p></dd>
+
+
+<dt id="arg-per">per<a class="anchor" aria-label="anchor" href="#arg-per"></a></dt>
+<dd><p>The scale of the rate in <code>Y</code>, such as <code>100</code> for a percentage.
+Only used with <code>rate_denominator</code>. It MUST be one number above 0 and
+finite.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list of four matrices, each the shape of <code>Y</code>: <code>beta0</code>, <code>beta1</code>,
 <code>se</code> and <code>converged</code>. <code>se</code> is the standard error of <code>beta1</code>, a Wald
-standard error under IRLS. The logical <code>converged</code> is <code>NA</code> on the first
-<code>width - 1</code> rows.</p>
+standard error under IRLS. Under <code>"identity"</code> with <code>rate_denominator</code>,
+the residual variance of <code>se</code> has a floor at the Poisson variance,
+<code>mean(Y) * per / mean(rate_denominator)</code> over the window. Without
+<code>rate_denominator</code>, <code>se</code> is the OLS standard error, with no floor. The
+logical <code>converged</code> is <code>NA</code> on the first <code>width - 1</code> rows.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

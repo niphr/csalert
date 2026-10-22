@@ -21,3 +21,10 @@ alert.
 
 The last step collapses the draws to quantiles, in a tidy
 `csfmt_rts_data_v3` for tables and figures. No analysis runs after it.
+
+04
+
+### Store the ensemble
+
+The v4 functions carry one ensemble through every step, and compress it
+to a table to store.

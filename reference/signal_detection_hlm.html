@@ -11,7 +11,7 @@ method compares every draw with the limit."><meta property="og:image" content="h
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -188,9 +188,10 @@ detection before the collapse:</p>
     <h2 id="the-csfmt-ensemble-v-method">The csfmt_ensemble_v3 method<a class="anchor" aria-label="anchor" href="#the-csfmt-ensemble-v-method"></a></h2>
 
 
-<p>The baseline uses the median of the draws of each earlier week. A draw at or
-above the limit is <code>high</code>, and otherwise <code>null</code>. After <code><a href="ens_collapse.html">ens_collapse()</a></code>,
-<code>&lt;measure&gt;_hlmstatus_prob_high</code> is the share of draws at or above the limit.
+<p>The baseline uses the median of the draws of each earlier week. A draw above
+the limit is <code>high</code>, and otherwise <code>null</code>, as in the v1 method. After
+<code><a href="ens_collapse.html">ens_collapse()</a></code>, <code>&lt;measure&gt;_hlmstatus_prob_high</code> is the share of draws above
+the limit.
 That share describes the nowcast uncertainty. It is not a p-value, a posterior
 probability or a false-alarm rate.</p>
     </div>

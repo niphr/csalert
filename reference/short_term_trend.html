@@ -13,7 +13,7 @@ doi:10.5588/pha.19.0002."><meta property="og:image" content="https://niphr.githu
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,6 +100,7 @@ quasi-Poisson regression to a table, after Benedetti (2019)
 <span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"identity"</span>, <span class="st">"quasipoisson"</span>, <span class="st">"binomial"</span><span class="op">)</span>,</span>
 <span>  denominator <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  error_reference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"normal"</span>, <span class="st">"t"</span><span class="op">)</span>,</span>
+<span>  per <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -122,9 +123,11 @@ quasi-Poisson regression to a table, after Benedetti (2019)
 
 <dt id="arg-denominator">denominator<a class="anchor" aria-label="anchor" href="#arg-denominator"></a></dt>
 <dd><p>For <code>csfmt_rts_data_v1</code>, an optional denominator column.
-For <code>csfmt_ensemble_v3</code>, the draw matrix of the binomial denominator, which
-<code>family = "binomial"</code> needs and the other families reject. <code>measure</code> MUST
-then be a proportion.</p></dd>
+For <code>csfmt_ensemble_v3</code>, the name of the draw matrix of the denominator.
+<code>family = "binomial"</code> needs it, and <code>measure</code> MUST then be a proportion.
+With <code>family = "identity"</code>, it turns on the variance floor: give the
+denominator of a rate from <code><a href="ens_add_rate.html">ens_add_rate()</a></code>. For a count, give a draw
+matrix of 1 and <code>per = 1</code>. <code>family = "quasipoisson"</code> rejects it.</p></dd>
 
 
 <dt id="arg-prx">prX<a class="anchor" aria-label="anchor" href="#arg-prx"></a></dt>
@@ -203,7 +206,17 @@ freedom, the residual degrees of freedom of their dispersion. It gives
 <code>"binomial"</code> a normal. At width 3 that t is a Cauchy, with heavy tails. Use
 <code>"normal"</code> to match <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">stats::confint()</a></code>, which profiles the deviance against
 an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
-its standard error is never smaller than the Poisson one.</p></dd>
+its standard error is never smaller than the Poisson one. With a
+<code>denominator</code>, the identity residual variance is floored at the Poisson
+variance, <code>mean(rate) * per / mean(denominator)</code> over the window. Without
+one, it has no floor, so values on an exact line get a P(increasing) of
+exactly 0 or 1.</p></dd>
+
+
+<dt id="arg-per">per<a class="anchor" aria-label="anchor" href="#arg-per"></a></dt>
+<dd><p>For <code>csfmt_ensemble_v3</code> with <code>family = "identity"</code> and a
+<code>denominator</code>: the scale of the rate, as in <code><a href="ens_add_rate.html">ens_add_rate()</a></code>. Use 1 for a
+count.</p></dd>
 
 </dl></div>
     <div class="section level2">

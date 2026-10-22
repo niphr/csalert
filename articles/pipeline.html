@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -180,7 +180,7 @@ use.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.10.19</span></span>
+<span><span class="co">#&gt; csalert 2026.10.22</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -1078,7 +1078,10 @@ different estimator, as the end of this section explains.</p>
 column. It adds two draw matrices and one column in
 <code>$data</code>:</p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ens_trend</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/short_term_trend.html">short_term_trend</a></span><span class="op">(</span><span class="va">ens</span>, measure <span class="op">=</span> <span class="va">rate</span>, trend_isoyearweeks <span class="op">=</span> <span class="fl">6</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">ens_trend</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/short_term_trend.html">short_term_trend</a></span><span class="op">(</span></span>
+<span>  <span class="va">ens</span>, measure <span class="op">=</span> <span class="va">rate</span>, trend_isoyearweeks <span class="op">=</span> <span class="fl">6</span>,</span>
+<span>  denominator <span class="op">=</span> <span class="st">"denominator_nowcasted"</span>, per <span class="op">=</span> <span class="fl">100</span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">ens_trend</span><span class="op">$</span><span class="va">draws</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">ens</span><span class="op">$</span><span class="va">draws</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_beta1"</span></span>
 <span><span class="co">#&gt; [2] "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_gr"</span></span>
@@ -1116,17 +1119,16 @@ it by reference, so <code>ens$data</code> has it too.</li>
 <span><span class="co">#&gt;  3:     2024-11  -7.37 -13.76 -1.13        0.036</span></span>
 <span><span class="co">#&gt;  4:     2024-12  -8.59 -14.58 -2.67        0.016</span></span>
 <span><span class="co">#&gt;  5:     2024-13 -10.82 -18.05 -5.02        0.002</span></span>
-<span><span class="co">#&gt;  6:     2024-14  -7.51  -9.94 -4.99        0.004</span></span>
-<span><span class="co">#&gt;  7:     2024-15 -12.62 -16.07 -9.25        0.000</span></span>
-<span><span class="co">#&gt;  8:     2024-16 -12.99 -17.25 -8.51        0.002</span></span>
-<span><span class="co">#&gt;  9:     2024-17 -10.71 -18.07 -2.22        0.022</span></span>
-<span><span class="co">#&gt; 10:     2024-18  -9.10 -31.17  5.14        0.138</span></span></code></pre></div>
+<span><span class="co">#&gt;  6:     2024-14  -7.47 -13.44 -1.24        0.042</span></span>
+<span><span class="co">#&gt;  7:     2024-15 -12.46 -20.04 -4.56        0.014</span></span>
+<span><span class="co">#&gt;  8:     2024-16 -12.61 -21.26 -4.84        0.018</span></span>
+<span><span class="co">#&gt;  9:     2024-17 -10.13 -20.66 -1.18        0.034</span></span>
+<span><span class="co">#&gt; 10:     2024-18  -8.83 -32.10  5.18        0.152</span></span></code></pre></div>
 <p>The last four rows are the nowcast weeks, and every one of their
-point estimates is negative. The bands widen toward the right-hand edge.
-Three of the four lie entirely below zero, and the newest runs from
--31.17 to 5.14, with <code>p_increasing</code> at 0.138. The series is
-past its winter peak, on the way into spring. Only in the newest week is
-the nowcast uncertainty wide enough to allow a rise.</p>
+point estimates is negative. Three of the four bands lie entirely below
+zero. The newest band is the widest, from -32.10 to 5.18, with
+<code>p_increasing</code> at 0.152. The series is past its winter peak,
+on the way into spring.</p>
 <p>That result says the <em>completed</em> rate fell over each six-week
 window, given this nowcast. It does not say that the fall will continue.
 It depends on the nowcast being right about the four weeks that are
@@ -1166,14 +1168,13 @@ nothing.</p>
 <span><span class="co">#&gt; 1:                             236                   FALSE</span></span>
 <span><span class="co">#&gt;    p_increasing_strictly_inside_0_1 p_increasing_at_a_boundary</span></span>
 <span><span class="co">#&gt;                               &lt;int&gt;                      &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1:                              223                         13</span></span></code></pre></div>
-<p>Every settled week has a real interval, and most have a
-<code>p_increasing</code> strictly between 0 and 1. The rest sit at
-exactly 0 or 1, for a different reason. Their windows have a slope so
-many standard errors from zero that every draw falls on the same side.
-That is a probability of 1 at the Monte-Carlo resolution that the number
-of draws buys, not a sign. Raise <code>n_sim</code> to tell 0.999 from
-1.</p>
+<span><span class="co">#&gt; 1:                              236                          0</span></span></code></pre></div>
+<p>Every settled week has a real interval, and each of the 236 has a
+<code>p_increasing</code> strictly between 0 and 1. A week can still get
+exactly 0 or 1. Its window then has a slope so many standard errors from
+zero that every draw falls on the same side. That is a probability of 1
+at the Monte-Carlo resolution that the number of draws buys, not a sign.
+Raise <code>n_sim</code> to tell 0.999 from 1.</p>
 </div>
 <div class="section level3">
 <h3 id="what-that-interval-is-and-what-it-is-not">What that interval is, and what it is not<a class="anchor" aria-label="anchor" href="#what-that-interval-is-and-what-it-is-not"></a>
@@ -1208,8 +1209,15 @@ normal, and so does a pipeline built on
 dispersion from <code>width - 2</code> residual degrees of freedom, so
 at width 2 there are none and <code>se</code> has no value. The
 quasi-Poisson dispersion is floored at 1, so its <code>se</code> is
-never smaller than the Poisson one. <code>family = "binomial"</code>
-fixes the dispersion at 1, and accepts width 2.</p>
+never smaller than the Poisson one. The identity residual variance has a
+floor only when you pass <code>denominator</code> and <code>per</code>,
+as the call above does. The floor is the Poisson variance of the rate,
+<code>mean(rate) * per / mean(denominator)</code>. For a count, pass a
+denominator of 1 and <code>per = 1</code>, which gives the mean of the
+window. Without a denominator there is no floor, and values on an exact
+line get a <code>p_increasing</code> of exactly 0 or 1.
+<code>family = "binomial"</code> fixes the dispersion at 1, and accepts
+width 2.</p>
 <p>The ensemble method is not the same estimator as
 <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> on a
 <code><a href="https://niphr.github.io/cstidy/reference/set_csfmt_rts_data_v1.html" class="external-link">cstidy::csfmt_rts_data_v1</a></code>. That one fits a quasi-Poisson

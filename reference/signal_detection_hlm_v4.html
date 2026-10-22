@@ -13,7 +13,7 @@ values are identical."><meta property="og:image" content="https://niphr.github.i
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,7 +108,10 @@ back in the same series, each with its two neighbours. The limit is
 <code>qnorm(0.995, mean, sd)</code> of those values. A week that lacks any of them, or
 has an <code>NA</code> in them, gets no limit. A year back is 52 rows, so across a
 53-week ISO year the baseline is one week off.</p>
-<p>A draw at or above the limit is <code>high</code>, and otherwise <code>null</code>. A draw with
+<p>Each series MUST have one row per ISO week, from its first week to its last.
+A week with no count MUST be a row with <code>NA</code>. The function stops on a
+missing or repeated week, as <code><a href="short_term_trend_v4.html">short_term_trend_v4()</a></code> does.</p>
+<p>A draw above the limit is <code>high</code>, and otherwise <code>null</code>, as in v1. A draw with
 no limit, or an <code>NA</code> draw, gets <code>NA</code>. The share of draws at a level
 describes the nowcast uncertainty. It is not a p-value, a posterior
 probability or a false-alarm rate.</p>

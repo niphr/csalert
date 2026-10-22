@@ -1,5 +1,45 @@
 # Changelog
 
+## Version 2026.10.22
+
+- The identity family of the ensemble
+  [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)
+  takes `denominator` and `per`, as
+  [`ens_add_rate()`](https://niphr.github.io/csalert/reference/ens_add_rate.md)
+  does. With a `denominator`, the residual variance has a floor at the
+  Poisson variance of the rate, `mean(rate) * per / mean(denominator)`.
+  Without one, there is no floor, as before. For a count, pass a
+  denominator of 1 and `per = 1`.
+- [`rolling_slope_matrix()`](https://niphr.github.io/csalert/reference/rolling_slope_matrix.md)
+  takes the same floor as `rate_denominator` and `per`. A denominator
+  MUST be 0 or more and finite, or NA. A 0 or NA week affects only the
+  windows that hold it. Before, values on an exact line always got a
+  standard error of 0, and P(increasing) of exactly 0 or 1.
+- On the percent-positive rate of
+  [`vignette("pipeline")`](https://niphr.github.io/csalert/articles/pipeline.md),
+  which now passes its denominator, the floor set the standard error in
+  62% of the window-draws. It raised the median standard error 1.18
+  times.
+- [`signal_detection_hlm()`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
+  on a `csfmt_ensemble_v3`, and
+  [`signal_detection_hlm_v4()`](https://niphr.github.io/csalert/reference/signal_detection_hlm_v4.md),
+  flag a draw above the limit as high, as the v1 method does. Before, a
+  draw at the limit was high. In 2026.10.18, this rule alone separated
+  v4 from v1 in 965 NorSySS weeks with a rate and a limit of 0.
+- [`signal_detection_hlm_v4()`](https://niphr.github.io/csalert/reference/signal_detection_hlm_v4.md)
+  stops when a series is not one row per ISO week, as
+  [`short_term_trend_v4()`](https://niphr.github.io/csalert/reference/short_term_trend_v4.md)
+  does. Its baseline counts back 52 rows a year, so a missing week
+  shifted the baseline without a warning.
+- [`vignette("csalert")`](https://niphr.github.io/csalert/articles/csalert.md),
+  the README and the home page mention the v4 functions. The vignette
+  heading “Use the ensemble methods” is now “Which methods to use”,
+  because it covers the table methods too.
+- `Config/roxygen2/version` is 8.1.1, the roxygen2 that writes the help
+  pages.
+  [`roxygen2::roxygenise()`](https://roxygen2.r-lib.org/reference/roxygenize.html)
+  moved it from 8.0.0 in 2026.10.16, and the package keeps it.
+
 ## Version 2026.10.19
 
 - [`mem_thresholds_v4()`](https://niphr.github.io/csalert/reference/mem_thresholds_v4.md)

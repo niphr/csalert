@@ -22,7 +22,7 @@ csalert does four things:
 4.  It places each week in one of five seasonal intensity levels, and
     flags a week above a historical baseline.
 
-## Use the ensemble methods
+## Which methods to use
 
 ### The current methods work on an ensemble
 
@@ -79,6 +79,15 @@ and
 [`?signal_detection_hlm`](https://niphr.github.io/csalert/reference/signal_detection_hlm.md)
 list each difference.
 
+### The v4 functions carry one ensemble that you can store
+
+The v4 nowcasts return a `csfmt_ensemble_v4`, and the v4 rate, trend,
+HLM and MEM steps take one and return it. Compressed, it is a table with
+a point value and 9 percentiles for each base measure, so you can store
+it.
+[`vignette("v4", package = "csalert")`](https://niphr.github.io/csalert/articles/v4.md)
+runs every step.
+
 ## Where the data formats live
 
 The table classes `csfmt_rts_data_v1`, `v2` and `v3` belong to
@@ -112,7 +121,7 @@ is. Run a detector on them, and check that it fires on those days.
 
 ``` r
 library(csalert)
-#> csalert 2026.10.19
+#> csalert 2026.10.22
 #> https://niphr.github.io/csalert/
 library(data.table)
 #> 

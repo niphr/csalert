@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.19</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,21 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.22" id="version-20261022">Version 2026.10.22<a class="anchor" aria-label="anchor" href="#version-20261022"></a></h2>
+<ul><li>The identity family of the ensemble <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> takes <code>denominator</code> and <code>per</code>, as <code><a href="../reference/ens_add_rate.html">ens_add_rate()</a></code> does. With a <code>denominator</code>, the residual variance has a floor at the Poisson variance of the rate, <code>mean(rate) * per / mean(denominator)</code>. Without one, there is no floor, as before. For a count, pass a denominator of 1 and <code>per = 1</code>.</li>
+<li>
+<code><a href="../reference/rolling_slope_matrix.html">rolling_slope_matrix()</a></code> takes the same floor as <code>rate_denominator</code> and <code>per</code>. A denominator MUST be 0 or more and finite, or NA. A 0 or NA week affects only the windows that hold it. Before, values on an exact line always got a standard error of 0, and P(increasing) of exactly 0 or 1.</li>
+<li>On the percent-positive rate of <code><a href="../articles/pipeline.html">vignette("pipeline")</a></code>, which now passes its denominator, the floor set the standard error in 62% of the window-draws. It raised the median standard error 1.18 times.</li>
+<li>
+<code><a href="../reference/signal_detection_hlm.html">signal_detection_hlm()</a></code> on a <code>csfmt_ensemble_v3</code>, and <code><a href="../reference/signal_detection_hlm_v4.html">signal_detection_hlm_v4()</a></code>, flag a draw above the limit as high, as the v1 method does. Before, a draw at the limit was high. In 2026.10.18, this rule alone separated v4 from v1 in 965 NorSySS weeks with a rate and a limit of 0.</li>
+<li>
+<code><a href="../reference/signal_detection_hlm_v4.html">signal_detection_hlm_v4()</a></code> stops when a series is not one row per ISO week, as <code><a href="../reference/short_term_trend_v4.html">short_term_trend_v4()</a></code> does. Its baseline counts back 52 rows a year, so a missing week shifted the baseline without a warning.</li>
+<li>
+<code><a href="../articles/csalert.html">vignette("csalert")</a></code>, the README and the home page mention the v4 functions. The vignette heading “Use the ensemble methods” is now “Which methods to use”, because it covers the table methods too.</li>
+<li>
+<code>Config/roxygen2/version</code> is 8.1.1, the roxygen2 that writes the help pages. <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code> moved it from 8.0.0 in 2026.10.16, and the package keeps it.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.19" id="version-20261019">Version 2026.10.19<a class="anchor" aria-label="anchor" href="#version-20261019"></a></h2>
 <ul><li>

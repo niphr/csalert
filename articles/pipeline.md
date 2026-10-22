@@ -78,7 +78,7 @@ library(data.table)
 #> 
 #>     %notin%
 library(csalert)
-#> csalert 2026.10.19
+#> csalert 2026.10.22
 #> https://niphr.github.io/csalert/
 ```
 
@@ -1030,7 +1030,10 @@ The ensemble method fits a closed-form OLS line to the last
 adds two draw matrices and one column in `$data`:
 
 ``` r
-ens_trend <- short_term_trend(ens, measure = rate, trend_isoyearweeks = 6)
+ens_trend <- short_term_trend(
+  ens, measure = rate, trend_isoyearweeks = 6,
+  denominator = "denominator_nowcasted", per = 100
+)
 setdiff(names(ens_trend$draws), names(ens$draws))
 #> [1] "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_beta1"
 #> [2] "numerator_nowcasted_vs_denominator_nowcasted_pr100_trend_gr"
@@ -1066,19 +1069,17 @@ tail(trend, 10)
 #>  3:     2024-11  -7.37 -13.76 -1.13        0.036
 #>  4:     2024-12  -8.59 -14.58 -2.67        0.016
 #>  5:     2024-13 -10.82 -18.05 -5.02        0.002
-#>  6:     2024-14  -7.51  -9.94 -4.99        0.004
-#>  7:     2024-15 -12.62 -16.07 -9.25        0.000
-#>  8:     2024-16 -12.99 -17.25 -8.51        0.002
-#>  9:     2024-17 -10.71 -18.07 -2.22        0.022
-#> 10:     2024-18  -9.10 -31.17  5.14        0.138
+#>  6:     2024-14  -7.47 -13.44 -1.24        0.042
+#>  7:     2024-15 -12.46 -20.04 -4.56        0.014
+#>  8:     2024-16 -12.61 -21.26 -4.84        0.018
+#>  9:     2024-17 -10.13 -20.66 -1.18        0.034
+#> 10:     2024-18  -8.83 -32.10  5.18        0.152
 ```
 
 The last four rows are the nowcast weeks, and every one of their point
-estimates is negative. The bands widen toward the right-hand edge. Three
-of the four lie entirely below zero, and the newest runs from -31.17 to
-5.14, with `p_increasing` at 0.138. The series is past its winter peak,
-on the way into spring. Only in the newest week is the nowcast
-uncertainty wide enough to allow a rise.
+estimates is negative. Three of the four bands lie entirely below zero.
+The newest band is the widest, from -32.10 to 5.18, with `p_increasing`
+at 0.152. The series is past its winter peak, on the way into spring.
 
 That result says the *completed* rate fell over each six-week window,
 given this nowcast. It does not say that the fall will continue. It
@@ -1121,15 +1122,15 @@ data.table(
 #> 1:                             236                   FALSE
 #>    p_increasing_strictly_inside_0_1 p_increasing_at_a_boundary
 #>                               <int>                      <int>
-#> 1:                              223                         13
+#> 1:                              236                          0
 ```
 
-Every settled week has a real interval, and most have a `p_increasing`
-strictly between 0 and 1. The rest sit at exactly 0 or 1, for a
-different reason. Their windows have a slope so many standard errors
-from zero that every draw falls on the same side. That is a probability
-of 1 at the Monte-Carlo resolution that the number of draws buys, not a
-sign. Raise `n_sim` to tell 0.999 from 1.
+Every settled week has a real interval, and each of the 236 has a
+`p_increasing` strictly between 0 and 1. A week can still get exactly 0
+or 1. Its window then has a slope so many standard errors from zero that
+every draw falls on the same side. That is a probability of 1 at the
+Monte-Carlo resolution that the number of draws buys, not a sign. Raise
+`n_sim` to tell 0.999 from 1.
 
 ### What that interval is, and what it is not
 
@@ -1162,8 +1163,14 @@ uses the normal, and so does a pipeline built on
 Width 2 is an error for those two families. Both estimate a dispersion
 from `width - 2` residual degrees of freedom, so at width 2 there are
 none and `se` has no value. The quasi-Poisson dispersion is floored at
-1, so its `se` is never smaller than the Poisson one.
-`family = "binomial"` fixes the dispersion at 1, and accepts width 2.
+1, so its `se` is never smaller than the Poisson one. The identity
+residual variance has a floor only when you pass `denominator` and
+`per`, as the call above does. The floor is the Poisson variance of the
+rate, `mean(rate) * per / mean(denominator)`. For a count, pass a
+denominator of 1 and `per = 1`, which gives the mean of the window.
+Without a denominator there is no floor, and values on an exact line get
+a `p_increasing` of exactly 0 or 1. `family = "binomial"` fixes the
+dispersion at 1, and accepts width 2.
 
 The ensemble method is not the same estimator as
 [`short_term_trend()`](https://niphr.github.io/csalert/reference/short_term_trend.md)

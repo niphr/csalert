@@ -133,11 +133,12 @@ the detection before the collapse:
 ## The csfmt_ensemble_v3 method
 
 The baseline uses the median of the draws of each earlier week. A draw
-at or above the limit is `high`, and otherwise `null`. After
+above the limit is `high`, and otherwise `null`, as in the v1 method.
+After
 [`ens_collapse()`](https://niphr.github.io/csalert/reference/ens_collapse.md),
-`<measure>_hlmstatus_prob_high` is the share of draws at or above the
-limit. That share describes the nowcast uncertainty. It is not a
-p-value, a posterior probability or a false-alarm rate.
+`<measure>_hlmstatus_prob_high` is the share of draws above the limit.
+That share describes the nowcast uncertainty. It is not a p-value, a
+posterior probability or a false-alarm rate.
 
 ## See also
 
