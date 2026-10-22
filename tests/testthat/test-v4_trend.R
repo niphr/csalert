@@ -680,16 +680,34 @@ test_that("the 63-byte check of the new names runs before the fit", {
   ens <- v4t_many()
   # 52 bytes + "_trend_beta1" is 64 bytes.
   expect_error(
-    short_term_trend_v4(ens, "num", width = 5, name = strrep("n", 52), seed = 3),
+    short_term_trend_v4(
+      ens,
+      "num",
+      width = 5,
+      name = strrep("n", 52),
+      seed = 3
+    ),
     "longer than 63 bytes"
   )
   # 49 bytes + "_trend_gr_q02x5" is 64 bytes.
   expect_error(
-    short_term_trend_v4(ens, "num", width = 5, name = strrep("n", 49), seed = 3),
+    short_term_trend_v4(
+      ens,
+      "num",
+      width = 5,
+      name = strrep("n", 49),
+      seed = 3
+    ),
     "longer than 63 bytes"
   )
   expect_error(
-    short_term_trend_v4(ens, "num", width = 5, name = strrep("n", 48), seed = 3),
+    short_term_trend_v4(
+      ens,
+      "num",
+      width = 5,
+      name = strrep("n", 48),
+      seed = 3
+    ),
     "the fit ran"
   )
 })
@@ -709,20 +727,32 @@ v4t_grid <- function(first, drop = integer()) {
   csfmt_ensemble_v4(
     data.table::data.table(location_code = "a", isoyearweek = weeks[keep]),
     id_cols = "location_code",
-    draws = list(num = matrix(stats::rpois(length(keep) * 50, 30), length(keep)))
+    draws = list(
+      num = matrix(stats::rpois(length(keep) * 50, 30), length(keep))
+    )
   )
 }
 
 test_that("a missing ISO week is an error that names the series and the gap", {
   # 2023-05 is missing.
   expect_error(
-    short_term_trend_v4(v4t_grid("2023-01", drop = 5), "num", width = 3, seed = 1),
+    short_term_trend_v4(
+      v4t_grid("2023-01", drop = 5),
+      "num",
+      width = 3,
+      seed = 1
+    ),
     "series location_code=a is not one row per ISO week: 2023-04 is followed by 2023-06",
     fixed = TRUE
   )
   # A gap across the new year: 2021-01 is missing after 2020-53.
   expect_error(
-    short_term_trend_v4(v4t_grid("2020-50", drop = 5), "num", width = 3, seed = 1),
+    short_term_trend_v4(
+      v4t_grid("2020-50", drop = 5),
+      "num",
+      width = 3,
+      seed = 1
+    ),
     "2020-53 is followed by 2021-02",
     fixed = TRUE
   )
@@ -807,4 +837,43 @@ test_that("short_term_trend_v4 checks its arguments", {
   )
   expect_error(short_term_trend_v4(ens, "num", width = 1, seed = 1), "width")
   expect_error(short_term_trend_v4(ens, "num", width = 2.5, seed = 1), "width")
+})
+
+test_that("the one-draw growth percentiles call qt once per df, with the same values", {
+  # The reference is the per-row form of 2026.10.22: stats::qt(p, df) for
+  # every row. Rows share df 1, 2 and 3, and two rows have no fit.
+  set.seed(8)
+  n <- 12L
+  fit <- list(
+    beta1 = matrix(stats::rnorm(n, 0, 0.1), n, 1),
+    se = matrix(stats::runif(n, 0.01, 0.2), n, 1),
+    df = matrix(c(1, 2, 3, NA, 1, 2, 3, 3, NA, 2, 1, 1), n, 1)
+  )
+  fit$beta1[c(4, 9), 1] <- NA_real_
+  fit$se[c(4, 9), 1] <- NA_real_
+  ref_q <- matrix(
+    vapply(
+      .V4_PROBS,
+      function(p) {
+        return(
+          100 *
+            (exp(fit$beta1[, 1] + fit$se[, 1] * stats::qt(p, fit$df[, 1])) - 1)
+        )
+      },
+      numeric(n)
+    ),
+    n,
+    length(.V4_PROBS)
+  )
+  ref_med <- 100 *
+    (exp(fit$beta1[, 1] + fit$se[, 1] * stats::qt(0.5, fit$df[, 1])) - 1)
+  g <- .v4_trend_growth(fit)
+  expect_identical(g$q, ref_q)
+  expect_identical(g$median, ref_med)
+
+  # Every df NA: NA rows, not an error.
+  fit$df[] <- NA_real_
+  g <- .v4_trend_growth(fit)
+  expect_identical(g$median, rep(NA_real_, n))
+  expect_identical(g$q, matrix(NA_real_, n, length(.V4_PROBS)))
 })

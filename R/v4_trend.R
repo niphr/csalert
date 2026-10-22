@@ -305,15 +305,22 @@ short_term_trend_v4 <- function(
     b1 <- fit$beta1[, 1]
     se <- fit$se[, 1]
     df <- fit$df[, 1]
-    q <- vapply(
-      .V4_PROBS,
-      function(p) {
-        return(100 * (exp(b1 + se * stats::qt(p, df)) - 1))
-      },
-      numeric(n)
+    # stats::qt() once per distinct df, not once per row: the windows of a
+    # series share a few df, and qt() is the slow step.
+    udf <- unique(df[!is.na(df)])
+    if (!length(udf)) {
+      return(list(
+        median = rep(NA_real_, n),
+        q = matrix(NA_real_, n, length(.V4_PROBS))
+      ))
+    }
+    k <- match(df, udf)
+    tq <- matrix(
+      stats::qt(rep(.V4_PROBS, each = length(udf)), udf),
+      length(udf)
     )
-    q <- matrix(q, n, length(.V4_PROBS))
-    med <- 100 * (exp(b1 + se * stats::qt(0.5, df)) - 1)
+    q <- 100 * (exp(b1 + se * tq[k, , drop = FALSE]) - 1)
+    med <- 100 * (exp(b1 + se * stats::qt(0.5, udf)[k]) - 1)
     return(list(median = med, q = q))
   }
   ok <- !is.na(fit$beta1)
