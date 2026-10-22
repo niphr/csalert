@@ -4,6 +4,7 @@
 - On a rate, that floor is on the scale of the rate. On the percent-positive rate of `vignette("pipeline")`, it set the standard error in 99.99% of the window-draws, and it raised the median standard error 2.2 times.
 - `signal_detection_hlm()` on a `csfmt_ensemble_v3`, and `signal_detection_hlm_v4()`, flag a draw above the limit as high, as the v1 method does. Before, a draw at the limit was high. In 2026.10.18, this rule alone separated v4 from v1 in 965 NorSySS weeks with a rate and a limit of 0.
 - `signal_detection_hlm_v4()` stops when a series is not one row per ISO week, as `short_term_trend_v4()` does. Its baseline counts back 52 rows a year, so a missing week shifted the baseline without a warning.
+- `vignette("csalert")`, the README and the home page mention the v4 functions. The vignette heading "Use the ensemble methods" is now "Which methods to use", because it covers the table methods too.
 
 # Version 2026.10.19
 

@@ -16,6 +16,10 @@ Benedetti (2019),
 without delayed reporting. They take different arguments from the ensemble
 methods, and give different numbers.
 
+The v4 functions, such as `short_term_trend_v4()`, carry one
+`csfmt_ensemble_v4` through every step, and compress it to a table to store.
+Read [v4: one ensemble, full or compressed](https://niphr.github.io/csalert/articles/v4.html).
+
 ## Installation
 
 Install from the niphr r-universe, which builds every commit on `main`:

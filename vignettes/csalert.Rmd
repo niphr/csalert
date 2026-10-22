@@ -34,7 +34,7 @@ csalert does four things:
 4. It places each week in one of five seasonal intensity levels, and flags a
    week above a historical baseline.
 
-## Use the ensemble methods
+## Which methods to use
 
 ### The current methods work on an ensemble
 
@@ -79,6 +79,13 @@ The HLM method gives each week one label against the historical limit.
 result and the numbers all differ, because the two are different estimators. A
 move between a table method and an ensemble method is a rewrite of the call.
 `?short_term_trend` and `?signal_detection_hlm` list each difference.
+
+### The v4 functions carry one ensemble that you can store
+
+The v4 nowcasts return a `csfmt_ensemble_v4`, and the v4 rate, trend, HLM and
+MEM steps take one and return it. Compressed, it is a table with a point value
+and 9 percentiles for each base measure, so you can store it.
+`vignette("v4", package = "csalert")` runs every step.
 
 ## Where the data formats live
 
