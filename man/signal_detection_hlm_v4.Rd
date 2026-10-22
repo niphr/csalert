@@ -44,6 +44,10 @@ back in the same series, each with its two neighbours. The limit is
 has an \code{NA} in them, gets no limit. A year back is 52 rows, so across a
 53-week ISO year the baseline is one week off.
 
+Each series MUST have one row per ISO week, from its first week to its last.
+A week with no count MUST be a row with \code{NA}. The function stops on a
+missing or repeated week, as \code{\link[=short_term_trend_v4]{short_term_trend_v4()}} does.
+
 A draw above the limit is \code{high}, and otherwise \code{null}, as in v1. A draw with
 no limit, or an \code{NA} draw, gets \code{NA}. The share of draws at a level
 describes the nowcast uncertainty. It is not a p-value, a posterior

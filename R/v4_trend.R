@@ -96,7 +96,7 @@ short_term_trend_v4 <- function(
   .v4_check_measure_names(name)
   nm <- .v4_trend_names(name)
   .v4_check_names(unlist(nm, use.names = FALSE))
-  .v4_trend_check_weeks(x)
+  .v4_check_weeks(x)
 
   fit <- .v4_trend_fit(
     Y = .v4_draws(x, measure),
@@ -169,7 +169,7 @@ short_term_trend_v4 <- function(
 
 # Stop unless every series of `x` has one row per ISO week of `x$time_col`,
 # from its first week to its last. The rows are sorted by series and week.
-.v4_trend_check_weeks <- function(x) {
+.v4_check_weeks <- function(x) {
   weeks <- x$data[[x$time_col]]
   monday <- .v4_isoyearweek_week_start(weeks)
   if (anyNA(monday)) {

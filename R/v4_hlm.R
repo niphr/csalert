@@ -21,6 +21,10 @@
 #' has an `NA` in them, gets no limit. A year back is 52 rows, so across a
 #' 53-week ISO year the baseline is one week off.
 #'
+#' Each series MUST have one row per ISO week, from its first week to its last.
+#' A week with no count MUST be a row with `NA`. The function stops on a
+#' missing or repeated week, as [short_term_trend_v4()] does.
+#'
 #' A draw above the limit is `high`, and otherwise `null`, as in v1. A draw with
 #' no limit, or an `NA` draw, gets `NA`. The share of draws at a level
 #' describes the nowcast uncertainty. It is not a p-value, a posterior
@@ -62,6 +66,8 @@ signal_detection_hlm_v4 <- function(x, measure, baseline_isoyears = 5) {
   .v4_check_draw_measure(x, measure)
   nm <- .v4_hlm_names(measure)
   .v4_check_names(unlist(nm, use.names = FALSE))
+  # The baseline counts back 52 rows a year, so a missing week would shift it.
+  .v4_check_weeks(x)
 
   Y <- .v4_draws(x, measure)
   thr <- .v4_hlm_threshold(

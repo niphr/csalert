@@ -295,6 +295,30 @@ test_that("a value at the limit is not high, as in v1", {
   expect_true(all(h$data$cases_hlm_prob_null[has] == 1))
 })
 
+test_that("a missing ISO week is an error that names the series and the gap", {
+  # The baseline counts back 52 rows a year, so a gap would shift it.
+  weeks <- v4h_weeks(n = 320L)
+  keep <- seq_along(weeks)[-300]
+  set.seed(5)
+  ens <- csfmt_ensemble_v4(
+    data.table::data.table(location_code = "nation", isoyearweek = weeks[keep]),
+    id_cols = "location_code",
+    draws = list(
+      cases = matrix(stats::rpois(length(keep) * 5, 30), length(keep))
+    )
+  )
+  expect_error(
+    signal_detection_hlm_v4(ens, "cases"),
+    paste0(
+      "series location_code=nation is not one row per ISO week: ",
+      weeks[299],
+      " is followed by ",
+      weeks[301]
+    ),
+    fixed = TRUE
+  )
+})
+
 test_that("a rerun on the same measure replaces the columns and the draws", {
   ens <- v4h_small()
   first <- signal_detection_hlm_v4(ens, "cases", baseline_isoyears = 5)

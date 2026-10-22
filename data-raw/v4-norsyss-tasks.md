@@ -8,6 +8,7 @@ These are the specs of the 3 v4 tasks that norsyss.cs9 wires: the short-term tre
 - Rename the counts to `numerator` and `denominator`. The numerator is `consultations_icpc2group_n`. The denominator is `consultations_all_n` for a group where `includes_influenza_covid19` is `TRUE`, and `consultations_without_influenza_covid19_n` for every other group, as in the current tasks.
 - The identity columns of a series are `granularity_geo`, `location_code`, `age`, `sex`, `tariffgroup_tag` and `icpc2grp_tag`. Pass them as `id_cols`.
 - Each task builds its ensemble with `csfmt_ensemble_v4()`, with one draw per measure. `csfmt_ensemble_v4()` needs a data.table, so a table that DBI reads MUST go through `data.table::setDT()` first.
+- In tasks 1 and 2, each series MUST have one row per ISO week, from its first week to its last, before `csfmt_ensemble_v4()`. Fill a missing week with a row that has `NA` counts. `short_term_trend_v4()` and `signal_detection_hlm_v4()` stop on a missing or repeated week. The rules block does not fill: it needs the rows of the plan to hold every week.
 
 The R blocks of the rules and the 3 tasks run as written on 2 inputs. They are `d`, the rows of the plan from `anon_norsyss_data`, and `icpc2`, the ICPC-2 group table of norsyss.cs9. An HTML comment above each of the 4 blocks names it, and `data-raw/v4_norsyss_validation.R` runs them. Tasks 1 and 2 run after the rules block. The task 3 block runs alone.
 
@@ -98,7 +99,7 @@ CREATE TABLE anon_lss_short_term_trends_v4 (
 
 HLM compares the rate with the limit of a 5-year baseline, as in the current task. A week is high when `numerator_vs_denominator_pr100_hlm_prob_high` is 1. v4 flags a value above the limit as high, as v1 does. A value at the limit is not high.
 
-A week has no limit when its baseline is not complete. The first 261 weeks of a series have no limit: 5 years of 52 weeks, and 1 more week. The task drops every row without a limit before the write, as v1 does. It drops them from the output only. The ensemble keeps them, because the limit of a later week uses them.
+A week has no limit when its baseline is not complete. The first 261 weeks of a series have no limit: 5 years of 52 weeks, and 1 more week. So a plan where no series has at least 262 weeks writes 0 rows. The task drops every row without a limit before the write, as v1 does. It drops them from the output only. The ensemble keeps them, because the limit of a later week uses them.
 
 <!-- task:hlm -->
 ```r
