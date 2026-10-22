@@ -121,7 +121,7 @@ is. Run a detector on them, and check that it fires on those days.
 
 ``` r
 library(csalert)
-#> csalert 2026.10.22
+#> csalert 2026.10.23
 #> https://niphr.github.io/csalert/
 library(data.table)
 #> 

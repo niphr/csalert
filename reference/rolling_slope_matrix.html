@@ -9,7 +9,7 @@ every column. It is the kernel of the ensemble method of short_term_trend()."><m
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -136,7 +136,9 @@ logical <code>converged</code> is <code>NA</code> on the first <code>width - 1</
 <code>width - 1</code> rows are <code>NA</code>. The identity family has a closed form. The other two
 families run iteratively reweighted least squares (IRLS) on every window at
 once. A window with complete or quasi-complete separation cannot converge: its
-<code>beta0</code>, <code>beta1</code> and <code>se</code> are <code>NA</code>, and one warning gives the count.</p>
+<code>beta0</code>, <code>beta1</code> and <code>se</code> are <code>NA</code>, and one warning gives the count.
+In every family, an <code>NA</code> in <code>Y</code> gives <code>NA</code> in the windows that hold it, and
+in no other window. Under <code>"identity"</code>, <code>Inf</code> and <code>-Inf</code> count as <code>NA</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="one-deliberate-difference-from-glm">One deliberate difference from glm<a class="anchor" aria-label="anchor" href="#one-deliberate-difference-from-glm"></a></h2>

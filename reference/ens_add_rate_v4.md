@@ -49,15 +49,13 @@ gives a warning.
 
 On a compressed ensemble from
 [`as_ensemble_v4()`](https://niphr.github.io/csalert/reference/as_ensemble_v4.md),
-the function rebuilds the numerator and the denominator. The two share
-their u, so their draws stay paired. It then writes the median and the 9
-percentiles of the rate to `$data`, as
+the function rebuilds the numerator and the denominator. Their draws are
+independent, as in a full ensemble from
+[`nowcast_ecdf_v4()`](https://niphr.github.io/csalert/reference/nowcast_ecdf_v4.md).
+It then writes the median and the 9 percentiles of the rate to `$data`,
+as
 [`ens_compress_v4()`](https://niphr.github.io/csalert/reference/ens_compress_v4.md)
-does. A rate that
-[`as_ensemble_v4()`](https://niphr.github.io/csalert/reference/as_ensemble_v4.md)
-reads from a stored table is rebuilt from its own percentiles, which
-loses that pairing. Before a step on a rate after a rebuild, you MUST
-add the rate again from its parts with this function.
+does.
 
 ## See also
 

@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,7 @@ from a nowcast such as <code><a href="../reference/nowcast_ecdf_v4.html">nowcast
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %notin%</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://niphr.github.io/csalert/">csalert</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; csalert 2026.10.22</span></span>
+<span><span class="co">#&gt; csalert 2026.10.23</span></span>
 <span><span class="co">#&gt; https://niphr.github.io/csalert/</span></span>
 <span></span>
 <span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu">cstime</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/cstime/man/dates_by_isoyearweek.html" class="external-link">dates_by_isoyearweek</a></span><span class="op">$</span><span class="va">isoyearweek</span></span>
@@ -206,22 +206,27 @@ write the table to PostgreSQL.</p>
 <span><span class="va">pinc</span><span class="op">[</span><span class="fl">316</span><span class="op">:</span><span class="fl">320</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    isoyearweek      full   rebuilt</span></span>
 <span><span class="co">#&gt;         &lt;char&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     2024-03 0.9258002 0.9482298</span></span>
-<span><span class="co">#&gt; 2:     2024-04 0.9228678 0.9435558</span></span>
-<span><span class="co">#&gt; 3:     2024-05 0.9110528 0.9488082</span></span>
-<span><span class="co">#&gt; 4:     2024-06 0.8697581 0.9351281</span></span>
-<span><span class="co">#&gt; 5:     2024-07 0.7609514 0.8329660</span></span>
+<span><span class="co">#&gt; 1:     2024-03 0.9258002 0.9315201</span></span>
+<span><span class="co">#&gt; 2:     2024-04 0.9228678 0.9098614</span></span>
+<span><span class="co">#&gt; 3:     2024-05 0.9110528 0.8931547</span></span>
+<span><span class="co">#&gt; 4:     2024-06 0.8697581 0.8187807</span></span>
+<span><span class="co">#&gt; 5:     2024-07 0.7609514 0.6879770</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">pinc</span><span class="op">$</span><span class="va">full</span> <span class="op">-</span> <span class="va">pinc</span><span class="op">$</span><span class="va">rebuilt</span><span class="op">)</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.1095947</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.1053404</span></span></code></pre></div>
 <p>Each step rebuilds the draws of the base measures that it reads, from
 the stored percentiles, with seed 4. <code>n_sim = 100</code> gives the
 same number of draws as the full ensemble. The rebuild is an
 approximation. On this series, the two P(increasing) values differ by at
 most 0.11 over the 318 weeks that have a trend.</p>
-<p>Before a step on a rate, add the rate again from its parts. A step
-that rebuilds the rate from its own percentiles loses the pairing of its
-draws with the draws of <code>positive</code> and
-<code>tested</code>.</p>
+<p>Each base measure gets its own u, so the rebuilt draws of
+<code>positive</code> and <code>tested</code> are independent. The parts
+of a full ensemble from <code><a href="../reference/nowcast_ecdf_v4.html">nowcast_ecdf_v4()</a></code> are independent
+too. A rate added again from its parts is their ratio. Here
+<code>positive</code> depends on <code>tested</code>, so that ratio is
+too wide. Its median interquartile range over the 320 weeks is 1.09
+times that of the full rate. A step on the stored rate rebuilds it from
+its own percentiles, at 1.01 times. The chunk below adds the rate again
+from its parts.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ens_add_rate_v4.html">ens_add_rate_v4</a></span><span class="op">(</span></span>
 <span>  <span class="va">back</span>,</span>

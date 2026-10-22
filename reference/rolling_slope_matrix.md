@@ -81,7 +81,9 @@ Row `i` holds the fit of the window that ends on row `i`, so the first
 other two families run iteratively reweighted least squares (IRLS) on
 every window at once. A window with complete or quasi-complete
 separation cannot converge: its `beta0`, `beta1` and `se` are `NA`, and
-one warning gives the count.
+one warning gives the count. In every family, an `NA` in `Y` gives `NA`
+in the windows that hold it, and in no other window. Under `"identity"`,
+`Inf` and `-Inf` count as `NA`.
 
 ## One deliberate difference from glm
 

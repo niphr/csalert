@@ -45,19 +45,33 @@ A base measure is a column `<m>` that has the 9 percentile columns
 suffix. The table holds no other metadata, so a table with every
 attribute removed gives the same ensemble.
 
-The rebuild draws one u from U(0, 1) per row and draw, with seed 4, and
-then puts back the random-number state of the caller. Every base measure
-of a row uses that u, and the weeks of a series get independent u. The
-value of a draw is u through the quantile function of the row. That
-function interpolates linearly between the 9 stored percentiles, and it
-is flat below 2.5% and above 97.5%. A row with `NA` percentiles gets its
-point value in every draw.
+The rebuild draws one u from U(0, 1) per row and draw for each base
+measure. It then puts back the random-number state of the caller. The
+seed of a measure comes from its name and seed 4, so it does not depend
+on the order of the rebuilds. Two measures, and two weeks of a series,
+get independent u, as the numerator and the denominator of
+[`nowcast_ecdf_v4()`](https://niphr.github.io/csalert/reference/nowcast_ecdf_v4.md)
+are independent. The value of a draw is u through the quantile function
+of the row. That function passes through the 9 stored percentiles, and
+it is flat below 2.5% and above 97.5%. A row with `NA` percentiles gets
+its point value in every draw.
 
-A rate rebuilt from its own percentiles loses the pairing of its draws
-with the draws of its numerator and denominator. Before a step on a
-rate, you MUST add the rate again from its parts with
-[`ens_add_rate_v4()`](https://niphr.github.io/csalert/reference/ens_add_rate_v4.md).
-The step then reads the recomputed rate.
+Between two stored percentiles, a row whose 9 percentiles are all 0 or
+more is interpolated linearly on the
+[`log1p()`](https://rdrr.io/r/base/Log.html) scale. A row with a
+negative percentile is interpolated linearly. Counts and rates are
+right-skewed, and a straight line on their own scale puts too many draws
+in the upper tail. On a replay of luftvei data, with 24 indicators and
+53 as-of dates, this rule raised the agreement of HLM P(high) with the
+full draws. In the 1,272 newest weeks, it was within 0.05 in 95.0%,
+against 92.3% with the straight line. At the older horizons it was 100%
+with both rules.
+
+A rate rebuilt from its own percentiles keeps the stored distribution of
+the rate. A rate added again from its rebuilt parts with
+[`ens_add_rate_v4()`](https://niphr.github.io/csalert/reference/ens_add_rate_v4.md)
+is the ratio of independent draws, as in a full ensemble from
+[`nowcast_ecdf_v4()`](https://niphr.github.io/csalert/reference/nowcast_ecdf_v4.md).
 
 ## See also
 
@@ -98,10 +112,10 @@ back$data[, .(isoyearweek, cases, cases_trend_pinc)]
 #>  2:     2023-02    25               NA
 #>  3:     2023-03    26               NA
 #>  4:     2023-04    29               NA
-#>  5:     2023-05    32        0.8505280
-#>  6:     2023-06    36        0.8591968
-#>  7:     2023-07    40        0.8905054
-#>  8:     2023-08    43        0.8755587
-#>  9:     2023-09    49        0.8978004
-#> 10:     2023-10    54        0.9023639
+#>  5:     2023-05    32        0.8385204
+#>  6:     2023-06    36        0.8538473
+#>  7:     2023-07    40        0.8916200
+#>  8:     2023-08    43        0.8853527
+#>  9:     2023-09    49        0.8993051
+#> 10:     2023-10    54        0.8989642
 ```

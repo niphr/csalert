@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,17 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.10.23" id="version-20261023">Version 2026.10.23<a class="anchor" aria-label="anchor" href="#version-20261023"></a></h2>
+<ul><li>An NA count in the identity family of <code><a href="../reference/rolling_slope_matrix.html">rolling_slope_matrix()</a></code>, and so of the ensemble <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code>, gives NA only in the windows that hold its week. Before, the cumulative sums carried it into every later window, also those of each later series in the same ensemble. The other two families were already local.</li>
+<li>
+<code><a href="../reference/short_term_trend_v4.html">short_term_trend_v4()</a></code> with one draw calls <code><a href="https://rdrr.io/r/stats/TDist.html" class="external-link">stats::qt()</a></code> once per distinct degrees of freedom, not once per row. The growth-rate percentiles are identical.</li>
+<li>In the identity family, an <code>Inf</code> or <code>-Inf</code> count counts as NA, local to its windows. Before, it made every later window NaN.</li>
+<li>The rebuild of a compressed v4 ensemble gives each base measure its own u, from a seed from its name and seed 4. Before, every measure of a row shared one u, so a numerator and its denominator were perfectly rank-correlated, while <code><a href="../reference/nowcast_ecdf_v4.html">nowcast_ecdf_v4()</a></code> draws them independently. The test triangle of test-v4_nowcast_ecdf.R has 9 nowcast weeks. There, the interquartile range of the rebuilt rate was 0.017 to 0.13 times that of the full rate. It is now 0.91 to 1.13 times.</li>
+<li>The rebuild of a compressed v4 ensemble interpolates between the stored percentiles on the <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log1p()</a></code> scale. It does so in each row whose 9 percentiles are all 0 or more. Before, a straight line on the original scale put too many draws in the upper tail of a right-skewed row.</li>
+<li>On a luftvei replay of 1,272 newest weeks, HLM P(high) from rebuilt draws was within 0.05 of the full draws in 95.0%, against 92.3% before. The mean signed error fell from 0.0074 to 0.0054. At older horizons the agreement stayed 100%.</li>
+<li>The rebuilt draws of two measures are now independent, also where the full draws were dependent. <code><a href="../articles/v4.html">vignette("v4")</a></code> says when to read a stored rate and when to add it again from its parts.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.10.22" id="version-20261022">Version 2026.10.22<a class="anchor" aria-label="anchor" href="#version-20261022"></a></h2>
 <ul><li>The identity family of the ensemble <code><a href="../reference/short_term_trend.html">short_term_trend()</a></code> takes <code>denominator</code> and <code>per</code>, as <code><a href="../reference/ens_add_rate.html">ens_add_rate()</a></code> does. With a <code>denominator</code>, the residual variance has a floor at the Poisson variance of the rate, <code>mean(rate) * per / mean(denominator)</code>. Without one, there is no floor, as before. For a count, pass a denominator of 1 and <code>per = 1</code>.</li>

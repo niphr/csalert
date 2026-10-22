@@ -11,7 +11,7 @@ carries the uncertainty of both."><meta property="og:image" content="https://nip
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.22</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.10.23</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,12 +106,9 @@ rate is identical. The rate is <code>per * numerator / denominator</code>. A zer
 the denominator, so the rate is capped at <code>per</code>. A draw with a numerator
 above its denominator gives a warning.</p>
 <p>On a compressed ensemble from <code><a href="as_ensemble_v4.html">as_ensemble_v4()</a></code>, the function rebuilds the
-numerator and the denominator. The two share their u, so their draws stay
-paired. It then writes the median and the 9 percentiles of the rate to
-<code>$data</code>, as <code><a href="ens_compress_v4.html">ens_compress_v4()</a></code> does. A rate that <code><a href="as_ensemble_v4.html">as_ensemble_v4()</a></code> reads
-from a stored table is rebuilt from its own percentiles, which loses that
-pairing. Before a step on a rate after a rebuild, you MUST add the rate
-again from its parts with this function.</p>
+numerator and the denominator. Their draws are independent, as in a full
+ensemble from <code><a href="nowcast_ecdf_v4.html">nowcast_ecdf_v4()</a></code>. It then writes the median and the 9
+percentiles of the rate to <code>$data</code>, as <code><a href="ens_compress_v4.html">ens_compress_v4()</a></code> does.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
