@@ -34,24 +34,17 @@ test_that("short_term_trend.csfmt_ensemble_v3 adds seam-masked gr/beta1 draws", 
     draws = list(cases = M)
   )
 
-  set.seed(1)
   out <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
   expect_true("cases_trend_gr" %in% names(out$draws))
   expect_true("cases_trend_beta1" %in% names(out$draws))
 
   gr <- out$draws[["cases_trend_gr"]]
   expect_true(all(is.na(gr[1:2, ]))) # leading width-1 rows masked
-  # increasing -> mostly positive growth. The level is an exact line, so the
-  # slope error comes from the Poisson floor and some draws fall below 0.
-  expect_gt(mean(gr[3:n, ] > 0), 0.5)
+  expect_true(all(gr[3:n, ] > 0)) # increasing -> positive growth
 
-  # P(increasing) emitted as a point column. The floor keeps it below 1 on an
-  # exact line, so the mean over the weeks is above 0.5 and below 1.
+  # P(increasing) emitted as a point column; 1 for a monotone increasing series
   expect_true("cases_trend_increasing_pr" %in% names(out$data))
-  pr <- out$data$cases_trend_increasing_pr[3:n]
-  expect_false(anyNA(pr))
-  expect_gt(mean(pr), 0.5)
-  expect_lt(mean(pr), 1)
+  expect_equal(out$data$cases_trend_increasing_pr[3:n], rep(1, n - 2))
 })
 
 test_that("stacked series do not contaminate across the seam", {
@@ -78,15 +71,12 @@ test_that("stacked series do not contaminate across the seam", {
     draws = list(cases = M)
   )
 
-  set.seed(1)
   out <- short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3)
   beta1 <- out$draws[["cases_trend_beta1"]]
   iid <- out$data$time_series_internal_id
 
   expect_true(all(is.na(beta1[iid < 3, ]))) # boundary-crossing windows masked
-  # each series' clean ramp slope, no contamination. The draws carry the slope
-  # error of the Poisson floor, so each week is mostly, not only, positive.
-  expect_true(all(rowMeans(beta1[iid >= 3, ] > 0) > 0.5))
+  expect_true(all(beta1[iid >= 3, ] > 0)) # each series' clean ramp slope, no contamination
 })
 
 test_that("missing measure errors", {
@@ -290,10 +280,6 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
     c(NaN, NaN, 1, 1, 0.5, 1, 1, 1)
   )
 
-  # The perturbed draws below were captured again in 2026.10.22, when the
-  # identity residual variance got its Poisson floor. The draws of 2026.8.23
-  # used the unfloored standard error.
-  #
   # expect_equal at 1e-12, not expect_identical: macOS arm64 fuses multiply-add
   # and its draws differ from x86_64 in the last bits (r-universe, 2026-10-07).
   set.seed(42)
@@ -309,19 +295,19 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
         NA,
         NA,
         NA,
-        1.3610013860621948,
-        0.56140583012907175,
-        3.4965236967936346,
-        2.4603111276747702,
-        7.1611079344728505,
+        1.3688011088497558,
+        0.5739055785006959,
+        3.1592022709773007,
+        2.1890924558187468,
+        5.9044372443274069,
         NA,
         NA,
         NA,
-        1.6722717344427616,
+        1.5818796079510054,
         2.7449311104075131,
-        -4.1967581658080615,
-        1.6896637235117176,
-        -0.48568412394169869
+        -3.8111627475642775,
+        1.7348461261144796,
+        0.42313321191191688
       ),
       dim = c(8L, 2L)
     ),
@@ -334,19 +320,19 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
         NA,
         NA,
         NA,
-        27.220027721243895,
-        14.035145753226793,
-        38.850263297707052,
-        30.753889095934628,
-        51.150770960520354,
+        27.376022176995114,
+        14.347639462517398,
+        35.102247455303342,
+        27.363655697734334,
+        42.174551745195764,
         NA,
         NA,
         NA,
-        33.445434688855229,
+        31.637592159020109,
         91.497703680250439,
-        -59.953688082972306,
-        15.360579304651976,
-        -4.8568412394169869
+        -54.445182108061104,
+        15.771328419222543,
+        4.2313321191191688
       ),
       dim = c(8L, 2L)
     ),
@@ -354,7 +340,7 @@ test_that("family = 'identity' reproduces the pre-change kernel exactly", {
   )
   expect_identical(
     b$data[["cases_trend_increasing_pr"]],
-    c(NA, NA, NA, 1, 1, 0.5, 1, 0.5)
+    c(NA, NA, NA, 1, 1, 0.5, 1, 1)
   )
 })
 
@@ -419,13 +405,17 @@ test_that("quasipoisson dispersion is floored at 1", {
   expect_lt(pr, 1)
 })
 
-test_that("identity residual variance is floored at the Poisson variance", {
-  # The window 39, 36, 33 is an exact line, so its RSS is 0. Without a floor
-  # the standard error is 0 and P(increasing) is exactly 0. The floor is the
-  # mean count of the window, 36, so the standard error is sqrt(36 / SS_t)
-  # with SS_t = 2 at width 3.
+test_that("a denominator of 1 and per = 1 floor a count at its Poisson variance", {
+  # The window 39, 36, 33 is an exact line, so its RSS is 0. With a
+  # denominator of 1 and per = 1 the floor is mean(rate) * 1 / 1, the mean count
+  # of the window, 36. So the standard error is sqrt(36 / SS_t), SS_t = 2.
   y <- c(30, 33, 36, 39, 36, 33, 0, 100, 0)
-  rs <- rolling_slope_matrix(matrix(y, ncol = 1), 3)
+  rs <- rolling_slope_matrix(
+    matrix(y, ncol = 1),
+    3,
+    rate_denominator = matrix(1, length(y), 1),
+    per = 1
+  )
   expect_equal(rs$se[6, 1], sqrt(36 / 2), tolerance = 1e-12)
   # The window 0, 100, 0 has a residual variance of 6666.7, above its mean
   # of 33.3, so the floor does not bind and the OLS standard error stays.
@@ -438,10 +428,12 @@ test_that("identity residual variance is floored at the Poisson variance", {
 
   set.seed(20261022L)
   out <- short_term_trend(
-    ens_1draw(y[1:6]),
+    ens_1draw(y[1:6], rep(1, 6)),
     measure = "cases",
     trend_isoyearweeks = 3,
-    family = "identity"
+    family = "identity",
+    denominator = "tested",
+    per = 1
   )
   pr <- out$data[["cases_trend_increasing_pr"]][3:6]
   expect_true(all(pr > 0 & pr < 1))
@@ -476,6 +468,7 @@ test_that("the identity floor on a rate is the Poisson variance of the rate", {
   expect_true(all(pr > 0 & pr < 1))
 })
 
+
 test_that("the identity floor on a rate does not bind on overdispersed rates", {
   # The window 10, 12.5, 11 has a residual variance of 2.67. The rate floor is
   # 11.17 * 100 / 2000 = 0.56, so the OLS standard error stays. The count
@@ -493,6 +486,40 @@ test_that("the identity floor on a rate does not bind on overdispersed rates", {
     summary(ols)$coefficients[2, 2],
     tolerance = 1e-10
   )
+})
+
+
+test_that("identity without a denominator has no variance floor", {
+  # The documented behaviour: with no denominator, `se` is the OLS standard
+  # error. The window 39, 36, 33 is an exact line, so its `se` is 0, and its
+  # P(increasing) is exactly 0.
+  y <- c(30, 33, 36, 39, 36, 33)
+  rs <- rolling_slope_matrix(matrix(y, ncol = 1), 3)
+  expect_identical(rs$se[6, 1], 0)
+  set.seed(20261022L)
+  out <- short_term_trend(
+    ens_1draw(y),
+    measure = "cases",
+    trend_isoyearweeks = 3,
+    family = "identity"
+  )
+  expect_identical(out$data[["cases_trend_increasing_pr"]][6], 0)
+
+  # On counts with noise, every `se` equals the OLS standard error of lm().
+  set.seed(1)
+  Y <- matrix(stats::rpois(20 * 4, 30), nrow = 20)
+  rs <- rolling_slope_matrix(Y, 4)
+  ref <- matrix(NA_real_, 20, 4)
+  for (j in 1:4) {
+    for (i in 4:20) {
+      fit <- stats::lm(
+        yy ~ tt,
+        data = data.frame(yy = Y[(i - 3):i, j], tt = 1:4)
+      )
+      ref[i, j] <- summary(fit)$coefficients[2, 2]
+    }
+  }
+  expect_equal(rs$se[4:20, ], ref[4:20, ], tolerance = 1e-9)
 })
 
 test_that("family = 'binomial' matches a per-window weighted glm", {

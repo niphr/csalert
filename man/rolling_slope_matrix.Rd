@@ -33,7 +33,9 @@ with one column. Only \code{family = "binomial"} takes it, and it needs it.}
 did not converge.}
 
 \item{rate_denominator}{The denominators of a rate, a matrix the shape of
-\code{Y} or with one column. Give it when \code{Y} is a rate, \code{per * count / denominator}. Only \code{family = "identity"} takes it.}
+\code{Y} or with one column. Only \code{family = "identity"} takes it. It turns on
+the variance floor, see the return value. For a count, give a denominator
+of 1 and \code{per = 1}.}
 
 \item{per}{The scale of the rate in \code{Y}, such as \code{100} for a percentage.
 Only used with \code{rate_denominator}.}
@@ -41,10 +43,11 @@ Only used with \code{rate_denominator}.}
 \value{
 A list of four matrices, each the shape of \code{Y}: \code{beta0}, \code{beta1},
 \code{se} and \code{converged}. \code{se} is the standard error of \code{beta1}, a Wald
-standard error under IRLS. Under \code{"identity"}, the residual variance of
-\code{se} has a floor at the Poisson variance. For a count, that is the mean of
-the window. For a rate, it is \code{mean(Y) * per / mean(rate_denominator)} over
-the window. The logical \code{converged} is \code{NA} on the first \code{width - 1} rows.
+standard error under IRLS. Under \code{"identity"} with \code{rate_denominator},
+the residual variance of \code{se} has a floor at the Poisson variance,
+\code{mean(Y) * per / mean(rate_denominator)} over the window. Without
+\code{rate_denominator}, \code{se} is the OLS standard error, with no floor. The
+logical \code{converged} is \code{NA} on the first \code{width - 1} rows.
 }
 \description{
 Fits \code{y ~ 1 + t}, with \code{t} from 1 to \code{width}, to each window of \code{width} rows in
@@ -79,8 +82,7 @@ head(rs$beta1, 3)
 # the later rows find the slope, one estimate per draw
 round(rs$beta1[8:10, ], 2)
 
-# `se` is the standard error of the slope. Here the residual variance is
-# below the window mean, so the floor sets it.
+# `se` is the OLS standard error of the slope
 round(rs$se[10, ], 2)
 
 # a log link: counts that rise by 0.2 per week on the log scale

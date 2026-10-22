@@ -51,16 +51,18 @@
 #' @param maxit The most iterations. A window that still moves more than `tol`
 #'   did not converge.
 #' @param rate_denominator The denominators of a rate, a matrix the shape of
-#'   `Y` or with one column. Give it when `Y` is a rate, `per * count /
-#'   denominator`. Only `family = "identity"` takes it.
+#'   `Y` or with one column. Only `family = "identity"` takes it. It turns on
+#'   the variance floor, see the return value. For a count, give a denominator
+#'   of 1 and `per = 1`.
 #' @param per The scale of the rate in `Y`, such as `100` for a percentage.
 #'   Only used with `rate_denominator`.
 #' @returns A list of four matrices, each the shape of `Y`: `beta0`, `beta1`,
 #'   `se` and `converged`. `se` is the standard error of `beta1`, a Wald
-#'   standard error under IRLS. Under `"identity"`, the residual variance of
-#'   `se` has a floor at the Poisson variance. For a count, that is the mean of
-#'   the window. For a rate, it is `mean(Y) * per / mean(rate_denominator)` over
-#'   the window. The logical `converged` is `NA` on the first `width - 1` rows.
+#'   standard error under IRLS. Under `"identity"` with `rate_denominator`,
+#'   the residual variance of `se` has a floor at the Poisson variance,
+#'   `mean(Y) * per / mean(rate_denominator)` over the window. Without
+#'   `rate_denominator`, `se` is the OLS standard error, with no floor. The
+#'   logical `converged` is `NA` on the first `width - 1` rows.
 #' @section One deliberate difference from glm:
 #' The function agrees with `stats::glm()` except on an all-zero window. There it
 #' returns `NA`, and `stats::glm()` returns a slope of 0. `stats::glm()` stops on
@@ -82,8 +84,7 @@
 #' # the later rows find the slope, one estimate per draw
 #' round(rs$beta1[8:10, ], 2)
 #'
-#' # `se` is the standard error of the slope. Here the residual variance is
-#' # below the window mean, so the floor sets it.
+#' # `se` is the OLS standard error of the slope
 #' round(rs$se[10, ], 2)
 #'
 #' # a log link: counts that rise by 0.2 per week on the log scale
@@ -138,23 +139,25 @@ rolling_slope_matrix <- function(
   beta1 <- (Stx - t_bar * Sx) / SS_t
   beta0 <- Sx / n - beta1 * t_bar
   RSS <- pmax(Sx2 - Sx^2 / n - beta1^2 * SS_t, 0)
-  # The residual variance is floored at the Poisson variance. Values on an
-  # exact line have an RSS of 0. Without the floor their `se` is 0, and
-  # P(increasing) is exactly 0 or 1. The quasi-Poisson family has the same
-  # floor, a dispersion of at least 1.
+  # With `rate_denominator`, the residual variance is floored at the Poisson
+  # variance. Values on an exact line have an RSS of 0. Without the floor their
+  # `se` is 0, and P(increasing) is exactly 0 or 1. The quasi-Poisson family
+  # has the same floor, a dispersion of at least 1.
   #
-  # For a count y ~ Poisson(lambda), Var(y) = lambda, estimated by the mean of
-  # the window. For a rate per * y / N with a known denominator N,
+  # For a rate per * y / N with y ~ Poisson(lambda) and a known denominator N,
   # Var(per * y / N) = per^2 * lambda / N^2 = rate * per / N, because
   # lambda = rate * N / per. The window estimate is
-  # mean(rate) * per / mean(N) = Sx * per / SN.
-  floor_var <- Sx / n
+  # mean(rate) * per / mean(N) = Sx * per / SN. A count is the rate with
+  # N = 1 and per = 1, where the floor is the mean count of the window.
+  #
+  # Without `rate_denominator` there is no floor. The scale of `Y` is then
+  # unknown, so any floor could be wrong without a sign.
+  sigma2 <- RSS / (n - 2)
   if (!is.null(rate_denominator)) {
     N <- stt_rate_denominator(rate_denominator, W, D)
     SN <- roll(rbind(z, matrixStats::colCumsums(N)), n)
-    floor_var <- Sx * per / SN
+    sigma2 <- pmax(sigma2, Sx * per / SN)
   }
-  sigma2 <- pmax(RSS / (n - 2), floor_var)
   se <- sqrt(sigma2 / SS_t)
   # The closed form solves each complete window in one step, so there is no
   # iteration to fail. `converged` exists so that the return shape does not
@@ -482,22 +485,23 @@ stt_error_reference <- function(family, error_reference, width) {
 #' @param denominator For `csfmt_rts_data_v1`, an optional denominator column.
 #'   For `csfmt_ensemble_v3`, the name of the draw matrix of the denominator.
 #'   `family = "binomial"` needs it, and `measure` MUST then be a proportion.
-#'   With `family = "identity"`, give it when `measure` is a rate from
-#'   [ens_add_rate()]. The variance floor is then on the scale of the rate.
-#'   `family = "quasipoisson"` rejects it.
+#'   With `family = "identity"`, it turns on the variance floor: give the
+#'   denominator of a rate from [ens_add_rate()]. For a count, give a draw
+#'   matrix of 1 and `per = 1`. `family = "quasipoisson"` rejects it.
 #' @param per For `csfmt_ensemble_v3` with `family = "identity"` and a
-#'   `denominator`: the scale of the rate, as in [ens_add_rate()].
+#'   `denominator`: the scale of the rate, as in [ens_add_rate()]. Use 1 for a
+#'   count.
 #' @param error_reference The distribution of the slope error. `"auto"` gives
 #'   `"identity"` and `"quasipoisson"` a t on `trend_isoyearweeks - 2` degrees of
 #'   freedom, the residual degrees of freedom of their dispersion. It gives
 #'   `"binomial"` a normal. At width 3 that t is a Cauchy, with heavy tails. Use
 #'   `"normal"` to match `stats::confint()`, which profiles the deviance against
 #'   an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
-#'   its standard error is never smaller than the Poisson one. The identity
-#'   residual variance is floored at the Poisson variance. That is the mean of
-#'   the window for a count, and `mean(rate) * per / mean(denominator)` for a
-#'   rate with a `denominator`. Without `denominator`, a rate gets the floor of a
-#'   count.
+#'   its standard error is never smaller than the Poisson one. With a
+#'   `denominator`, the identity residual variance is floored at the Poisson
+#'   variance, `mean(rate) * per / mean(denominator)` over the window. Without
+#'   one, it has no floor, so values on an exact line get a P(increasing) of
+#'   exactly 0 or 1.
 #' @returns The ensemble method returns `x` with the draw matrices
 #'   `<measure>_trend_beta1`, the slope per week, and `<measure>_trend_gr`, the
 #'   growth rate. It adds `<measure>_trend_increasing_pr`, the share of draws with

@@ -51,9 +51,9 @@ short_term_trend(x, ...)
 \item{denominator}{For \code{csfmt_rts_data_v1}, an optional denominator column.
 For \code{csfmt_ensemble_v3}, the name of the draw matrix of the denominator.
 \code{family = "binomial"} needs it, and \code{measure} MUST then be a proportion.
-With \code{family = "identity"}, give it when \code{measure} is a rate from
-\code{\link[=ens_add_rate]{ens_add_rate()}}. The variance floor is then on the scale of the rate.
-\code{family = "quasipoisson"} rejects it.}
+With \code{family = "identity"}, it turns on the variance floor: give the
+denominator of a rate from \code{\link[=ens_add_rate]{ens_add_rate()}}. For a count, give a draw
+matrix of 1 and \code{per = 1}. \code{family = "quasipoisson"} rejects it.}
 
 \item{prX}{The scale of the rate \code{numerator / denominator}, such as \code{100}. It
 MAY hold more than one scale.}
@@ -104,14 +104,15 @@ freedom, the residual degrees of freedom of their dispersion. It gives
 \code{"binomial"} a normal. At width 3 that t is a Cauchy, with heavy tails. Use
 \code{"normal"} to match \code{stats::confint()}, which profiles the deviance against
 an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
-its standard error is never smaller than the Poisson one. The identity
-residual variance is floored at the Poisson variance. That is the mean of
-the window for a count, and \code{mean(rate) * per / mean(denominator)} for a
-rate with a \code{denominator}. Without \code{denominator}, a rate gets the floor of a
-count.}
+its standard error is never smaller than the Poisson one. With a
+\code{denominator}, the identity residual variance is floored at the Poisson
+variance, \code{mean(rate) * per / mean(denominator)} over the window. Without
+one, it has no floor, so values on an exact line get a P(increasing) of
+exactly 0 or 1.}
 
 \item{per}{For \code{csfmt_ensemble_v3} with \code{family = "identity"} and a
-\code{denominator}: the scale of the rate, as in \code{\link[=ens_add_rate]{ens_add_rate()}}.}
+\code{denominator}: the scale of the rate, as in \code{\link[=ens_add_rate]{ens_add_rate()}}. Use 1 for a
+count.}
 }
 \value{
 The v1 method returns \code{x} with the forecast weeks added. The new

@@ -924,10 +924,12 @@ pipeline built on `stats::confint()`.
 Width 2 is an error for those two families. Both estimate a dispersion from
 `width - 2` residual degrees of freedom, so at width 2 there are none and `se`
 has no value. The quasi-Poisson dispersion is floored at 1, so its `se` is
-never smaller than the Poisson one. The identity residual variance is floored
-at the Poisson variance. For a count, that is the mean of the window. For a
-rate, it is `mean(rate) * per / mean(denominator)`, so pass `denominator` and
-`per`, as the call above does. `family = "binomial"` fixes the dispersion
+never smaller than the Poisson one. The identity residual variance has a floor
+only when you pass `denominator` and `per`, as the call above does. The floor
+is the Poisson variance of the rate, `mean(rate) * per / mean(denominator)`.
+For a count, pass a denominator of 1 and `per = 1`, which gives the mean of the
+window. Without a denominator there is no floor, and values on an exact line
+get a `p_increasing` of exactly 0 or 1. `family = "binomial"` fixes the dispersion
 at 1, and accepts width 2.
 
 The ensemble method is not the same estimator as `short_term_trend()` on a
