@@ -227,39 +227,20 @@ v4h_small <- function(measure = "cases") {
   ))
 }
 
-test_that("HLM and MEM write no percentile columns", {
+test_that("HLM writes no percentile columns", {
+  # test-v4_mem.R holds the same check for MEM, and its equivalence test
+  # checks the MEM columns, and the MEM draws with their levels, against v3.
   ens <- v4h_small()
   h <- signal_detection_hlm_v4(ens, "cases")
-  m <- suppressMessages(mem_thresholds_v4(ens, "cases"))
   pct <- "_q[0-9]{2}x[0-9]$"
   expect_identical(grep(pct, names(h$data), value = TRUE), character(0))
-  expect_identical(grep(pct, names(m$data), value = TRUE), character(0))
-  # Each step adds exactly its limits or thresholds and its shares.
+  # The step adds exactly its limit and its shares.
   expect_identical(
     setdiff(names(h$data), names(ens$data)),
     paste0("cases_hlm_", c("thr", "prob_null", "prob_high"))
   )
-  expect_identical(
-    setdiff(names(m$data), names(ens$data)),
-    c(
-      paste0("cases_mem_thr_", c("preepidemic", "medium", "high", "veryhigh")),
-      "cases_mem_n_seasons",
-      paste0(
-        "cases_mem_",
-        c("thr_postepidemic", "season_start", "season_weeks")
-      ),
-      paste0(
-        "cases_mem_prob_",
-        c("preepidemic", "low", "medium", "high", "veryhigh")
-      )
-    )
-  )
   # The level-code draws stay.
   expect_identical(attr(h$draws$cases_hlm, "levels"), c("null", "high"))
-  expect_identical(
-    attr(m$draws$cases_mem, "levels"),
-    c("preepidemic", "low", "medium", "high", "veryhigh")
-  )
 })
 
 test_that("no share of HLM or MEM is NaN on a week with no draw", {
