@@ -5,6 +5,7 @@
 - `signal_detection_hlm()` on a `csfmt_ensemble_v3`, and `signal_detection_hlm_v4()`, flag a draw above the limit as high, as the v1 method does. Before, a draw at the limit was high. In 2026.10.18, this rule alone separated v4 from v1 in 965 NorSySS weeks with a rate and a limit of 0.
 - `signal_detection_hlm_v4()` stops when a series is not one row per ISO week, as `short_term_trend_v4()` does. Its baseline counts back 52 rows a year, so a missing week shifted the baseline without a warning.
 - `vignette("csalert")`, the README and the home page mention the v4 functions. The vignette heading "Use the ensemble methods" is now "Which methods to use", because it covers the table methods too.
+- `Config/roxygen2/version` is 8.1.1, the roxygen2 that writes the help pages. `roxygen2::roxygenise()` moved it from 8.0.0 in 2026.10.16, and the package keeps it.
 
 # Version 2026.10.19
 
