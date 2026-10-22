@@ -38,19 +38,18 @@ of a measure comes from its name and seed 4, so it does not depend on the
 order of the rebuilds. Two measures, and two weeks of a series, get
 independent u, as the numerator and the denominator of \code{\link[=nowcast_ecdf_v4]{nowcast_ecdf_v4()}}
 are independent. The value of a draw is u through the quantile function of
-the row. That function
-interpolates linearly between the 9 stored percentiles, and it is flat
-below 2.5\% and above 97.5\%. A row with \code{NA} percentiles gets its point
+the row. That function passes through the 9 stored percentiles, and it is
+flat below 2.5\% and above 97.5\%. A row with \code{NA} percentiles gets its point
 value in every draw.
 
-On a right-skewed row, the linear interpolation puts too many draws above
-the true quantile function between two stored percentiles. The error is
-largest between the 75\% and the 90\% percentile, the widest gap above the
-median. It is the cause of the main disagreement on a replay of luftvei
-data, with 24 indicators and 53 as-of dates. In the 1,272 newest weeks, HLM
-P(high) from rebuilt draws was within 0.05 of the full draws in 92.3\%. At
-the older horizons, the limit lies outside the draws, and P(high) agreed in
-100\%.
+Between two stored percentiles, a row whose 9 percentiles are all 0 or more
+is interpolated linearly on the \code{log1p()} scale. A row with a negative
+percentile is interpolated linearly. Counts and rates are right-skewed, and
+a straight line on their own scale puts too many draws in the upper tail.
+On a replay of luftvei data, with 24 indicators and 53 as-of dates, this
+rule raised the agreement of HLM P(high) with the full draws. In the 1,272
+newest weeks, it was within 0.05 in 95.0\%, against 92.3\% with the straight
+line. At the older horizons it was 100\% with both rules.
 
 A rate rebuilt from its own percentiles keeps the stored distribution of
 the rate. A rate added again from its rebuilt parts with \code{\link[=ens_add_rate_v4]{ens_add_rate_v4()}}

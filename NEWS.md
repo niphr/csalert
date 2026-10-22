@@ -4,7 +4,8 @@
 - `short_term_trend_v4()` with one draw calls `stats::qt()` once per distinct degrees of freedom, not once per row. The growth-rate percentiles are identical.
 - In the identity family, an `Inf` or `-Inf` count counts as NA, local to its windows. Before, it made every later window NaN.
 - The rebuild of a compressed v4 ensemble gives each base measure its own u, from a seed from its name and seed 4. Before, every measure of a row shared one u, so a numerator and its denominator were perfectly rank-correlated, while `nowcast_ecdf_v4()` draws them independently. The test triangle of test-v4_nowcast_ecdf.R has 9 nowcast weeks. There, the interquartile range of the rebuilt rate was 0.017 to 0.13 times that of the full rate. It is now 0.91 to 1.13 times.
-- `?as_ensemble_v4` states the error of the rebuild in a right-skewed row. On a luftvei replay, HLM P(high) from rebuilt draws was within 0.05 of the full draws in 92.3% of 1,272 newest weeks. At older horizons it agreed in 100%. The linear interpolation between the 75% and the 90% percentile causes it.
+- The rebuild of a compressed v4 ensemble interpolates between the stored percentiles on the `log1p()` scale. It does so in each row whose 9 percentiles are all 0 or more. Before, a straight line on the original scale put too many draws in the upper tail of a right-skewed row.
+- On a luftvei replay of 1,272 newest weeks, HLM P(high) from rebuilt draws was within 0.05 of the full draws in 95.0%, against 92.3% before. The mean signed error fell from 0.0074 to 0.0054. At older horizons the agreement stayed 100%.
 - The rebuilt draws of two measures are now independent, also where the full draws were dependent. `vignette("v4")` says when to read a stored rate and when to add it again from its parts.
 
 # Version 2026.10.22

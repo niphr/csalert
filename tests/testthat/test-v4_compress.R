@@ -266,6 +266,32 @@ test_that("the measures of one week have independent u", {
   expect_true(all(abs(rho) < 0.1))
 })
 
+test_that("a right-skewed row rebuilds the right share above a limit between the 75% and 90% percentiles", {
+  # The quantile function Q(p) = expm1(log(100) + 6 * p) is right-skewed:
+  # Q(0.975) is 17 times Q(0.5). Its log1p() is a straight line, so the
+  # log1p() interpolation is exact, and 15% of the draws lie above Q(0.85).
+  # A straight line on the original scale would put 16.5% there.
+  qf <- function(p) {
+    return(expm1(log(100) + 6 * p))
+  }
+  n_week <- 20L
+  tab <- data.table::data.table(
+    location_code = "a",
+    isoyearweek = sprintf("2023-%02d", seq_len(n_week)),
+    cases = qf(0.5)
+  )
+  for (k in seq_along(v4c_probs)) {
+    tab[, (v4c_qcols("cases")[k]) := qf(v4c_probs[k])]
+  }
+  y <- as_ensemble_v4(tab, "location_code", n_sim = 20000L)
+  R <- .v4_draws(y, "cases")
+  # 400,000 draws: the standard error of a share of 0.15 is 0.00056.
+  expect_lt(abs(mean(R > qf(0.85)) - 0.15), 0.003)
+  # The stored percentiles stay exact, also on the log1p() scale.
+  expect_identical(matrixStats::rowMins(R), rep(qf(0.025), n_week))
+  expect_identical(matrixStats::rowMaxs(R), rep(qf(0.975), n_week))
+})
+
 test_that("the rebuilt tails are flat at the stored 2.5% and 97.5%, and the quartiles hold at n_sim = 20,000", {
   tab <- ens_compress_v4(v4c_cont())
   y <- as_ensemble_v4(tab, id_cols = "location_code", n_sim = 20000L)

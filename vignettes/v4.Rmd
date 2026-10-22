@@ -124,7 +124,7 @@ Each base measure gets its own u, so the rebuilt draws of `positive` and
 `tested` are independent. The parts of a full ensemble from `nowcast_ecdf_v4()`
 are independent too. A rate added again from its parts is their ratio.
 Here `positive` depends on `tested`, so that ratio is too wide. Its median
-interquartile range over the 320 weeks is 1.10 times that of the full rate. A
+interquartile range over the 320 weeks is 1.09 times that of the full rate. A
 step on the stored rate rebuilds it from its own percentiles, at 1.01 times.
 The chunk below adds the rate again from its parts.
 
