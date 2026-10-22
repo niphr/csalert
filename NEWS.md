@@ -2,6 +2,7 @@
 
 - An NA count in the identity family of `rolling_slope_matrix()`, and so of the ensemble `short_term_trend()`, gives NA only in the windows that hold its week. Before, the cumulative sums carried it into every later window, also those of each later series in the same ensemble. The other two families were already local.
 - The rebuild of a compressed v4 ensemble gives each base measure its own u, from a seed from its name and seed 4. Before, every measure of a row shared one u, so a numerator and its denominator were perfectly rank-correlated, while `nowcast_ecdf_v4()` draws them independently. The test triangle of test-v4_nowcast_ecdf.R has 9 nowcast weeks. There, the interquartile range of the rebuilt rate was 0.017 to 0.13 times that of the full rate. It is now 0.91 to 1.13 times.
+- `?as_ensemble_v4` states the error of the rebuild in a right-skewed row. On a luftvei replay, HLM P(high) from rebuilt draws was within 0.05 of the full draws in 92.3% of 1,272 newest weeks. At older horizons it agreed in 100%. The linear interpolation between the 75% and the 90% percentile causes it.
 - The rebuilt draws of two measures are now independent, also where the full draws were dependent. `vignette("v4")` says when to read a stored rate and when to add it again from its parts.
 
 # Version 2026.10.22

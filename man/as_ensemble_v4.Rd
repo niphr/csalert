@@ -43,6 +43,15 @@ interpolates linearly between the 9 stored percentiles, and it is flat
 below 2.5\% and above 97.5\%. A row with \code{NA} percentiles gets its point
 value in every draw.
 
+On a right-skewed row, the linear interpolation puts too many draws above
+the true quantile function between two stored percentiles. The error is
+largest between the 75\% and the 90\% percentile, the widest gap above the
+median. It is the cause of the main disagreement on a replay of luftvei
+data, with 24 indicators and 53 as-of dates. In the 1,272 newest weeks, HLM
+P(high) from rebuilt draws was within 0.05 of the full draws in 92.3\%. At
+the older horizons, the limit lies outside the draws, and P(high) agreed in
+100\%.
+
 A rate rebuilt from its own percentiles keeps the stored distribution of
 the rate. A rate added again from its rebuilt parts with \code{\link[=ens_add_rate_v4]{ens_add_rate_v4()}}
 is the ratio of independent draws, as in a full ensemble from
