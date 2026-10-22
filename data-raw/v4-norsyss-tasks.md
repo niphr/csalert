@@ -31,14 +31,14 @@ x <- csfmt_ensemble_v4(
 The SQL below shows each table as cs9 and csdb 2026.10.18 create it. The compute measurement of 2026-10-17 read these definitions from PostgreSQL 18.
 
 - In the cs9 `field_types`, write `TEXT` for a text column, which csdb creates as `character varying`. Write `DOUBLE`, which csdb creates as `double precision`. A season count is `INTEGER`.
-- cs9 adds the column `auto_last_updated_datetime` to every table. The task does not write it.
+- cs9 adds the column `auto_last_updated_datetime` to every table. The task does not write it. cs9 sets it to the time of the write. Each insert and upsert method of `DBTableExtended_v9` sets it, and so do the partitioned insert and a staged write. The cs9 code at 8ca2914 does this at `R/r6_DBTableExtended_v9.R` lines 49, 61, 94 and 106, `R/r6_DBPartitionedTableExtended_v9.R` line 197 and `R/run_staging.R` line 470.
 - Tasks 1 and 2 write a partitioned table. Their cs9 `keys` are the 5 identity columns other than `icpc2grp_tag`, and `isoyearweek`. cs9 adds the partition column `icpc2grp_tag` itself. That column allows `NULL` and is not in the unique index. Every row of a partition has the same tag, so the index still keeps the rows unique.
 - Task 3 writes a table with no partitions. Its `keys` are the 6 identity columns and `isoyearweek`, so `icpc2grp_tag` is `NOT NULL` and in the unique index.
 - Each table has its unique index and no other index. Do not add the `ind1` index of the v1 tables.
 - The columns of the unique index are `NOT NULL`. Every other column allows `NULL`, because a quantile, a probability or a threshold is `NULL` where the method gives no value.
 - Each name is at most 63 UTF-8 bytes, the PostgreSQL limit. The validation script checks every table, column and partition name in this file.
 - The tables hold few of the csfmt_rts_data_v2 columns. Use `csdb::validator_field_types_blank` and `csdb::validator_field_contents_blank`.
-- Each task empties its table on the first plan and writes every week of its output. No task writes only the changed weeks.
+- Each task empties its table on the first plan and writes every week of its output. No task writes only the changed weeks, by plan decision 5.
 
 ## The plans
 
@@ -110,7 +110,7 @@ new_cols <- setdiff(names(x$data), cols)
 out <- x$data[!is.na(numerator_vs_denominator_pr100_hlm_thr), c(id_cols, "isoyearweek", new_cols), with = FALSE]
 ```
 
-Here `new_cols` are the 3 columns that the step adds, as below.
+Here `new_cols` are the 3 columns that the step adds, as below. The compute measurement of 2026-10-17 did not compare the keys of the v1 and v4 HLM tables.
 
 ```sql
 CREATE TABLE anon_lss_signals_v4 (
@@ -159,6 +159,8 @@ The task covers only `r80` and the rate of the v1 `fhi` tables. That rate is the
 
 - the per-100,000 rate of the v1 `tessy` tables;
 - the `r80` ages `015_064` and `065p`.
+
+The MEM block does not filter ages. It fits every age that the `r80` rows of the plan hold.
 
 ```sql
 CREATE TABLE anon_r80_mem_v4 (
