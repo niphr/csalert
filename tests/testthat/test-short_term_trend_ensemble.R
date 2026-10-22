@@ -447,6 +447,54 @@ test_that("identity residual variance is floored at the Poisson variance", {
   expect_true(all(pr > 0 & pr < 1))
 })
 
+test_that("the identity floor on a rate is the Poisson variance of the rate", {
+  # The rate is 100 * count / 200. The window 16, 14, 12 is an exact line, so
+  # its RSS is 0. The floor is mean(rate) * per / mean(denominator):
+  # 14 * 100 / 200 = 7, so the standard error is sqrt(7 / SS_t), SS_t = 2.
+  # The count floor, mean(rate) = 14, would give sqrt(14 / 2).
+  r <- c(10, 12, 14, 16, 14, 12)
+  rs <- rolling_slope_matrix(
+    matrix(r, ncol = 1),
+    3,
+    rate_denominator = matrix(200, 6, 1),
+    per = 100
+  )
+  expect_equal(rs$se[6, 1], sqrt(7 / 2), tolerance = 1e-12)
+  # the window 10, 12, 14: 12 * 100 / 200 = 6
+  expect_equal(rs$se[3, 1], sqrt(6 / 2), tolerance = 1e-12)
+
+  set.seed(20261022L)
+  out <- short_term_trend(
+    ens_1draw(r, rep(200, 6)),
+    measure = "cases",
+    trend_isoyearweeks = 3,
+    family = "identity",
+    denominator = "tested",
+    per = 100
+  )
+  pr <- out$data[["cases_trend_increasing_pr"]][3:6]
+  expect_true(all(pr > 0 & pr < 1))
+})
+
+test_that("the identity floor on a rate does not bind on overdispersed rates", {
+  # The window 10, 12.5, 11 has a residual variance of 2.67. The rate floor is
+  # 11.17 * 100 / 2000 = 0.56, so the OLS standard error stays. The count
+  # floor, 11.17, would bind.
+  r <- c(10, 12.5, 11)
+  rs <- rolling_slope_matrix(
+    matrix(r, ncol = 1),
+    3,
+    rate_denominator = matrix(2000, 3, 1),
+    per = 100
+  )
+  ols <- stats::lm(rr ~ tt, data = data.frame(rr = r, tt = 1:3))
+  expect_equal(
+    rs$se[3, 1],
+    summary(ols)$coefficients[2, 2],
+    tolerance = 1e-10
+  )
+})
+
 test_that("family = 'binomial' matches a per-window weighted glm", {
   tight <- stats::glm.control(epsilon = 1e-12, maxit = 100)
   n_pos <- c(2, 5, 4, 9, 8, 14, 16, 21, 24, 30, 33, 40)
@@ -700,7 +748,17 @@ test_that("the binomial denominator is required, and the others reject it", {
     short_term_trend(
       ens_1draw(y, rep(50, 5)),
       measure = "cases",
+      family = "quasipoisson",
       denominator = "tested"
+    ),
+    "only used by family"
+  )
+  expect_error(
+    rolling_slope_matrix(
+      matrix(y, ncol = 1),
+      3,
+      family = "quasipoisson",
+      rate_denominator = matrix(50, 5, 1)
     ),
     "only used by family"
   )

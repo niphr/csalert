@@ -37,6 +37,7 @@ short_term_trend(x, ...)
   family = c("identity", "quasipoisson", "binomial"),
   denominator = NULL,
   error_reference = c("auto", "normal", "t"),
+  per = 100,
   ...
 )
 }
@@ -48,9 +49,11 @@ short_term_trend(x, ...)
 \item{numerator}{The count column.}
 
 \item{denominator}{For \code{csfmt_rts_data_v1}, an optional denominator column.
-For \code{csfmt_ensemble_v3}, the draw matrix of the binomial denominator, which
-\code{family = "binomial"} needs and the other families reject. \code{measure} MUST
-then be a proportion.}
+For \code{csfmt_ensemble_v3}, the name of the draw matrix of the denominator.
+\code{family = "binomial"} needs it, and \code{measure} MUST then be a proportion.
+With \code{family = "identity"}, give it when \code{measure} is a rate from
+\code{\link[=ens_add_rate]{ens_add_rate()}}. The variance floor is then on the scale of the rate.
+\code{family = "quasipoisson"} rejects it.}
 
 \item{prX}{The scale of the rate \code{numerator / denominator}, such as \code{100}. It
 MAY hold more than one scale.}
@@ -102,8 +105,13 @@ freedom, the residual degrees of freedom of their dispersion. It gives
 \code{"normal"} to match \code{stats::confint()}, which profiles the deviance against
 an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
 its standard error is never smaller than the Poisson one. The identity
-residual variance is floored at the mean of the window, the Poisson
-variance of a count. On a rate, that floor is on the scale of the rate.}
+residual variance is floored at the Poisson variance. That is the mean of
+the window for a count, and \code{mean(rate) * per / mean(denominator)} for a
+rate with a \code{denominator}. Without \code{denominator}, a rate gets the floor of a
+count.}
+
+\item{per}{For \code{csfmt_ensemble_v3} with \code{family = "identity"} and a
+\code{denominator}: the scale of the rate, as in \code{\link[=ens_add_rate]{ens_add_rate()}}.}
 }
 \value{
 The v1 method returns \code{x} with the forecast weeks added. The new

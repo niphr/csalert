@@ -10,7 +10,9 @@ rolling_slope_matrix(
   family = c("identity", "quasipoisson", "binomial"),
   prior_weights = NULL,
   tol = 1e-10,
-  maxit = 25L
+  maxit = 25L,
+  rate_denominator = NULL,
+  per = 100
 )
 }
 \arguments{
@@ -29,13 +31,20 @@ with one column. Only \code{family = "binomial"} takes it, and it needs it.}
 
 \item{maxit}{The most iterations. A window that still moves more than \code{tol}
 did not converge.}
+
+\item{rate_denominator}{The denominators of a rate, a matrix the shape of
+\code{Y} or with one column. Give it when \code{Y} is a rate, \code{per * count / denominator}. Only \code{family = "identity"} takes it.}
+
+\item{per}{The scale of the rate in \code{Y}, such as \code{100} for a percentage.
+Only used with \code{rate_denominator}.}
 }
 \value{
 A list of four matrices, each the shape of \code{Y}: \code{beta0}, \code{beta1},
 \code{se} and \code{converged}. \code{se} is the standard error of \code{beta1}, a Wald
 standard error under IRLS. Under \code{"identity"}, the residual variance of
-\code{se} is at least the mean of the window, the Poisson variance of a count.
-The logical \code{converged} is \code{NA} on the first \code{width - 1} rows.
+\code{se} has a floor at the Poisson variance. For a count, that is the mean of
+the window. For a rate, it is \code{mean(Y) * per / mean(rate_denominator)} over
+the window. The logical \code{converged} is \code{NA} on the first \code{width - 1} rows.
 }
 \description{
 Fits \code{y ~ 1 + t}, with \code{t} from 1 to \code{width}, to each window of \code{width} rows in

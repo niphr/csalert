@@ -50,11 +50,17 @@
 #' @param tol The iteration stops when no coefficient moves more than `tol`.
 #' @param maxit The most iterations. A window that still moves more than `tol`
 #'   did not converge.
+#' @param rate_denominator The denominators of a rate, a matrix the shape of
+#'   `Y` or with one column. Give it when `Y` is a rate, `per * count /
+#'   denominator`. Only `family = "identity"` takes it.
+#' @param per The scale of the rate in `Y`, such as `100` for a percentage.
+#'   Only used with `rate_denominator`.
 #' @returns A list of four matrices, each the shape of `Y`: `beta0`, `beta1`,
 #'   `se` and `converged`. `se` is the standard error of `beta1`, a Wald
 #'   standard error under IRLS. Under `"identity"`, the residual variance of
-#'   `se` is at least the mean of the window, the Poisson variance of a count.
-#'   The logical `converged` is `NA` on the first `width - 1` rows.
+#'   `se` has a floor at the Poisson variance. For a count, that is the mean of
+#'   the window. For a rate, it is `mean(Y) * per / mean(rate_denominator)` over
+#'   the window. The logical `converged` is `NA` on the first `width - 1` rows.
 #' @section One deliberate difference from glm:
 #' The function agrees with `stats::glm()` except on an all-zero window. There it
 #' returns `NA`, and `stats::glm()` returns a slope of 0. `stats::glm()` stops on
@@ -90,12 +96,20 @@ rolling_slope_matrix <- function(
   family = c("identity", "quasipoisson", "binomial"),
   prior_weights = NULL,
   tol = 1e-10,
-  maxit = 25L
+  maxit = 25L,
+  rate_denominator = NULL,
+  per = 100
 ) {
   stopifnot(is.matrix(Y), width >= 2)
   family <- match.arg(family)
   if (!is.null(prior_weights) && family != "binomial") {
     stop("`prior_weights` is only used by family = 'binomial'", call. = FALSE)
+  }
+  if (!is.null(rate_denominator) && family != "identity") {
+    stop(
+      "`rate_denominator` is only used by family = 'identity'",
+      call. = FALSE
+    )
   }
   if (family != "identity") {
     return(rolling_irls_slope(Y, width, family, prior_weights, tol, maxit))
@@ -124,11 +138,23 @@ rolling_slope_matrix <- function(
   beta1 <- (Stx - t_bar * Sx) / SS_t
   beta0 <- Sx / n - beta1 * t_bar
   RSS <- pmax(Sx2 - Sx^2 / n - beta1^2 * SS_t, 0)
-  # The residual variance is floored at the Poisson variance, the mean count of
-  # the window. Counts on an exact line have an RSS of 0. Without the floor
-  # their `se` is 0, and P(increasing) is exactly 0 or 1. The quasi-Poisson
-  # family has the same floor, a dispersion of at least 1.
-  sigma2 <- pmax(RSS / (n - 2), Sx / n)
+  # The residual variance is floored at the Poisson variance. Values on an
+  # exact line have an RSS of 0. Without the floor their `se` is 0, and
+  # P(increasing) is exactly 0 or 1. The quasi-Poisson family has the same
+  # floor, a dispersion of at least 1.
+  #
+  # For a count y ~ Poisson(lambda), Var(y) = lambda, estimated by the mean of
+  # the window. For a rate per * y / N with a known denominator N,
+  # Var(per * y / N) = per^2 * lambda / N^2 = rate * per / N, because
+  # lambda = rate * N / per. The window estimate is
+  # mean(rate) * per / mean(N) = Sx * per / SN.
+  floor_var <- Sx / n
+  if (!is.null(rate_denominator)) {
+    N <- stt_rate_denominator(rate_denominator, W, D)
+    SN <- roll(rbind(z, matrixStats::colCumsums(N)), n)
+    floor_var <- Sx * per / SN
+  }
+  sigma2 <- pmax(RSS / (n - 2), floor_var)
   se <- sqrt(sigma2 / SS_t)
   # The closed form solves each complete window in one step, so there is no
   # iteration to fail. `converged` exists so that the return shape does not
@@ -136,6 +162,21 @@ rolling_slope_matrix <- function(
   converged <- matrix(NA, W, D)
   converged[n:W, ] <- TRUE
   return(list(beta0 = beta0, beta1 = beta1, se = se, converged = converged))
+}
+
+# The denominators of a rate, recycled to one column per draw of `Y`.
+stt_rate_denominator <- function(rate_denominator, W, D) {
+  stopifnot(is.matrix(rate_denominator), nrow(rate_denominator) == W)
+  if (ncol(rate_denominator) == 1L && D > 1L) {
+    rate_denominator <- rate_denominator[, rep(1L, D), drop = FALSE]
+  }
+  if (ncol(rate_denominator) != D) {
+    stop(
+      "`rate_denominator` must have 1 column, or as many columns as `Y`",
+      call. = FALSE
+    )
+  }
+  return(rate_denominator)
 }
 
 # The response contract for a link family. Returns `prior_weights` recycled to
@@ -328,14 +369,18 @@ rolling_irls_slope <- function(Y, width, family, prior_weights, tol, maxit) {
   ))
 }
 
-# The binomial denominator is a measure name in $draws, matching
-# ens_add_rate(). It is drawn like everything else, so it carries its own
-# uncertainty column by column.
+# The denominator is a measure name in $draws, matching ens_add_rate(). It is
+# drawn like everything else, so it carries its own uncertainty column by
+# column. The binomial family needs it. The identity family takes it to scale
+# its variance floor to a rate, and works without it on a count.
 stt_prior_weights <- function(x, family, denominator) {
-  if (family != "binomial") {
-    if (!is.null(denominator)) {
-      stop("`denominator` is only used by family = 'binomial'", call. = FALSE)
-    }
+  if (family == "quasipoisson" && !is.null(denominator)) {
+    stop(
+      "`denominator` is only used by family = 'binomial' or 'identity'",
+      call. = FALSE
+    )
+  }
+  if (family != "binomial" && is.null(denominator)) {
     return(NULL)
   }
   if (is.null(denominator)) {
@@ -435,9 +480,13 @@ stt_error_reference <- function(family, error_reference, width) {
 #'   The growth rate is then `100 * (exp(beta1) - 1)`, a percent change per
 #'   week, in the odds under `"binomial"`. A zero count needs no offset.
 #' @param denominator For `csfmt_rts_data_v1`, an optional denominator column.
-#'   For `csfmt_ensemble_v3`, the draw matrix of the binomial denominator, which
-#'   `family = "binomial"` needs and the other families reject. `measure` MUST
-#'   then be a proportion.
+#'   For `csfmt_ensemble_v3`, the name of the draw matrix of the denominator.
+#'   `family = "binomial"` needs it, and `measure` MUST then be a proportion.
+#'   With `family = "identity"`, give it when `measure` is a rate from
+#'   [ens_add_rate()]. The variance floor is then on the scale of the rate.
+#'   `family = "quasipoisson"` rejects it.
+#' @param per For `csfmt_ensemble_v3` with `family = "identity"` and a
+#'   `denominator`: the scale of the rate, as in [ens_add_rate()].
 #' @param error_reference The distribution of the slope error. `"auto"` gives
 #'   `"identity"` and `"quasipoisson"` a t on `trend_isoyearweeks - 2` degrees of
 #'   freedom, the residual degrees of freedom of their dispersion. It gives
@@ -445,8 +494,10 @@ stt_error_reference <- function(family, error_reference, width) {
 #'   `"normal"` to match `stats::confint()`, which profiles the deviance against
 #'   an asymptotic chi-squared. The quasi-Poisson dispersion is floored at 1, so
 #'   its standard error is never smaller than the Poisson one. The identity
-#'   residual variance is floored at the mean of the window, the Poisson
-#'   variance of a count. On a rate, that floor is on the scale of the rate.
+#'   residual variance is floored at the Poisson variance. That is the mean of
+#'   the window for a count, and `mean(rate) * per / mean(denominator)` for a
+#'   rate with a `denominator`. Without `denominator`, a rate gets the floor of a
+#'   count.
 #' @returns The ensemble method returns `x` with the draw matrices
 #'   `<measure>_trend_beta1`, the slope per week, and `<measure>_trend_gr`, the
 #'   growth rate. It adds `<measure>_trend_increasing_pr`, the share of draws with
@@ -460,6 +511,7 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   family = c("identity", "quasipoisson", "binomial"),
   denominator = NULL,
   error_reference = c("auto", "normal", "t"),
+  per = 100,
   ...
 ) {
   stopifnot(inherits(x, "csfmt_ensemble_v3"))
@@ -491,16 +543,18 @@ short_term_trend.csfmt_ensemble_v3 <- function(
   width <- trend_isoyearweeks
   Y <- x$draws[[measure]]
 
-  # The binomial denominator is a measure name in $draws, matching
-  # ens_add_rate(). It is drawn like everything else, so it carries its own
-  # uncertainty column by column. A single-column denominator is recycled
-  # across the draws of `measure`.
-  prior_weights <- stt_prior_weights(x, family, denominator)
+  # The denominator is a measure name in $draws, matching ens_add_rate(). A
+  # single-column denominator is recycled across the draws of `measure`. It is
+  # the binomial denominator under "binomial", and the denominator of the rate
+  # in the variance floor under "identity".
+  den <- stt_prior_weights(x, family, denominator)
   rs <- rolling_slope_matrix(
     Y,
     width,
     family = family,
-    prior_weights = prior_weights
+    prior_weights = if (family == "binomial") den,
+    rate_denominator = if (family == "identity") den,
+    per = per
   )
 
   # seam mask: windows that would straddle a series boundary

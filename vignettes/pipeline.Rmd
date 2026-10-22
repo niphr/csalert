@@ -816,7 +816,10 @@ The ensemble method fits a closed-form OLS line to the last
 two draw matrices and one column in `$data`:
 
 ```{r}
-ens_trend <- short_term_trend(ens, measure = rate, trend_isoyearweeks = 6)
+ens_trend <- short_term_trend(
+  ens, measure = rate, trend_isoyearweeks = 6,
+  denominator = "denominator_nowcasted", per = 100
+)
 setdiff(names(ens_trend$draws), names(ens$draws))
 grep("_trend_", names(ens_trend$data), value = TRUE)
 ```
@@ -844,9 +847,9 @@ tail(trend, 10)
 ```
 
 The last four rows are the nowcast weeks, and every one of their point
-estimates is negative. Each of their bands reaches above zero. The newest band
-is the widest, from -40.18 to 8.87, with `p_increasing` at 0.246. The series is
-past its winter peak, on the way into spring.
+estimates is negative. Three of the four bands lie entirely below zero. The
+newest band is the widest, from -32.10 to 5.18, with `p_increasing` at 0.152.
+The series is past its winter peak, on the way into spring.
 
 That result says the *completed* rate fell over each six-week window, given
 this nowcast. It does not say that the fall will continue. It depends on the
@@ -922,8 +925,9 @@ Width 2 is an error for those two families. Both estimate a dispersion from
 `width - 2` residual degrees of freedom, so at width 2 there are none and `se`
 has no value. The quasi-Poisson dispersion is floored at 1, so its `se` is
 never smaller than the Poisson one. The identity residual variance is floored
-at the mean of the window, the Poisson variance of a count. On a rate, that
-floor is on the scale of the rate. `family = "binomial"` fixes the dispersion
+at the Poisson variance. For a count, that is the mean of the window. For a
+rate, it is `mean(rate) * per / mean(denominator)`, so pass `denominator` and
+`per`, as the call above does. `family = "binomial"` fixes the dispersion
 at 1, and accepts width 2.
 
 The ensemble method is not the same estimator as `short_term_trend()` on a
