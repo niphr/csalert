@@ -502,17 +502,22 @@ test_that("an NA denominator affects only the windows that hold its week", {
   hole <- rolling_slope_matrix(Y, 3, rate_denominator = N_na, per = 100)
   expect_identical(which(is.na(hole$se[, 1])), 1:5)
   expect_identical(hole$se[6:20, 1], full$se[6:20, 1])
+  # A week with no one tested is the same as an NA week.
+  N_0 <- N
+  N_0[3, 1] <- 0
+  zero <- rolling_slope_matrix(Y, 3, rate_denominator = N_0, per = 100)
+  expect_identical(zero$se, hole$se)
 })
 
-test_that("a denominator or per that is not positive and finite is an error", {
+test_that("a denominator or per that is not valid is an error", {
   y <- matrix(c(10, 12, 14, 16, 14, 12), ncol = 1)
-  bad_n <- list(0, -5, Inf, -Inf)
+  bad_n <- list(-5, Inf, -Inf)
   for (v in bad_n) {
     N <- matrix(200, 6, 1)
     N[4, 1] <- v
     expect_error(
       rolling_slope_matrix(y, 3, rate_denominator = N, per = 100),
-      "`rate_denominator` must be above 0 and finite",
+      "`rate_denominator` must be 0 or more and finite",
       fixed = TRUE
     )
   }
@@ -531,13 +536,13 @@ test_that("a denominator or per that is not positive and finite is an error", {
   # the method checks the same before it fits
   expect_error(
     short_term_trend(
-      ens_1draw(c(10, 12, 14, 16, 14, 12), c(200, 200, 0, 200, 200, 200)),
+      ens_1draw(c(10, 12, 14, 16, 14, 12), c(200, 200, -5, 200, 200, 200)),
       measure = "cases",
       trend_isoyearweeks = 3,
       denominator = "tested",
       per = 100
     ),
-    "`rate_denominator` must be above 0 and finite",
+    "`rate_denominator` must be 0 or more and finite",
     fixed = TRUE
   )
 })

@@ -53,7 +53,7 @@
 #' @param rate_denominator The denominators of a rate, a matrix the shape of
 #'   `Y` or with one column. Only `family = "identity"` takes it. It turns on
 #'   the variance floor, see the return value. For a count, give a denominator
-#'   of 1 and `per = 1`. Each value MUST be above 0 and finite, or `NA`. An `NA`
+#'   of 1 and `per = 1`. Each value MUST be 0 or more and finite, or `NA`. A 0 counts as `NA`. An `NA`
 #'   week gives `NA` in the windows that hold it, and in no other window.
 #' @param per The scale of the rate in `Y`, such as `100` for a percentage.
 #'   Only used with `rate_denominator`. It MUST be one number above 0 and
@@ -163,7 +163,9 @@ rolling_slope_matrix <- function(
     # A cumulative sum carries an NA into every later row, so an NA week would
     # remove every later window. Sum with 0 for NA, and count the NA weeks of
     # each window: only a window that holds one gets NA.
-    N_na <- is.na(N)
+    # A week with no one tested has no rate, so a denominator of 0 counts as
+    # NA, as in ens_add_rate().
+    N_na <- is.na(N) | N == 0
     N[N_na] <- 0
     SN <- roll(rbind(z, matrixStats::colCumsums(N)), n)
     n_na <- roll(rbind(z, matrixStats::colCumsums(N_na + 0)), n)
@@ -179,15 +181,15 @@ rolling_slope_matrix <- function(
   return(list(beta0 = beta0, beta1 = beta1, se = se, converged = converged))
 }
 
-# Stop unless every denominator that is not NA is above 0 and finite, and
-# `per` is one number above 0 and finite. A zero or negative denominator has
-# no Poisson variance, and Inf gives a floor of 0 without a sign.
+# Stop unless every denominator that is not NA is 0 or more and finite, and
+# `per` is one number above 0 and finite. A negative denominator is an error
+# in the data, and Inf gives a floor of 0 without a sign. A 0 is treated as NA
+# by rolling_slope_matrix().
 stt_check_rate <- function(rate_denominator, per) {
   v <- rate_denominator[!is.na(rate_denominator)]
-  if (!is.numeric(v) || any(!is.finite(v) | v <= 0)) {
+  if (!is.numeric(v) || any(!is.finite(v) | v < 0)) {
     stop(
-      "`rate_denominator` must be above 0 and finite, or NA. ",
-      "Set a week with a denominator of 0 to NA.",
+      "`rate_denominator` must be 0 or more and finite, or NA.",
       call. = FALSE
     )
   }
