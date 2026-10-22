@@ -39,7 +39,8 @@
 # 2. HLM: v4 "high" agrees with v1 "high" in >= 98% of the eligible weeks,
 #    pooled. A week is eligible when its v1 label is not "training" or
 #    "forecast", and v4 has a limit. The weeks where the v4 value equals the
-#    v4 limit are counted apart, because v1 uses `>` and v4 `>=`.
+#    v4 limit are counted apart. Up to csalert 2026.10.19, v4 flagged them
+#    high and v1 did not. Both use `>` since 2026.10.22.
 # 3. MEM: in each r80 season that both fit, each of the 4 v4 thresholds in
 #    the table out of the MEM block is within 0.5% of the v1 fit. The tolerance covers the csv rate, which is
 #    rounded to 3 decimals. The table holds the 3 fit fields of v1. In each

@@ -21,7 +21,7 @@
 #' has an `NA` in them, gets no limit. A year back is 52 rows, so across a
 #' 53-week ISO year the baseline is one week off.
 #'
-#' A draw at or above the limit is `high`, and otherwise `null`. A draw with
+#' A draw above the limit is `high`, and otherwise `null`, as in v1. A draw with
 #' no limit, or an `NA` draw, gets `NA`. The share of draws at a level
 #' describes the nowcast uncertainty. It is not a p-value, a posterior
 #' probability or a false-alarm rate.
@@ -70,7 +70,7 @@ signal_detection_hlm_v4 <- function(x, measure, baseline_isoyears = 5) {
     baseline_isoyears = baseline_isoyears
   )
   # 1 for null and 2 for high. NA where the week has no limit.
-  code <- 1L + (Y >= thr)
+  code <- 1L + (Y > thr)
   code <- matrix(as.integer(code), nrow = nrow(Y), ncol = ncol(Y))
   attr(code, "levels") <- .V4_HLM_LEVELS
 

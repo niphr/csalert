@@ -48,3 +48,16 @@ test_that("hlm status collapses to exceedance probabilities", {
   expect_true("rate_hlmstatus_prob_high" %in% names(out))
   expect_equal(out[out$isoyearweek == spike][["rate_hlmstatus_prob_high"]], 1)
 })
+
+test_that("a value at the limit is not high, as in v1", {
+  # A series of zeros has a limit of 0. v1 flags `value > limit`, so a rate of
+  # 0 at a limit of 0 is null, not high.
+  z <- mk_baseline_ensemble()
+  z$ens$draws$rate[] <- 0
+  out <- signal_detection_hlm(z$ens, measure = "rate", baseline_isoyears = 3)
+  has <- !is.na(out$data$hlm_threshold)
+  expect_gt(sum(has), 0L)
+  expect_true(all(out$data$hlm_threshold[has] == 0))
+  key <- csfmt_var("rate", role = "hlmstatus")
+  expect_true(all(out$draws[[key]][has, ] == 1L)) # null
+})

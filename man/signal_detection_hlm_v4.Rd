@@ -44,7 +44,7 @@ back in the same series, each with its two neighbours. The limit is
 has an \code{NA} in them, gets no limit. A year back is 52 rows, so across a
 53-week ISO year the baseline is one week off.
 
-A draw at or above the limit is \code{high}, and otherwise \code{null}. A draw with
+A draw above the limit is \code{high}, and otherwise \code{null}, as in v1. A draw with
 no limit, or an \code{NA} draw, gets \code{NA}. The share of draws at a level
 describes the nowcast uncertainty. It is not a p-value, a posterior
 probability or a false-alarm rate.

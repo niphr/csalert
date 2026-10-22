@@ -10,9 +10,10 @@
 #' @method signal_detection_hlm csfmt_ensemble_v3
 #' @rdname signal_detection_hlm
 #' @section The csfmt_ensemble_v3 method:
-#' The baseline uses the median of the draws of each earlier week. A draw at or
-#' above the limit is `high`, and otherwise `null`. After [ens_collapse()],
-#' `<measure>_hlmstatus_prob_high` is the share of draws at or above the limit.
+#' The baseline uses the median of the draws of each earlier week. A draw above
+#' the limit is `high`, and otherwise `null`, as in the v1 method. After
+#' [ens_collapse()], `<measure>_hlmstatus_prob_high` is the share of draws above
+#' the limit.
 #' That share describes the nowcast uncertainty. It is not a p-value, a posterior
 #' probability or a false-alarm rate.
 #' @param measure The draw matrix to compare with the limit.
@@ -57,7 +58,7 @@ signal_detection_hlm.csfmt_ensemble_v3 <- function(
   thr <- stats::qnorm(0.995, bmean, bsd)
 
   x$data[, hlm_threshold := thr]
-  code <- 1L + (Y >= thr) # 1 null, 2 high; NA where no baseline
+  code <- 1L + (Y > thr) # 1 null, 2 high; NA where no baseline
   code <- matrix(as.integer(code), nrow = nrow(Y), ncol = ncol(Y))
   attr(code, "levels") <- c("null", "high")
   x$draws[[csfmt_var(measure, role = "hlmstatus")]] <- code

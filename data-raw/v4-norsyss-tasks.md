@@ -96,7 +96,7 @@ CREATE TABLE anon_lss_short_term_trends_v4 (
 
 ## Task 2: HLM
 
-HLM compares the rate with the limit of a 5-year baseline, as in the current task. A week is high when `numerator_vs_denominator_pr100_hlm_prob_high` is 1. v4 flags a value at the limit as high, where v1 flags only a value above it.
+HLM compares the rate with the limit of a 5-year baseline, as in the current task. A week is high when `numerator_vs_denominator_pr100_hlm_prob_high` is 1. v4 flags a value above the limit as high, as v1 does. A value at the limit is not high.
 
 A week has no limit when its baseline is not complete. The first 261 weeks of a series have no limit: 5 years of 52 weeks, and 1 more week. The task drops every row without a limit before the write, as v1 does. It drops them from the output only. The ensemble keeps them, because the limit of a later week uses them.
 

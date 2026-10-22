@@ -282,6 +282,19 @@ test_that("no share of HLM or MEM is NaN on a week with no draw", {
   }
 })
 
+test_that("a value at the limit is not high, as in v1", {
+  # A series of zeros has a limit of 0. v1 flags `value > limit`, so a rate of
+  # 0 at a limit of 0 is null, not high.
+  ens <- v4h_small()
+  ens$draws$cases[] <- 0
+  h <- signal_detection_hlm_v4(ens, "cases")
+  has <- !is.na(h$data$cases_hlm_thr)
+  expect_gt(sum(has), 0L)
+  expect_true(all(h$data$cases_hlm_thr[has] == 0))
+  expect_true(all(h$data$cases_hlm_prob_high[has] == 0))
+  expect_true(all(h$data$cases_hlm_prob_null[has] == 1))
+})
+
 test_that("a rerun on the same measure replaces the columns and the draws", {
   ens <- v4h_small()
   first <- signal_detection_hlm_v4(ens, "cases", baseline_isoyears = 5)

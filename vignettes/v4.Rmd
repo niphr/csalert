@@ -77,7 +77,7 @@ The trend models the counts of `positive` in a quasi-Poisson regression, with
 the log of `tested` as the offset. `positive_pr100_trend_pinc` is
 P(increasing). The HLM step compares each draw of the rate with a limit from
 the 5 earlier years. `positive_pr100_hlm_prob_high` is the share of the draws
-at or above that limit.
+above that limit.
 
 ## Compress to a table
 

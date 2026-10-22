@@ -115,9 +115,10 @@ out <- ens_collapse(ens, heal = TRUE)                              # then collap
 
 \section{The csfmt_ensemble_v3 method}{
 
-The baseline uses the median of the draws of each earlier week. A draw at or
-above the limit is \code{high}, and otherwise \code{null}. After \code{\link[=ens_collapse]{ens_collapse()}},
-\verb{<measure>_hlmstatus_prob_high} is the share of draws at or above the limit.
+The baseline uses the median of the draws of each earlier week. A draw above
+the limit is \code{high}, and otherwise \code{null}, as in the v1 method. After
+\code{\link[=ens_collapse]{ens_collapse()}}, \verb{<measure>_hlmstatus_prob_high} is the share of draws above
+the limit.
 That share describes the nowcast uncertainty. It is not a p-value, a posterior
 probability or a false-alarm rate.
 }
