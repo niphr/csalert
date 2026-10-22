@@ -61,6 +61,8 @@ Row \code{i} holds the fit of the window that ends on row \code{i}, so the first
 families run iteratively reweighted least squares (IRLS) on every window at
 once. A window with complete or quasi-complete separation cannot converge: its
 \code{beta0}, \code{beta1} and \code{se} are \code{NA}, and one warning gives the count.
+In every family, an \code{NA} in \code{Y} gives \code{NA} in the windows that hold it, and
+in no other window.
 }
 \section{One deliberate difference from glm}{
 

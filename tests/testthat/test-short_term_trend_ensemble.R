@@ -489,6 +489,77 @@ test_that("the identity floor on a rate does not bind on overdispersed rates", {
 })
 
 
+test_that("an NA count affects only the windows that hold its week", {
+  # Week 3 of 20 has an NA count in draw 1. At width 3 the windows that end on
+  # weeks 3, 4 and 5 hold it, so only those get NA. Every other window, and
+  # every window of draw 2, keeps the result of the complete data. The counts
+  # are integers, so the sums are exact and the values are identical().
+  set.seed(1)
+  Y <- matrix(stats::rpois(20 * 2, 30), nrow = 20)
+  Y_na <- Y
+  Y_na[3, 1] <- NA
+  N <- matrix(200, 20, 1)
+  for (den in list(NULL, N)) {
+    full <- rolling_slope_matrix(Y, 3, rate_denominator = den, per = 100)
+    hole <- rolling_slope_matrix(Y_na, 3, rate_denominator = den, per = 100)
+    for (k in c("beta0", "beta1", "se")) {
+      expect_identical(which(is.na(hole[[k]][, 1])), 1:5, label = k)
+      expect_identical(hole[[k]][6:20, 1], full[[k]][6:20, 1], label = k)
+      expect_identical(hole[[k]][, 2], full[[k]][, 2], label = k)
+    }
+    # As under IRLS, a window with an NA count is not converged.
+    expect_identical(hole$converged[3:5, 1], rep(FALSE, 3))
+    expect_true(all(hole$converged[6:20, ]))
+  }
+})
+
+test_that("an NA count in one stacked series leaves the next series untouched", {
+  wk <- cstime::dates_by_isoyearweek[isoyear == 2020]$isoyearweek
+  n1 <- length(wk)
+  d <- rbind(
+    data.table::data.table(
+      indicator = "flu",
+      location = "nation",
+      age = "total",
+      isoyearweek = wk
+    ),
+    data.table::data.table(
+      indicator = "rsv",
+      location = "nation",
+      age = "total",
+      isoyearweek = wk
+    )
+  )
+  set.seed(2)
+  M <- matrix(stats::rpois(2 * n1 * 4, 40), ncol = 4)
+  M_na <- M
+  M_na[10, ] <- NA # week 10 of series 1
+  run <- function(m) {
+    ens <- csfmt_ensemble_v3(
+      d,
+      id_cols = c("indicator", "location", "age"),
+      draws = list(cases = m)
+    )
+    set.seed(3)
+    return(short_term_trend(ens, measure = "cases", trend_isoyearweeks = 3))
+  }
+  a <- run(M)
+  b <- run(M_na)
+  s2 <- (n1 + 1):(2 * n1)
+  expect_identical(
+    b$draws[["cases_trend_beta1"]][s2, ],
+    a$draws[["cases_trend_beta1"]][s2, ]
+  )
+  expect_identical(
+    b$data$cases_trend_increasing_pr[s2],
+    a$data$cases_trend_increasing_pr[s2]
+  )
+  # In series 1, only the windows that end on weeks 10, 11 and 12 are lost.
+  s1 <- seq_len(n1)
+  lost <- which(is.na(b$data$cases_trend_increasing_pr[s1]))
+  expect_identical(lost, c(1L, 2L, 10L, 11L, 12L))
+})
+
 test_that("an NA denominator affects only the windows that hold its week", {
   # Week 3 of 20 has an NA denominator. At width 3 the windows that end on
   # weeks 3, 4 and 5 hold it, so only those get NA. Every other window keeps

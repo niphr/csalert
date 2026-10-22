@@ -1,3 +1,7 @@
+# Version 2026.10.23
+
+- An NA count in the identity family of `rolling_slope_matrix()`, and so of the ensemble `short_term_trend()`, gives NA only in the windows that hold its week. Before, the cumulative sums carried it into every later window, also those of each later series in the same ensemble. The other two families were already local.
+
 # Version 2026.10.22
 
 - The identity family of the ensemble `short_term_trend()` takes `denominator` and `per`, as `ens_add_rate()` does. With a `denominator`, the residual variance has a floor at the Poisson variance of the rate, `mean(rate) * per / mean(denominator)`. Without one, there is no floor, as before. For a count, pass a denominator of 1 and `per = 1`.

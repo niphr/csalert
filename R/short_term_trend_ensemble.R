@@ -40,6 +40,8 @@
 #' families run iteratively reweighted least squares (IRLS) on every window at
 #' once. A window with complete or quasi-complete separation cannot converge: its
 #' `beta0`, `beta1` and `se` are `NA`, and one warning gives the count.
+#' In every family, an `NA` in `Y` gives `NA` in the windows that hold it, and
+#' in no other window.
 #' @param Y A numeric matrix, rows = weeks in time order, columns = draws.
 #' @param width The window width in rows, at least 2.
 #' @param family `"identity"` is ordinary least squares. `"quasipoisson"` is a log
@@ -128,8 +130,6 @@ rolling_slope_matrix <- function(
   D <- ncol(Y)
   z <- matrix(0, 1, D)
 
-  CY0 <- rbind(z, matrixStats::colCumsums(Y)) # (W+1) x D, CY0[k]=sum Y[1..k-1]
-  CY20 <- rbind(z, matrixStats::colCumsums(Y * Y))
   roll <- function(C0, w) {
     # width-w rolling sum; NA first w-1 rows
     out <- matrix(NA_real_, W, D)
@@ -137,6 +137,15 @@ rolling_slope_matrix <- function(
       C0[1:(W - w + 1), , drop = FALSE]
     return(out)
   }
+  # A cumulative sum carries an NA into every later row, and so into every
+  # later window, also of the next series stacked in `Y`. Sum with 0 for NA,
+  # and count the NA weeks of each window: only a window that holds one gets
+  # NA, as under IRLS.
+  Y_na <- is.na(Y)
+  Y[Y_na] <- 0
+  y_na_win <- roll(rbind(z, matrixStats::colCumsums(Y_na + 0)), n) > 0
+  CY0 <- rbind(z, matrixStats::colCumsums(Y)) # (W+1) x D, CY0[k]=sum Y[1..k-1]
+  CY20 <- rbind(z, matrixStats::colCumsums(Y * Y))
   Sx <- roll(CY0, n)
   Sx2 <- roll(CY20, n)
   Stx <- Reduce(`+`, lapply(1:n, function(w) roll(CY0, w))) # sum_{w=1}^n rollsum_w
@@ -173,11 +182,16 @@ rolling_slope_matrix <- function(
     sigma2 <- pmax(sigma2, Sx * per / SN)
   }
   se <- sqrt(sigma2 / SS_t)
+  beta0[y_na_win] <- NA_real_
+  beta1[y_na_win] <- NA_real_
+  se[y_na_win] <- NA_real_
   # The closed form solves each complete window in one step, so there is no
   # iteration to fail. `converged` exists so that the return shape does not
-  # depend on the family.
+  # depend on the family. A window with an NA count is not converged, as
+  # under IRLS.
   converged <- matrix(NA, W, D)
   converged[n:W, ] <- TRUE
+  converged[which(y_na_win)] <- FALSE
   return(list(beta0 = beta0, beta1 = beta1, se = se, converged = converged))
 }
 
