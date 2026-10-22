@@ -389,7 +389,8 @@ short_term_trend_internal <- function(
   forecast_rows <- forecast_isoyearweeks
 
   trend_dates <- trend_isoyearweeks * 7 - 1
-  # ??
+  # Add a row for each of the `forecast_isoyearweeks` weeks after the last week
+  # of `x`. Those rows get the forecast.
   with_pred <- cstidy::expand_time_to(
     x,
     max_isoyearweek = cstime::date_to_isoyearweek_c(
@@ -708,7 +709,7 @@ short_term_trend.csfmt_rts_data_v1 <- function(
         alpha = alpha
       ))
     })
-    retval <- rbindlist(retval) #unlist(retval, recursive = FALSE, use.names = FALSE)
+    retval <- rbindlist(retval)
   } else {
     retval <- short_term_trend_internal(
       x,
