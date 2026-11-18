@@ -1,3 +1,8 @@
+# Version 2026.11.18
+
+- New: `delay_distribution_v1()` estimates the probability of a report on each delay day for one series of a reporting triangle, corrected for right truncation.
+- New: `outage_weeks_v1()` finds the old reference weeks whose early reports are a small share of their count, a sign of a reporting outage.
+
 # Version 2026.10.23
 
 - An NA count in the identity family of `rolling_slope_matrix()`, and so of the ensemble `short_term_trend()`, gives NA only in the windows that hold its week. Before, the cumulative sums carried it into every later window, also those of each later series in the same ensemble. The other two families were already local.
