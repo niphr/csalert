@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 2026.11.18
+
+- New:
+  [`delay_distribution_v1()`](https://niphr.github.io/csalert/reference/delay_distribution_v1.md)
+  estimates the probability of a report on each delay day for one series
+  of a reporting triangle, corrected for right truncation.
+- New:
+  [`outage_weeks_v1()`](https://niphr.github.io/csalert/reference/outage_weeks_v1.md)
+  finds the old reference weeks whose early reports are a small share of
+  their count, a sign of a reporting outage.
+
 ## Version 2026.10.23
 
 - An NA count in the identity family of

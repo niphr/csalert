@@ -114,6 +114,10 @@ arrive.
   : Measure how fast the counts of a reporting triangle arrive
 - [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
   : Reporting speed by year and by recent month, in one table
+- [`delay_distribution_v1()`](https://niphr.github.io/csalert/reference/delay_distribution_v1.md)
+  : Estimate the delay distribution of a reporting triangle
+- [`outage_weeks_v1()`](https://niphr.github.io/csalert/reference/outage_weeks_v1.md)
+  : Find the old weeks of a reporting triangle with a reporting outage
 
 ## Quality control
 
