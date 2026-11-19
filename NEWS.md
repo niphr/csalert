@@ -1,3 +1,7 @@
+# Version 2026.11.19
+
+- `mem_thresholds_v1()` and `mem_thresholds_v4()` give the season weeks to `mem::memmodel()` as its first column. mem reads a first column whose values all lie in 1 to 53 as week labels. A season fit lost the first season of its training window when that season held only counts from 1 to 53. With a repeated count the fit failed, and the season got NA thresholds with no message. On 5 synthetic series without such a season, the thresholds, the status draws and the v4 fit fields are identical() to 2026.11.18.
+
 # Version 2026.11.18
 
 - New: `delay_distribution_v1()` estimates the probability of a report on each delay day for one series of a reporting triangle, corrected for right truncation.

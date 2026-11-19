@@ -109,6 +109,18 @@ test_that("sparse (near all-zero) seasons skip cleanly -> NA, no error/noise", {
   expect_true(all(is.na(out2$data$mem_preepidemic)))
 })
 
+test_that("a season of counts from 1 to 53 is a season, not week labels", {
+  # mem::memmodel() reads a first column whose values all lie in 1:53 as week
+  # labels. Whole counts from 3 to 33 in the oldest training season, with
+  # repeats, made the fit fail, and every season got NA thresholds.
+  z <- mk_seasonal_ensemble(n_seasons = 6, baseline = 3, noise_sd = 0)
+  z$ens$draws$rate <- round(z$ens$draws$rate)
+  expect_true(all(z$ens$draws$rate >= 1 & z$ens$draws$rate <= 53))
+  out <- mem_thresholds_v1(z$ens, measure = "rate")
+  out$data[, .s := cstime::isoyearweek_to_season_c(isoyearweek)]
+  expect_false(anyNA(out$data[.s == max(.s)]$mem_preepidemic))
+})
+
 test_that("status code matrix is produced with valid ordinal codes", {
   z <- mk_seasonal_ensemble()
   out <- mem_thresholds_v1(z$ens, measure = "rate")

@@ -38,6 +38,10 @@ mem_fit <- function(model_data, i.seasons = 10) {
     return(NULL)
   }
   n_seasons <- min(i.seasons, ncol(model_data))
+  # mem::memmodel() reads a first column whose values all lie in 1:53 as week
+  # labels, so a low-count season would become row names. Give the weeks as
+  # the first column. They are 1 to n, the row names mem uses without one.
+  model_data <- cbind(week = seq_len(nrow(model_data)), as.data.frame(model_data))
   # Quiet: mem::memmodel can print/warn on marginal data; surface NA, not noise.
   fit_quiet <- function(method) {
     f <- NULL

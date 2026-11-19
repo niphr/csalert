@@ -441,3 +441,21 @@ test_that("an unknown named argument is an error", {
     "unused argument"
   )
 })
+
+test_that("a season of counts from 1 to 53 is a season, not week labels", {
+  # mem::memmodel() reads a first column whose values all lie in 1:53 as week
+  # labels. Whole counts from 3 to 33 in the oldest training season, with
+  # repeats, made the fit fail, and every season got NA thresholds.
+  weeks <- v4m_weeks(n = 320L)
+  set.seed(5)
+  cases <- matrix(round(3 + 30 * exp(-(cstime::isoyearweek_to_seasonweek_n(weeks) - 25)^2 / 40)), nrow = 320, ncol = 5)
+  expect_true(all(cases >= 1 & cases <= 53))
+  ens <- csfmt_ensemble_v4(
+    data.table::data.table(location_code = "nation", isoyearweek = weeks),
+    id_cols = "location_code",
+    draws = list(cases = cases)
+  )
+  out <- suppressMessages(mem_thresholds_v4(ens, "cases"))
+  last <- cstime::isoyearweek_to_season_c(weeks) == max(cstime::isoyearweek_to_season_c(weeks))
+  expect_false(anyNA(out$data$cases_mem_thr_preepidemic[last]))
+})
