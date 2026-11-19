@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.11.18</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.11.19</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,11 @@
       <small>Source: <a href="https://github.com/niphr/csalert/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2026.11.19" id="version-20261119">Version 2026.11.19<a class="anchor" aria-label="anchor" href="#version-20261119"></a></h2>
+<ul><li>
+<code><a href="../reference/mem_thresholds_v1.html">mem_thresholds_v1()</a></code> and <code><a href="../reference/mem_thresholds_v4.html">mem_thresholds_v4()</a></code> give the season weeks to <code><a href="https://rdrr.io/pkg/mem/man/memmodel.html" class="external-link">mem::memmodel()</a></code> as its first column. mem reads a first column whose values all lie in 1 to 53 as week labels. A season fit lost the first season of its training window when that season held only counts from 1 to 53. With a repeated count the fit failed, and the season got NA thresholds with no message. On 5 synthetic series without such a season, the thresholds, the status draws and the v4 fit fields are identical() to 2026.11.18.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2026.11.18" id="version-20261118">Version 2026.11.18<a class="anchor" aria-label="anchor" href="#version-20261118"></a></h2>
 <ul><li>New: <code><a href="../reference/delay_distribution_v1.html">delay_distribution_v1()</a></code> estimates the probability of a report on each delay day for one series of a reporting triangle, corrected for right truncation.</li>

@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 2026.11.19
+
+- [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)
+  and
+  [`mem_thresholds_v4()`](https://niphr.github.io/csalert/reference/mem_thresholds_v4.md)
+  give the season weeks to
+  [`mem::memmodel()`](https://rdrr.io/pkg/mem/man/memmodel.html) as its
+  first column. mem reads a first column whose values all lie in 1 to 53
+  as week labels. A season fit lost the first season of its training
+  window when that season held only counts from 1 to 53. With a repeated
+  count the fit failed, and the season got NA thresholds with no
+  message. On 5 synthetic series without such a season, the thresholds,
+  the status draws and the v4 fit fields are identical() to 2026.11.18.
+
 ## Version 2026.11.18
 
 - New:
