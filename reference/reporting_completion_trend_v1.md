@@ -38,6 +38,7 @@ empty when no series has enough settled weeks.
 stage 3.
 
 Other reporting completion functions:
+[`proportion_stability_v1()`](https://niphr.github.io/csalert/reference/proportion_stability_v1.md),
 [`reporting_completion_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_v1.md)
 
 ## Examples

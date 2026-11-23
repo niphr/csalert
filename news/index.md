@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 2026.11.23
+
+- New:
+  [`proportion_stability_v1()`](https://niphr.github.io/csalert/reference/proportion_stability_v1.md)
+  measures, for each delay day of a reporting triangle, how far the
+  proportion of numerator to denominator is from its settled value.
+
 ## Version 2026.11.19
 
 - [`mem_thresholds_v1()`](https://niphr.github.io/csalert/reference/mem_thresholds_v1.md)

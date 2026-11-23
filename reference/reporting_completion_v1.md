@@ -77,6 +77,7 @@ day or later. To see the tail, run it again with a larger
 stage 3, which shows how to read each column.
 
 Other reporting completion functions:
+[`proportion_stability_v1()`](https://niphr.github.io/csalert/reference/proportion_stability_v1.md),
 [`reporting_completion_trend_v1()`](https://niphr.github.io/csalert/reference/reporting_completion_trend_v1.md)
 
 ## Examples
