@@ -87,6 +87,7 @@ res[, .(isoyearweek, numerator_nowcasted_q50x0,
 | Pass an indicator through with no nowcast | `nowcast_passthrough_to_ensemble_v1()` |
 | Score a nowcast on replayed weeks | `nowcast_backtest()`, then `nowcast_score_v1()` |
 | Measure how fast cases arrive | `reporting_completion_v1()` |
+| Measure how stable a proportion is while cases arrive | `proportion_stability_v1()` |
 | Add a rate | `ens_add_rate()` |
 | Estimate recent direction, per draw | `short_term_trend()` |
 | Classify intensity by MEM thresholds | `mem_thresholds_v1()` |

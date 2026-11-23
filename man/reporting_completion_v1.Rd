@@ -96,6 +96,7 @@ head(
 read each column.
 
 Other reporting completion functions:
+\code{\link[=proportion_stability_v1]{proportion_stability_v1()}},
 \code{\link[=reporting_completion_trend_v1]{reporting_completion_trend_v1()}}
 }
 \concept{reporting completion functions}

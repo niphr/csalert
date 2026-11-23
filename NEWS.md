@@ -1,3 +1,7 @@
+# Version 2026.11.23
+
+- New: `proportion_stability_v1()` measures, for each delay day of a reporting triangle, how far the proportion of numerator to denominator is from its settled value.
+
 # Version 2026.11.19
 
 - `mem_thresholds_v1()` and `mem_thresholds_v4()` give the season weeks to `mem::memmodel()` as its first column. mem reads a first column whose values all lie in 1 to 53 as week labels. A season fit lost the first season of its training window when that season held only counts from 1 to 53. With a repeated count the fit failed, and the season got NA thresholds with no message. On 5 synthetic series without such a season, the thresholds, the status draws and the v4 fit fields are identical() to 2026.11.18.

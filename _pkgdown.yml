@@ -81,6 +81,7 @@ reference:
       - nowcast_score_v1
       - reporting_completion_v1
       - reporting_completion_trend_v1
+      - proportion_stability_v1
       - delay_distribution_v1
       - outage_weeks_v1
 

@@ -37,6 +37,7 @@ reporting_completion_trend_v1(tri, max_delay_days = 21, n_months = 6)[,
 \code{vignette("pipeline", package = "csalert")}, stage 3.
 
 Other reporting completion functions:
+\code{\link[=proportion_stability_v1]{proportion_stability_v1()}},
 \code{\link[=reporting_completion_v1]{reporting_completion_v1()}}
 }
 \concept{reporting completion functions}
