@@ -29,6 +29,27 @@
   return(round(unname(stats::quantile(x, prob, type = 7)), 2))
 }
 
+# one output row for delay column d of the settled weeks: the pooled count
+# completion and the quantiles of the proportion errors. p is the settled
+# proportion of each week, and column `last` of cum_num is the settled count.
+.ps_delay_row <- function(d, cum_num, cum_den, p, n_settled, last) {
+  # weeks with no denominator yet at this delay day have no proportion
+  e <- cum_den[, d] > 0
+  p_d <- cum_num[e, d] / cum_den[, d][e]
+  relerr <- 100 * abs(p_d / p[e] - 1)
+  abserr <- 100 * abs(p_d - p[e])
+  return(data.table::data.table(
+    n_settled = n_settled,
+    n_eval = sum(e),
+    delay = d - 1L,
+    pct_count = round(100 * sum(cum_num[, d]) / sum(cum_num[, last]), 1),
+    prop_relerr_p50 = .ps_quantile(relerr, 0.5),
+    prop_relerr_p90 = .ps_quantile(relerr, 0.9),
+    prop_abserr_p50 = .ps_quantile(abserr, 0.5),
+    prop_abserr_p90 = .ps_quantile(abserr, 0.9)
+  ))
+}
+
 #' Measure how stable a proportion is at each delay day of a reporting triangle
 #'
 #' For each delay day, compares the proportion of numerator to denominator seen
@@ -163,24 +184,15 @@ proportion_stability_v1 <- function(
     p <- cum_num[, last] / cum_den[, last]
     ids <- unique(d_tri[time_series_id == tsid, id_cols, with = FALSE])[1]
 
-    rows <- vector("list", max_delay_days)
-    for (d in seq_len(max_delay_days)) {
-      # weeks with no denominator yet at this delay day have no proportion
-      e <- cum_den[, d] > 0
-      p_d <- cum_num[e, d] / cum_den[, d][e]
-      relerr <- 100 * abs(p_d / p[e] - 1)
-      abserr <- 100 * abs(p_d - p[e])
-      rows[[d]] <- data.table::data.table(
-        n_settled = sum(ok),
-        n_eval = sum(e),
-        delay = d - 1L,
-        pct_count = round(100 * sum(cum_num[, d]) / sum(cum_num[, last]), 1),
-        prop_relerr_p50 = .ps_quantile(relerr, 0.5),
-        prop_relerr_p90 = .ps_quantile(relerr, 0.9),
-        prop_abserr_p50 = .ps_quantile(abserr, 0.5),
-        prop_abserr_p90 = .ps_quantile(abserr, 0.9)
-      )
-    }
+    rows <- lapply(
+      seq_len(max_delay_days),
+      .ps_delay_row,
+      cum_num = cum_num,
+      cum_den = cum_den,
+      p = p,
+      n_settled = sum(ok),
+      last = last
+    )
     out[[tsid]] <- data.table::data.table(ids, data.table::rbindlist(rows))
   }
   return(data.table::rbindlist(out, fill = TRUE))
