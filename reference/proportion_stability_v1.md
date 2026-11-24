@@ -39,8 +39,9 @@ proportion_stability_v1(
 ## Value
 
 A data.table with one row per series and delay day: the identity
-columns, `n_settled`, `n_eval`, `delay`, `pct_count`, `prop_relerr_p50`,
-`prop_relerr_p90`, `prop_abserr_p50` and `prop_abserr_p90`.
+columns, `n_settled`, `n_eval`, `delay`, `day_after`, `week_after`,
+`pct_count`, `prop_relerr_p50`, `prop_relerr_p90`, `prop_abserr_p50` and
+`prop_abserr_p90`.
 
 - `n_settled`: the settled weeks that the function uses.
 
@@ -48,6 +49,12 @@ columns, `n_settled`, `n_eval`, `delay`, `pct_count`, `prop_relerr_p50`,
   0 at delay day `delay`.
 
 - `delay`: the delay day, an integer from 0 to `max_delay_days - 1`.
+
+- `day_after`: the integer `delay - 6`. Day 1 is the Monday after the
+  reference week.
+
+- `week_after`: the integer `delay / 7` where `delay` is a multiple of
+  7, and `NA` on every other day.
 
 - `pct_count`: the pooled cumulative numerator at `delay`, in percent of
   the pooled settled numerator, over the `n_settled` weeks. It has 1
@@ -85,6 +92,24 @@ At delay day `d`, a week has the proportion `p_d`, its cumulative
 numerator divided by its cumulative denominator. Its settled proportion
 is `p`. A week with a cumulative denominator of 0 at day `d` is not used
 at that day.
+
+## Delay convention
+
+Delay day 0 is the Monday of the reference ISO week, and delay `d` is
+`d` days after it. NorSySS readers count from the end of the week
+instead. The columns `day_after` and `week_after` give their count.
+
+- `day_after` k is the k-th day after the week, so day 1 is the Monday
+  after the week. The values from -6 to 0 are days inside the week: -6
+  is its Monday, and 0 is the Sunday that ends it.
+
+- `week_after` k is the Monday k weeks after the week, so week 1 is day
+  1 and week 2 is day 8.
+
+For example, week 2026-46 starts on Monday 2026-11-09. Delay 7 is Monday
+2026-11-16, which is day 1 and week 1. Delay 14 is day 8 and week 2. A
+horizon of 63 days, 9 weeks, puts week 8 at delay 56, inside the
+horizon.
 
 ## See also
 

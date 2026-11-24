@@ -131,9 +131,9 @@ out
 # the delay distribution without the outage week
 tri_ok <- tri[!isoyearweek_reference %in% out$isoyearweek_reference]
 delay_distribution_v1(tri_ok, 21)[p > 0]
-#>    delay          p
-#>    <int>      <num>
-#> 1:     3 0.58655725
-#> 2:    10 0.31371523
-#> 3:    17 0.09972752
+#>    delay day_after week_after          p
+#>    <int>     <int>      <int>      <num>
+#> 1:     3        -3         NA 0.58655725
+#> 2:    10         4         NA 0.31371523
+#> 3:    17        11         NA 0.09972752
 ```

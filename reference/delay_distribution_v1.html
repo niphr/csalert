@@ -11,7 +11,7 @@ for the weeks that are not fully reported yet."><meta property="og:image" conten
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.11.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.11.24</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,10 +85,14 @@ columns of <code>x</code>.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data.table with one row per delay day: <code>delay</code>, an integer from 0
-to <code>max_delay_days - 1</code>, and <code>p</code>, its probability. With
-<code>max_delay_days = 1</code>, <code>p</code> is 1.</p>
-    </div>
+    <p>A data.table with one row per delay day and four columns:</p><ul><li><p><code>delay</code>: the delay day, an integer from 0 to <code>max_delay_days - 1</code>.</p></li>
+<li><p><code>day_after</code>: the integer <code>delay - 6</code>. Day 1 is the Monday after the
+reference week.</p></li>
+<li><p><code>week_after</code>: the integer <code>delay / 7</code> where <code>delay</code> is a multiple of 7,
+and <code>NA</code> on every other day.</p></li>
+<li><p><code>p</code>: the probability of a report on delay day <code>delay</code>. With
+<code>max_delay_days = 1</code>, <code>p</code> is 1.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The function uses the rows of <code><a href="reporting_triangle_matrix.html">reporting_triangle_matrix()</a></code> whose reference
@@ -104,6 +108,21 @@ estimate, so <code>p</code> is conditional on a report within the horizon.</p>
 <p>The function does not choose a window of weeks. It also keeps the weeks with
 a reporting outage, which <code><a href="outage_weeks_v1.html">outage_weeks_v1()</a></code> finds. To leave weeks out,
 filter <code>x</code> before the call. A triangle filtered with <code>[</code> keeps its as-of date.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="delay-convention">Delay convention<a class="anchor" aria-label="anchor" href="#delay-convention"></a></h2>
+
+
+<p>Delay day 0 is the Monday of the reference ISO week, and delay <code>d</code> is <code>d</code>
+days after it. NorSySS readers count from the end of the week instead.
+The columns <code>day_after</code> and <code>week_after</code> give their count.</p><ul><li><p><code>day_after</code> k is the k-th day after the week, so day 1 is the Monday after
+the week. The values from -6 to 0 are days inside the week: -6 is its
+Monday, and 0 is the Sunday that ends it.</p></li>
+<li><p><code>week_after</code> k is the Monday k weeks after the week, so week 1 is day 1
+and week 2 is day 8.</p></li>
+</ul><p>For example, week 2026-46 starts on Monday 2026-11-09. Delay 7 is Monday
+2026-11-16, which is day 1 and week 1. Delay 14 is day 8 and week 2.
+A horizon of 63 days, 9 weeks, puts week 8 at delay 56, inside the horizon.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -130,19 +149,19 @@ be fully reported.</p></div>
 <span class="r-in"><span><span class="co"># this series reports on days 3, 10 and 17 after the reference Monday</span></span></span>
 <span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu">delay_distribution_v1</span><span class="op">(</span><span class="va">tri</span>, max_delay_days <span class="op">=</span> <span class="fl">21</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">[</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    delay         p</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;     &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     3 0.5850863</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:    10 0.3143283</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:    17 0.1005854</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    delay day_after week_after         p</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;     &lt;int&gt;      &lt;int&gt;     &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     3        -3         NA 0.5850863</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:    10         4         NA 0.3143283</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:    17        11         NA 0.1005854</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the last 20 reference weeks only</span></span></span>
 <span class="r-in"><span><span class="fu">delay_distribution_v1</span><span class="op">(</span><span class="va">tri</span><span class="op">[</span><span class="va">isoyearweek_reference</span> <span class="op">&gt;=</span> <span class="st">"2023-21"</span><span class="op">]</span>, <span class="fl">21</span><span class="op">)</span><span class="op">[</span><span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">]</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    delay         p</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;     &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     3 0.5773124</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:    10 0.3210895</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:    17 0.1015982</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    delay day_after week_after         p</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;     &lt;int&gt;      &lt;int&gt;     &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     3        -3         NA 0.5773124</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:    10         4         NA 0.3210895</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:    17        11         NA 0.1015982</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

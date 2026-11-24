@@ -11,7 +11,7 @@ to see how many recent weeks of a proportion are reliable."><meta property="og:i
 
     <a class="navbar-brand me-2" href="../index.html">csalert</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.11.23</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2026.11.24</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,11 +100,16 @@ It counts weeks, not days. <code>NULL</code> uses every settled week.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data.table with one row per series and delay day: the identity
-columns, <code>n_settled</code>, <code>n_eval</code>, <code>delay</code>, <code>pct_count</code>, <code>prop_relerr_p50</code>,
-<code>prop_relerr_p90</code>, <code>prop_abserr_p50</code> and <code>prop_abserr_p90</code>.</p><ul><li><p><code>n_settled</code>: the settled weeks that the function uses.</p></li>
+columns, <code>n_settled</code>, <code>n_eval</code>, <code>delay</code>, <code>day_after</code>, <code>week_after</code>,
+<code>pct_count</code>, <code>prop_relerr_p50</code>, <code>prop_relerr_p90</code>, <code>prop_abserr_p50</code> and
+<code>prop_abserr_p90</code>.</p><ul><li><p><code>n_settled</code>: the settled weeks that the function uses.</p></li>
 <li><p><code>n_eval</code>: the weeks of <code>n_settled</code> with a cumulative denominator above 0 at
 delay day <code>delay</code>.</p></li>
 <li><p><code>delay</code>: the delay day, an integer from 0 to <code>max_delay_days - 1</code>.</p></li>
+<li><p><code>day_after</code>: the integer <code>delay - 6</code>. Day 1 is the Monday after the
+reference week.</p></li>
+<li><p><code>week_after</code>: the integer <code>delay / 7</code> where <code>delay</code> is a multiple of 7,
+and <code>NA</code> on every other day.</p></li>
 <li><p><code>pct_count</code>: the pooled cumulative numerator at <code>delay</code>, in percent of the
 pooled settled numerator, over the <code>n_settled</code> weeks. It has 1 decimal.</p></li>
 <li><p><code>prop_relerr_p50</code>, <code>prop_relerr_p90</code>: the median and the 90th percentile of
@@ -129,6 +134,21 @@ fewer than 3 such weeks gets no rows, and no warning.</p>
 <p>At delay day <code>d</code>, a week has the proportion <code>p_d</code>, its cumulative numerator
 divided by its cumulative denominator. Its settled proportion is <code>p</code>. A week
 with a cumulative denominator of 0 at day <code>d</code> is not used at that day.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="delay-convention">Delay convention<a class="anchor" aria-label="anchor" href="#delay-convention"></a></h2>
+
+
+<p>Delay day 0 is the Monday of the reference ISO week, and delay <code>d</code> is <code>d</code>
+days after it. NorSySS readers count from the end of the week instead.
+The columns <code>day_after</code> and <code>week_after</code> give their count.</p><ul><li><p><code>day_after</code> k is the k-th day after the week, so day 1 is the Monday after
+the week. The values from -6 to 0 are days inside the week: -6 is its
+Monday, and 0 is the Sunday that ends it.</p></li>
+<li><p><code>week_after</code> k is the Monday k weeks after the week, so week 1 is day 1
+and week 2 is day 8.</p></li>
+</ul><p>For example, week 2026-46 starts on Monday 2026-11-09. Delay 7 is Monday
+2026-11-16, which is day 1 and week 1. Delay 14 is day 8 and week 2.
+A horizon of 63 days, 9 weeks, puts week 8 at delay 56, inside the horizon.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
