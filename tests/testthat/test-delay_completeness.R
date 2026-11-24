@@ -58,7 +58,7 @@ test_that("delay_distribution_v1 corrects a right-truncated week by hand", {
   expect_equal(attr(tri, "as_of"), as.Date("2024-01-16"))
   dd <- delay_distribution_v1(tri, max_delay_days = 3L)
   expect_s3_class(dd, "data.table")
-  expect_named(dd, c("delay", "p"))
+  expect_named(dd, c("delay", "day_after", "week_after", "p"))
   expect_identical(dd$delay, 0:2)
   # Product-limit, backwards from F(2) = 1. Weeks 1 and 2 have seen delay day
   # 2: they have 30 + 30 cases by day 1 and 40 + 40 by day 2. All three weeks
@@ -75,6 +75,13 @@ test_that("delay_distribution_v1 with max_delay_days = 1 gives p = 1", {
   dd <- delay_distribution_v1(dc_truncated_triangle(), max_delay_days = 1L)
   expect_identical(dd$delay, 0L)
   expect_equal(dd$p, 1)
+})
+
+test_that("delay_distribution_v1 gives day_after and week_after by delay day", {
+  dd <- delay_distribution_v1(dc_truncated_triangle(), max_delay_days = 57L)
+  at <- match(c(0L, 6L, 7L, 13L, 14L, 56L), dd$delay)
+  expect_identical(dd$day_after[at], c(-6L, 0L, 1L, 7L, 8L, 50L))
+  expect_identical(dd$week_after[at], c(0L, NA, 1L, NA, 2L, 8L))
 })
 
 test_that("outage_weeks_v1 flags the hand-built outage week", {

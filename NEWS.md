@@ -1,3 +1,7 @@
+# Version 2026.11.24
+
+- New: `delay_distribution_v1()` and `proportion_stability_v1()` return `day_after` and `week_after` after `delay`, the day and the week counted from the end of the reference week.
+
 # Version 2026.11.23
 
 - New: `proportion_stability_v1()` measures, for each delay day of a reporting triangle, how far the proportion of numerator to denominator is from its settled value.

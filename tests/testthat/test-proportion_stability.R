@@ -57,6 +57,8 @@ test_that("proportion_stability_v1 gives the hand-computed value of every column
       "n_settled",
       "n_eval",
       "delay",
+      "day_after",
+      "week_after",
       "pct_count",
       "prop_relerr_p50",
       "prop_relerr_p90",
@@ -85,6 +87,22 @@ test_that("proportion_stability_v1 gives the hand-computed value of every column
   expect_equal(ps$prop_relerr_p90, c(165, 42.5, 0))
   expect_equal(ps$prop_abserr_p50, c(5, 2.5, 0))
   expect_equal(ps$prop_abserr_p90, c(33, 8.5, 0))
+})
+
+test_that("proportion_stability_v1 gives day_after and week_after by delay day", {
+  # three weeks settled at max_delay_days = 57, and a week 8 weeks later that
+  # moves the as-of date to 2024-03-11
+  rows <- list(
+    list("2024-01-01", 0, 1, 5),
+    list("2024-01-08", 0, 1, 5),
+    list("2024-01-15", 0, 1, 5),
+    list("2024-03-11", 0, 1, 5)
+  )
+  ps <- proportion_stability_v1(.ps_make(.ps_tri(rows)), 57, "denominator")
+  expect_identical(ps$delay, 0:56)
+  at <- match(c(0L, 6L, 7L, 13L, 14L, 56L), ps$delay)
+  expect_identical(ps$day_after[at], c(-6L, 0L, 1L, 7L, 8L, 50L))
+  expect_identical(ps$week_after[at], c(0L, NA, 1L, NA, 2L, 8L))
 })
 
 test_that("proportion_stability_v1 errors are 0 when both counts share a delay pattern", {

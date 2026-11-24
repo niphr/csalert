@@ -15,9 +15,16 @@ columns of \code{x}.}
 \code{max_delay_days - 1}.}
 }
 \value{
-A data.table with one row per delay day: \code{delay}, an integer from 0
-to \code{max_delay_days - 1}, and \code{p}, its probability. With
+A data.table with one row per delay day and four columns:
+\itemize{
+\item \code{delay}: the delay day, an integer from 0 to \code{max_delay_days - 1}.
+\item \code{day_after}: the integer \code{delay - 6}. Day 1 is the Monday after the
+reference week.
+\item \code{week_after}: the integer \code{delay / 7} where \code{delay} is a multiple of 7,
+and \code{NA} on every other day.
+\item \code{p}: the probability of a report on delay day \code{delay}. With
 \code{max_delay_days = 1}, \code{p} is 1.
+}
 }
 \description{
 Estimates the probability that a case is reported on each delay day, from 0
@@ -41,6 +48,24 @@ The function does not choose a window of weeks. It also keeps the weeks with
 a reporting outage, which \code{\link[=outage_weeks_v1]{outage_weeks_v1()}} finds. To leave weeks out,
 filter \code{x} before the call. A triangle filtered with \code{[} keeps its as-of date.
 }
+\section{Delay convention}{
+
+Delay day 0 is the Monday of the reference ISO week, and delay \code{d} is \code{d}
+days after it. NorSySS readers count from the end of the week instead.
+The columns \code{day_after} and \code{week_after} give their count.
+\itemize{
+\item \code{day_after} k is the k-th day after the week, so day 1 is the Monday after
+the week. The values from -6 to 0 are days inside the week: -6 is its
+Monday, and 0 is the Sunday that ends it.
+\item \code{week_after} k is the Monday k weeks after the week, so week 1 is day 1
+and week 2 is day 8.
+}
+
+For example, week 2026-46 starts on Monday 2026-11-09. Delay 7 is Monday
+2026-11-16, which is day 1 and week 1. Delay 14 is day 8 and week 2.
+A horizon of 63 days, 9 weeks, puts week 8 at delay 56, inside the horizon.
+}
+
 \examples{
 monday <- as.Date("2023-01-02") + 7 * rep(0:39, each = 3)
 set.seed(1)

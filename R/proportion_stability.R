@@ -41,7 +41,7 @@
   return(data.table::data.table(
     n_settled = n_settled,
     n_eval = sum(e),
-    delay = d - 1L,
+    .delay_after_cols(d - 1L),
     pct_count = round(100 * sum(cum_num[, d]) / sum(cum_num[, last]), 1),
     prop_relerr_p50 = .ps_quantile(relerr, 0.5),
     prop_relerr_p90 = .ps_quantile(relerr, 0.9),
@@ -79,12 +79,17 @@
 #' @param delay_window Use only the settled weeks of about this many recent weeks.
 #'   It counts weeks, not days. `NULL` uses every settled week.
 #' @returns A data.table with one row per series and delay day: the identity
-#'   columns, `n_settled`, `n_eval`, `delay`, `pct_count`, `prop_relerr_p50`,
-#'   `prop_relerr_p90`, `prop_abserr_p50` and `prop_abserr_p90`.
+#'   columns, `n_settled`, `n_eval`, `delay`, `day_after`, `week_after`,
+#'   `pct_count`, `prop_relerr_p50`, `prop_relerr_p90`, `prop_abserr_p50` and
+#'   `prop_abserr_p90`.
 #' * `n_settled`: the settled weeks that the function uses.
 #' * `n_eval`: the weeks of `n_settled` with a cumulative denominator above 0 at
 #'   delay day `delay`.
 #' * `delay`: the delay day, an integer from 0 to `max_delay_days - 1`.
+#' * `day_after`: the integer `delay - 6`. Day 1 is the Monday after the
+#'   reference week.
+#' * `week_after`: the integer `delay / 7` where `delay` is a multiple of 7,
+#'   and `NA` on every other day.
 #' * `pct_count`: the pooled cumulative numerator at `delay`, in percent of the
 #'   pooled settled numerator, over the `n_settled` weeks. It has 1 decimal.
 #' * `prop_relerr_p50`, `prop_relerr_p90`: the median and the 90th percentile of
@@ -95,6 +100,7 @@
 #' The four error columns use `stats::quantile(type = 7)` over the `n_eval`
 #' weeks, and have 2 decimals. They are `NA` where `n_eval` is 0. The result is
 #' an empty data.table when no series has 3 weeks to use.
+#' @inheritSection delay_distribution_v1 Delay convention
 #' @family reporting completion functions
 #' @examples
 #' monday <- as.Date("2023-01-02") + 7 * rep(0:19, each = 2)

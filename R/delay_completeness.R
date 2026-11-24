@@ -38,6 +38,21 @@
   ))
 }
 
+# The delay column and the two columns of the reader convention, one row per
+# delay day. delay_distribution_v1() and proportion_stability_v1() both call
+# it. Delay day 0 is the reference Monday, so day_after 1 and week_after 1 are
+# both delay 7, the Monday after the week. week_after is NA on the other six
+# weekdays.
+.delay_after_cols <- function(delay) {
+  week_after <- delay %/% 7L
+  week_after[delay %% 7L != 0L] <- NA_integer_
+  return(data.table::data.table(
+    delay = delay,
+    day_after = delay - 6L,
+    week_after = week_after
+  ))
+}
+
 # .delay_probs_truncated() of luftveis. Row i of rt has seen its first
 # n_seen[i] delay days. The product-limit estimate runs backwards from the last
 # delay, where the cdf F = 1:
@@ -100,9 +115,28 @@
 #'   columns of `x`.
 #' @param max_delay_days The delay horizon in days, delay day 0 to
 #'   `max_delay_days - 1`.
-#' @returns A data.table with one row per delay day: `delay`, an integer from 0
-#'   to `max_delay_days - 1`, and `p`, its probability. With
+#' @returns A data.table with one row per delay day and four columns:
+#' * `delay`: the delay day, an integer from 0 to `max_delay_days - 1`.
+#' * `day_after`: the integer `delay - 6`. Day 1 is the Monday after the
+#'   reference week.
+#' * `week_after`: the integer `delay / 7` where `delay` is a multiple of 7,
+#'   and `NA` on every other day.
+#' * `p`: the probability of a report on delay day `delay`. With
 #'   `max_delay_days = 1`, `p` is 1.
+#' @section Delay convention:
+#' Delay day 0 is the Monday of the reference ISO week, and delay `d` is `d`
+#' days after it. NorSySS readers count from the end of the week instead.
+#' The columns `day_after` and `week_after` give their count.
+#'
+#' * `day_after` k is the k-th day after the week, so day 1 is the Monday after
+#'   the week. The values from -6 to 0 are days inside the week: -6 is its
+#'   Monday, and 0 is the Sunday that ends it.
+#' * `week_after` k is the Monday k weeks after the week, so week 1 is day 1
+#'   and week 2 is day 8.
+#'
+#' For example, week 2026-46 starts on Monday 2026-11-09. Delay 7 is Monday
+#' 2026-11-16, which is day 1 and week 1. Delay 14 is day 8 and week 2.
+#' A horizon of 63 days, 9 weeks, puts week 8 at delay 56, inside the horizon.
 #' @seealso [reporting_completion_v1()], which pools only the weeks old enough to
 #'   be fully reported.
 #' @examples
@@ -130,7 +164,7 @@
 delay_distribution_v1 <- function(x, max_delay_days) {
   r <- .dc_rows(x, max_delay_days, "delay_distribution_v1")
   return(data.table::data.table(
-    delay = seq_len(max_delay_days) - 1L,
+    .delay_after_cols(seq_len(max_delay_days) - 1L),
     p = .dc_delay_probs(r$mat, r$n_seen)
   ))
 }

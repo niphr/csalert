@@ -26,13 +26,18 @@ It counts weeks, not days. \code{NULL} uses every settled week.}
 }
 \value{
 A data.table with one row per series and delay day: the identity
-columns, \code{n_settled}, \code{n_eval}, \code{delay}, \code{pct_count}, \code{prop_relerr_p50},
-\code{prop_relerr_p90}, \code{prop_abserr_p50} and \code{prop_abserr_p90}.
+columns, \code{n_settled}, \code{n_eval}, \code{delay}, \code{day_after}, \code{week_after},
+\code{pct_count}, \code{prop_relerr_p50}, \code{prop_relerr_p90}, \code{prop_abserr_p50} and
+\code{prop_abserr_p90}.
 \itemize{
 \item \code{n_settled}: the settled weeks that the function uses.
 \item \code{n_eval}: the weeks of \code{n_settled} with a cumulative denominator above 0 at
 delay day \code{delay}.
 \item \code{delay}: the delay day, an integer from 0 to \code{max_delay_days - 1}.
+\item \code{day_after}: the integer \code{delay - 6}. Day 1 is the Monday after the
+reference week.
+\item \code{week_after}: the integer \code{delay / 7} where \code{delay} is a multiple of 7,
+and \code{NA} on every other day.
 \item \code{pct_count}: the pooled cumulative numerator at \code{delay}, in percent of the
 pooled settled numerator, over the \code{n_settled} weeks. It has 1 decimal.
 \item \code{prop_relerr_p50}, \code{prop_relerr_p90}: the median and the 90th percentile of
@@ -66,6 +71,24 @@ At delay day \code{d}, a week has the proportion \code{p_d}, its cumulative nume
 divided by its cumulative denominator. Its settled proportion is \code{p}. A week
 with a cumulative denominator of 0 at day \code{d} is not used at that day.
 }
+\section{Delay convention}{
+
+Delay day 0 is the Monday of the reference ISO week, and delay \code{d} is \code{d}
+days after it. NorSySS readers count from the end of the week instead.
+The columns \code{day_after} and \code{week_after} give their count.
+\itemize{
+\item \code{day_after} k is the k-th day after the week, so day 1 is the Monday after
+the week. The values from -6 to 0 are days inside the week: -6 is its
+Monday, and 0 is the Sunday that ends it.
+\item \code{week_after} k is the Monday k weeks after the week, so week 1 is day 1
+and week 2 is day 8.
+}
+
+For example, week 2026-46 starts on Monday 2026-11-09. Delay 7 is Monday
+2026-11-16, which is day 1 and week 1. Delay 14 is day 8 and week 2.
+A horizon of 63 days, 9 weeks, puts week 8 at delay 56, inside the horizon.
+}
+
 \examples{
 monday <- as.Date("2023-01-02") + 7 * rep(0:19, each = 2)
 d <- data.table::data.table(
